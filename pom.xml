@@ -13,11 +13,6 @@
         <github.global.server>github</github.global.server>
     </properties>
 
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>9</version>
-    </parent>
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
