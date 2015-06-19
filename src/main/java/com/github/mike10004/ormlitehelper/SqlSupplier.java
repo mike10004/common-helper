@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 /**
  * Interface for a supplier that may throw an SQL exception when it
- * supplies an instance of a class. Modeled after {@link com.google.common.base.Supplier}.
+ * supplies an instance of a class. 
  * @author mchaberski
  * @param <T> the type of object to be supplied
  */
@@ -28,10 +28,10 @@ public interface SqlSupplier<T> {
     T get() throws SQLException;
 
     /**
-     * Supplier that memoizes its delegate. This is copied from Guava.
+     * Supplier that memoizes its delegate. 
+     * This is copied from Guava: see Suppliers.memoize method.
      * @param <T>  the type of object to be memo-supplied
      * @author the Guava team
-     * @see com.google.common.base.Suppliers#memoize(com.google.common.base.Supplier) 
      */
     public static class MemoizingSqlSupplier<T> implements SqlSupplier<T> {
 
