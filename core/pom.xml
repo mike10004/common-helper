@@ -8,13 +8,12 @@
     </parent>
     <artifactId>ormlite-helper-core</artifactId>
     <packaging>jar</packaging>
-    <name>ormlite-helper-core</name>
+    <name>core</name>
     <description>Library that helps you use ORMLite</description>
 
     <properties>
-        <github.global.server>github</github.global.server>
-        <mysql-dist.version>5.5.34</mysql-dist.version><!-- see http://mvnrepository.com/artifact/com.jcabi/mysql-dist for other versions -->
-        <jcabi-mysql-maven-plugin.version>0.8.1</jcabi-mysql-maven-plugin.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <h2.version>1.4.187</h2.version>
     </properties>
 
@@ -99,29 +98,9 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.4</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals> 
-                            </execution>
-                        </executions>
                     </plugin>
                     <plugin> 
                         <artifactId>maven-javadoc-plugin</artifactId> 
-                        <version>2.10.3</version>
-                        <executions> 
-                            <execution> 
-                                <id>attach-javadocs</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals> 
-                            </execution> 
-                        </executions> 
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -151,153 +130,15 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>os-freebsd</id>
-            <activation>
-                <os>
-                    <name>FreeBSD</name>
-                </os>
-            </activation>
-            <properties>
-                <mysql-dist.version>5.5.41</mysql-dist.version>
-            </properties>
-        </profile>
-        <profile>
-            <id>os-windows</id>
-            <activation>
-                <os>
-                    <family>Windows</family>
-                </os>
-            </activation>
-            <properties> <!-- https://github.com/jcabi/jcabi-mysql-maven-plugin/issues/39 -->
-                <jcabi-mysql-maven-plugin.version>0.7</jcabi-mysql-maven-plugin.version>
-            </properties>
-        </profile>
-        <profile>
-            <id>mysql-tests</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.8</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>com.jcabi</groupId>
-                                            <artifactId>mysql-dist</artifactId>
-                                            <version>${mysql-dist.version}</version> 
-                                            <classifier>${mysql.classifier}</classifier>
-                                            <type>zip</type>
-                                            <overWrite>false</overWrite>
-                                            <outputDirectory>${project.build.directory}/mysql-dist</outputDirectory>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.jcabi</groupId>
-                        <artifactId>jcabi-mysql-maven-plugin</artifactId>
-                        <version>${jcabi-mysql-maven-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>mysql-test</id>
-                                <goals>
-                                    <goal>classify</goal>
-                                    <goal>start</goal>
-                                    <goal>stop</goal>
-                                </goals>
-                                <configuration>
-                                    <port>${mysql.port}</port>
-                                    <data>${project.build.directory}/mysql-data</data>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
     
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>2.7</version>
-                <configuration>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>2.2</version>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.18.1</version>
-                <configuration>
-                    <argLine>-Djava.awt.headless=true</argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.9.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>reserve-network-port</goal>
-                        </goals>
-                        <configuration>
-                            <portNames>
-                                <portName>mysql.port</portName>
-                            </portNames>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.18.1</version>
-                <configuration>
-                    <argLine>-Djava.awt.headless=true</argLine>
-                    <systemPropertyVariables>
-                        <mysql.port>${mysql.port}</mysql.port>
-                    </systemPropertyVariables>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>verify</id>
-                        <goals>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>        
         </plugins>
         <testResources>
             <testResource>
@@ -316,36 +157,4 @@
             </testResource>
         </testResources>
     </build>
-    
-    <url>https://github.com/mike10004/ormlite-helper</url>
-
-    <inceptionYear>2015</inceptionYear>
-
-    <licenses>
-        <license>
-            <name>MIT License</name>
-            <url>http://opensource.org/licenses/MIT</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <scm>
-        <connection>scm:git:https://github.com/mike10004/ormlite-helper.git</connection>
-        <developerConnection>scm:git:git@github.com:mike10004/ormlite-helper.git</developerConnection>
-        <url>https://github.com/mike10004/ormlite-helper/tags/0.1.0</url>
-    </scm>
-
-    <issueManagement>
-        <system>Github</system>
-        <url>https://github.com/mike10004/ormlite-helper/issues</url>
-    </issueManagement>
-
-    <developers>
-        <developer>
-            <id>mchaberski</id>
-            <name>Mike Chaberski</name>
-            <email>mchaberski+dev@gmail.com</email>
-        </developer>
-    </developers>
-
 </project>
