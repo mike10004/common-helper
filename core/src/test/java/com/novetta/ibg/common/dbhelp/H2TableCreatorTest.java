@@ -4,6 +4,7 @@
 
 package com.novetta.ibg.common.dbhelp;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.support.ConnectionSource;
@@ -43,7 +44,7 @@ public class H2TableCreatorTest {
 
         @Override
         public String toString() {
-            return Objects.toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                     .add("id", id)
                     .add("data", data)
                     .toString();

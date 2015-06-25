@@ -36,7 +36,7 @@ public class SqlSupplierTest {
     @Test
     public void testMemoizingSqlSupplier() throws Exception {
         System.out.println("testMemoizingSqlSupplier");
-        SqlSupplier<Object> supplier = new SqlSupplier() {
+        SqlSupplier<Object> supplier = new SqlSupplier<Object>() {
             @Override
             public Object get() throws SQLException {
                 return new Object();
