@@ -4,6 +4,7 @@
 package com.novetta.ibg.common.dbhelp;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Function;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import java.sql.Connection;
@@ -11,7 +12,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
-import java.util.function.Function;
 import org.junit.rules.ExternalResource;
 
 /**

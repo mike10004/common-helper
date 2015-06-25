@@ -3,11 +3,11 @@
  */
 package com.novetta.ibg.common.dbhelp;
 
+import com.google.common.base.Function;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +16,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -165,7 +164,7 @@ public class MysqlConnectionSourceIT {
     
     public static class DbWriter extends DbTask {
 
-        protected Random random = new Random();
+        protected Random random = new Random(0x10004);
         private final int numToInsert;
         private final Collection<Customer> customers;
         private final AtomicInteger numInsertedCount, taskCount;
@@ -210,8 +209,13 @@ public class MysqlConnectionSourceIT {
         }
         
         protected String newRandomString() {
-            byte[] bytes = new byte[72];
-            String s = Base64.getEncoder().encodeToString(bytes);
+            int numLongs = 10;
+            StringBuilder sb = new StringBuilder(8 * numLongs); 
+            for (int i = 0; i < numLongs; i++) {
+                long value = Math.abs(random.nextLong());
+                sb.append(String.format("%08x", value));
+            }
+            String s = sb.toString();
             return s;
         }
     }
