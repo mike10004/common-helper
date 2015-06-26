@@ -12,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import com.google.common.io.Files;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.tools.ant.BuildException;
 import org.junit.Test;
@@ -113,71 +114,161 @@ public class AntExecutorTest {
         return Platforms.getPlatform().isLinux();
     }
     
-    static interface FileLister {
-        String getExecutableName();
-        int getFileNotFoundExitCode();
+    static interface ExecutableTestCase {
+        String getName();
+        List<String> buildArguments() throws Exception;
+        int getExpectedExitCode();
     }
     
-    private FileLister getPlatformFileLister() {
-        Platform platform = Platforms.getPlatform();
-        if (platform.isWindows()) {
-            return new FileLister(){
+    private static class NonwindowsNonzeroExitTestCase implements ExecutableTestCase {
+        
+        private final File emptyDir;
 
-                @Override
-                public String getExecutableName() {
-                    return "DIR";
-                }
-
-                @Override
-                public int getFileNotFoundExitCode() {
-                    return 1;
-                }
-            };
-        } else {
-            return new FileLister(){
-
-                @Override
-                public String getExecutableName() {
-                    return "ls";
-                }
-
-                @Override
-                public int getFileNotFoundExitCode() {
-                    return 2;
-                }
-            };
+        public NonwindowsNonzeroExitTestCase(File emptyDir) {
+            this.emptyDir = emptyDir;
         }
+
+        @Override
+        public String getName() {
+            return "ls";
+        }
+
+        @Override
+        public List<String> buildArguments() throws IOException {
+            File file = new File(emptyDir, "fileThatDoesNotExist");
+            return Arrays.asList(file.getAbsolutePath());
+        }
+
+        @Override
+        public int getExpectedExitCode() {
+            return 2;
+        }
+        
+    }
+
+    private static class NonwindowsZeroExitTestCase implements ExecutableTestCase {
+        
+        private final File emptyDir;
+
+        public NonwindowsZeroExitTestCase(File emptyDir) {
+            this.emptyDir = emptyDir;
+        }
+
+        @Override
+        public String getName() {
+            return "ls";
+        }
+
+        @Override
+        public List<String> buildArguments() throws IOException {
+            File file = new File(emptyDir, "newfile");
+            Files.touch(file);
+            return Arrays.asList(file.getAbsolutePath());
+        }
+
+        @Override
+        public int getExpectedExitCode() {
+            return 0;
+        }
+        
+    }
+    
+    private static class WindowsZeroExitTestCase implements ExecutableTestCase {
+
+        @Override
+        public String getName() {
+            return "cmd";
+        }
+
+        @Override
+        public List<String> buildArguments() {
+            return Arrays.asList("/C", "echo", "hello, world");
+        }
+
+        @Override
+        public int getExpectedExitCode() {
+            return 0;
+        }
+        
+    }
+    
+    private static class WindowsNonzeroExitTestCase implements ExecutableTestCase {
+
+        @Override
+        public String getName() {
+            return "cmd";
+        }
+
+        @Override
+        public List<String> buildArguments() {
+            return Arrays.asList("/c", "notacommand");
+        }
+
+        @Override
+        public int getExpectedExitCode() {
+            return 1;
+        }
+        
     }
     
     @Test(expected=BuildException.class)
-    public void testNonzeroExitCode_defaultBehavior() throws BuildException, IOException {
+    public void testNonzeroExitCode_defaultBehavior() throws Exception {
         System.out.println("testNonzeroExitCode_defaultBehavior");
-        FileLister fileLister = getPlatformFileLister();
-        String executableName = fileLister.getExecutableName();
-        File targetFile = new File(temporaryFolder.newFolder(), "fakefile");
-        checkState(!targetFile.exists());
+        File emptyDir = temporaryFolder.newFolder();
+        ExecutableTestCase testCase = Platforms.getPlatform().isWindows() 
+                ? new WindowsNonzeroExitTestCase()
+                : new NonwindowsNonzeroExitTestCase(emptyDir);
+        String executableName = testCase.getName();
         new AntExecutor()
                 .setExecutable(executableName)
-                .setArguments(targetFile.getAbsolutePath())
+                .setArguments(testCase.buildArguments())
                 .execute();
     }
     
     @Test
-    public void testNonzeroExitCode_NoFailOnError() throws BuildException, IOException {
+    @SuppressWarnings("UnnecessaryUnboxing")
+    public void testNonzeroExitCode_NoFailOnError() throws Exception {
         System.out.println("testNonzeroExitCode_NoFailOnError");
-        FileLister fileLister = getPlatformFileLister();
-        String executableName = fileLister.getExecutableName();
-        File targetFile = new File(temporaryFolder.newFolder(), "fakefile");
-        checkState(!targetFile.exists());
+        File emptyDir = temporaryFolder.newFolder();
+        ExecutableTestCase testCase = Platforms.getPlatform().isWindows()
+                ? new WindowsNonzeroExitTestCase()
+                : new NonwindowsNonzeroExitTestCase(emptyDir);
+        String executableName = testCase.getName();
         AntExecutor e = new AntExecutor();
         e.setExecutable(executableName);
-        e.setArguments(targetFile.getAbsolutePath());
+        e.setArguments(testCase.buildArguments());
         e.getTask().setFailonerror(false);
         e.execute();
         Integer result = e.getResult();
-        System.out.println("list fake target file returned " + result);
+        System.out.println("exit code " + result);
         assertNotNull("expected nonnull result", result);
-        int expectedExitCode = fileLister.getFileNotFoundExitCode();
+        int expectedExitCode = testCase.getExpectedExitCode();
         assertEquals(expectedExitCode, result.intValue());
     }
+    
+    @Test
+    @SuppressWarnings("UnnecessaryUnboxing")
+    public void testZeroExitCode() throws Exception {
+        System.out.println("testZeroExitCode");
+        File emptyDir = temporaryFolder.newFolder();
+        ExecutableTestCase testCase = Platforms.getPlatform().isWindows() 
+                ? new WindowsZeroExitTestCase()
+                : new NonwindowsZeroExitTestCase(emptyDir);
+        String executableName = testCase.getName();
+        AntExecutor executor = new AntExecutor()
+                .setExecutable(executableName)
+                .setArguments(testCase.buildArguments())
+                .execute();
+        Integer result = executor.getResult();
+        System.out.println("stdout:");
+        System.out.println("==============================");
+        System.out.println(executor.getStdout());
+        System.out.println("==============================");
+        System.out.println("exit code: " + result);
+        assertNotNull("expect nonnull result", result);
+        assertEquals(testCase.getExpectedExitCode(), result.intValue());
+    }
+    
+
+
 }
