@@ -3,6 +3,7 @@
  */
 package com.novetta.ibg.common.net;
 
+import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Strings;
@@ -15,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.http.Header;
@@ -97,7 +97,7 @@ public class HttpRequests {
         private ResponseData(URI requestUri, int code, byte[] data, Multimap<String, String> headers, @Nullable Exception exception) {
             this.code = code;
             this.data = checkNotNull(data);
-            this.exception = Optional.ofNullable(exception);
+            this.exception = Optional.fromNullable(exception);
             this.headers = ImmutableMultimap.copyOf(headers);
             this.requestUri = checkNotNull(requestUri);
         }
