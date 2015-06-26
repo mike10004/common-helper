@@ -6,7 +6,7 @@
     <packaging>pom</packaging>
     <name>common-helper</name>
     <description>Helper library for common computing tasks</description>
-    <url>https://github.com/mike10004/ormlite-helper</url>
+    <url>https://github.com/mike10004/common-helper</url>
     <modules>
         <module>imnetio-helper</module>
         <module>native-helper</module>
@@ -71,13 +71,13 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:https://github.com/mike10004/ormlite-helper.git</connection>
-        <developerConnection>scm:git:git@github.com:mike10004/ormlite-helper.git</developerConnection>
-        <url>https://github.com/mike10004/ormlite-helper/tags/4.0.0</url>
+        <connection>scm:git:https://github.com/mike10004/common-helper.git</connection>
+        <developerConnection>scm:git:git@github.com:mike10004/common-helper.git</developerConnection>
+        <url>https://github.com/mike10004/common-helper/tags/4.0.0</url>
     </scm>
     <issueManagement>
         <system>Github</system>
-        <url>https://github.com/mike10004/ormlite-helper/issues</url>
+        <url>https://github.com/mike10004/common-helper/issues</url>
     </issueManagement>
     <developers>
         <developer>
