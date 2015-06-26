@@ -27,14 +27,14 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <includes>
-                    <include>/native-helper/maven.properties</include>
+                    <include>native-helper/maven.properties</include>
                 </includes>
                 <filtering>true</filtering>
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
                 <excludes>
-                    <exclude>/native-helper/maven.properties</exclude>
+                    <exclude>native-helper/maven.properties</exclude>
                 </excludes>
                 <filtering>false</filtering>
             </resource>
