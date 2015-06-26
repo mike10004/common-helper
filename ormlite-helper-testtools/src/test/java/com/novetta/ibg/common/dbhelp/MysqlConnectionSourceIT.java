@@ -143,7 +143,7 @@ public class MysqlConnectionSourceIT {
         
     }
     
-    public class DbReader extends DbTask {
+    public static class DbReader extends DbTask {
 
         private final AtomicInteger taskCount;
         
