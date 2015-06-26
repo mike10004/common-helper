@@ -42,7 +42,7 @@ public class PerlOnSystemPathTest {
     
     private void printErrorMessage() {
         System.err.println("The integration tests for this project use a "
-                + "MySQL plugin that requires that executes perl scripts. "
+                + "MySQL plugin that executes perl scripts. "
                 + "The perl executable must be found in one of the "
                 + "directories specified by the system PATH environment "
                 + "variable. On Windows, you can get perl from "
