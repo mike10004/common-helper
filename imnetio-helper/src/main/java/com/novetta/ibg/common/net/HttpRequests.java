@@ -3,16 +3,22 @@
  */
 package com.novetta.ibg.common.net;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Multimap;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -22,36 +28,50 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.HttpClients;
-
+ 
 /**
- * Class that provides utilities relating to HTTP requests. Primary use
- * of this class is to instantiate a requester object that performs
- * dumb, minimally configurable interaction over HTTP.
+ * Class that provides utilities relating to HTTP requests. Primarily 
+ * provides a simple HTTP client to make simple requests.
+ * 
+ * <p>Depends on Java 7, Google Guava 18, a JSR-305 implementation, and Apache HTTP Client 4.4ish.
  * @author mchaberski
  */
 public class HttpRequests {
-
+ 
     private HttpRequests() {}
     
-    private static final ImmutableSortedSet<Integer> nonErrorCodes = 
+    private static final ImmutableMultimap<String, String> emptyMultimap = ImmutableMultimap.of();
+ 
+    protected static final ImmutableSortedSet<Integer> DEFAULT_NON_ERROR_STATUS_CODES = 
             ImmutableSortedSet.<Integer>naturalOrder()
-            .add(HttpURLConnection.HTTP_OK)
-            .add(HttpURLConnection.HTTP_CREATED)
-            .add(HttpURLConnection.HTTP_ACCEPTED)
-            .add(HttpURLConnection.HTTP_NOT_AUTHORITATIVE)
-            .add(HttpURLConnection.HTTP_NO_CONTENT)
-            .add(HttpURLConnection.HTTP_RESET)
-            .add(HttpURLConnection.HTTP_PARTIAL)
-            .add(HttpURLConnection.HTTP_MOVED_PERM)
-            .add(HttpStatus.SC_MOVED_TEMPORARILY)
-            .add(HttpStatus.SC_TEMPORARY_REDIRECT) // 307 = TEMPORARY_REDIRECT and 302 = "FOUND"; see http://docs.python.org/2/library/httplib.html
-            .add(HttpURLConnection.HTTP_NOT_MODIFIED)
+            .add(HttpStatus.SC_OK)
+            .add(HttpStatus.SC_CREATED)
+            .add(HttpStatus.SC_ACCEPTED)
+            .add(HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION)
+            .add(HttpStatus.SC_NO_CONTENT)
+            .add(HttpStatus.SC_RESET_CONTENT)
+            .add(HttpStatus.SC_PARTIAL_CONTENT)
+            .add(HttpStatus.SC_MOVED_PERMANENTLY)
+            .add(HttpStatus.SC_MOVED_TEMPORARILY) 
+            .add(HttpStatus.SC_TEMPORARY_REDIRECT)
+            .add(HttpStatus.SC_NOT_MODIFIED)
             .build();
     
     /**
      * Class that represents a response from an HTTP request.
      */
     public static class ResponseData {
+ 
+        
+        /**
+         * Response headers.
+         */
+        public final ImmutableMultimap<String, String> headers;
+        
+        /**
+         * Request URI.
+         */
+        public final URI requestUri;
         
         /**
          * Response status code. For example, 200 for OK or 404 for Not Found.
@@ -69,29 +89,27 @@ public class HttpRequests {
          * but it may not be {@link Optional#isPresent() present}.
          */
         public final Optional<Exception> exception;
-
-        public ResponseData(int code, byte[] data) {
-            this(code, data, null);
+ 
+        public ResponseData(URI requestUri, int code, byte[] data, Multimap<String, String> headers) {
+            this(requestUri, code, data, headers, null);
         }
         
-        private ResponseData(int code, byte[] data, @Nullable Exception exception) {
+        private ResponseData(URI requestUri, int code, byte[] data, Multimap<String, String> headers, @Nullable Exception exception) {
             this.code = code;
-            this.data = Preconditions.checkNotNull(data);
-            this.exception = Optional.fromNullable(exception);
+            this.data = checkNotNull(data);
+            this.exception = Optional.ofNullable(exception);
+            this.headers = ImmutableMultimap.copyOf(headers);
+            this.requestUri = checkNotNull(requestUri);
         }
-
-        public ResponseData(Exception exception) {
-            this(0, new byte[0], Preconditions.checkNotNull(exception));
+ 
+        public ResponseData(URI requestUri, Exception exception) {
+            this(requestUri, 0, new byte[0], emptyMultimap, checkNotNull(exception));
         }
-
-        public ResponseData(int code, Exception exception) {
-            this(code, new byte[0], Preconditions.checkNotNull(exception));
+ 
+        public ResponseData(URI requestUri, int code, Multimap<String, String> headers, Exception exception) {
+            this(requestUri, code, new byte[0], headers, checkNotNull(exception));
         }
         
-        public boolean isNonError() {
-            return nonErrorCodes.contains(code);
-        }
-
         @Override
         public String toString() {
             return "ResponseData{" 
@@ -100,29 +118,45 @@ public class HttpRequests {
                     + ", hasException=" + exception.isPresent() + '}';
         }
         
-        
     }
+ 
     /**
      * Default implementation of a response handler that creates a 
      * response data object.
      * @see ResponseData
      */
     public static class ResponseDataResponseHandler implements ResponseHandler<ResponseData> {
-
+ 
+        private final URI requestUri;
+ 
+        public ResponseDataResponseHandler(URI requestUri) {
+            this.requestUri = checkNotNull(requestUri);
+        }
+        
+        public static ImmutableMultimap<String, String> buildHeaders(Header[] headers) {
+            checkNotNull(headers);
+            ImmutableMultimap.Builder<String, String> b = ImmutableMultimap.builder();
+            for (Header header : headers) {
+                b.put(header.getName(), Strings.nullToEmpty(header.getValue()));
+            }
+            return b.build();
+        }
+        
         @Override
         public ResponseData handleResponse(HttpResponse response) {
             ByteArrayOutputStream out = new ByteArrayOutputStream(100 * 1024);
+            Multimap<String, String> headers = buildHeaders(response.getAllHeaders());
             HttpEntity entity = response.getEntity();
             ResponseData responseData;
             if (entity == null) { // treat same as no data
-                return new ResponseData(response.getStatusLine().getStatusCode(), new byte[0]);
+                return new ResponseData(requestUri, response.getStatusLine().getStatusCode(), new byte[0], headers);
             } else {
                 int statusCode = response.getStatusLine().getStatusCode();
                 try (InputStream in = entity.getContent()) {
                     ByteStreams.copy(in, out);
-                    responseData = new ResponseData(statusCode, out.toByteArray());
+                    responseData = new ResponseData(requestUri, statusCode, out.toByteArray(), headers);
                 } catch (IOException e) {
-                    responseData = new ResponseData(statusCode, e);
+                    responseData = new ResponseData(requestUri, statusCode, headers, e);
                 } 
             }
             return responseData;
@@ -158,15 +192,27 @@ public class HttpRequests {
         public static final int DEFAULT_TIMEOUT_MS = 0;
         
         private int timeoutMs;
-
+ 
+        private final ImmutableSortedSet<Integer> nonErrorCodes;
+        
         public HttpRequester() {
             this(DEFAULT_TIMEOUT_MS);
         }
-
+ 
         public HttpRequester(int timeoutMs) {
-            this.timeoutMs = timeoutMs;
+            this(timeoutMs, DEFAULT_NON_ERROR_STATUS_CODES);
         }
         
+        public HttpRequester(int timeoutMs, Set<Integer> nonErrorCodes) {
+            this.timeoutMs = timeoutMs;
+            this.nonErrorCodes = ImmutableSortedSet.copyOf(nonErrorCodes);
+            checkArgument(timeoutMs >= 0, "timeout must be >= 0");
+        }
+        
+        public boolean isNonError(int statusCode) {
+            return nonErrorCodes.contains(statusCode);
+        }
+ 
         /**
          * Sends a request to download a given URL.
          * @param url the URL for the HTTP request
@@ -178,20 +224,27 @@ public class HttpRequests {
             return retrieve(URI.create(url));
         }
         
+        protected RequestConfig.Builder createAndConfigureRequestConfig() {
+            return RequestConfig.custom()
+                    .setSocketTimeout(timeoutMs);
+        }
+        
         protected RequestConfig buildRequestConfig() {
-            RequestConfig config = RequestConfig.custom()
-                    .setSocketTimeout(timeoutMs) // 0 = infinite
-                    .setCircularRedirectsAllowed(true) // MC: this was in the original SOCIAL-ID Flickr code, but is it really wise?
-                    .build();
+            RequestConfig config = createAndConfigureRequestConfig().build();
             return config;
         }
         
-        protected HttpRequestBase createRequest(URI imageUri) {
-            return new HttpGet(imageUri);
+        protected HttpRequestBase createRequest(URI imageUri, Multimap<String, String> requestHeaders) {
+            checkNotNull(requestHeaders, "requestHeaders");
+            HttpRequestBase request = new HttpGet(imageUri);
+            for (Map.Entry<String, String> entry : requestHeaders.entries()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+            return request;
         }
         
         protected HttpClient createHttpClient(URI requestedUri) {
-            HttpClient client = HttpClients.createDefault();
+            HttpClient client = HttpClients.createSystem();
             return client;
         }
         
@@ -201,19 +254,22 @@ public class HttpRequests {
          * @return the response data
          */
         public ResponseData retrieve(URI uri) {
+            return retrieve(uri, emptyMultimap);
+        }
+        
+        public ResponseData retrieve(URI uri, Multimap<String, String> requestHeaders) {
             HttpClient client = createHttpClient(uri);
-            HttpRequestBase request = createRequest(uri);
+            HttpRequestBase request = createRequest(uri, requestHeaders);
             request.setConfig(buildRequestConfig());
             ResponseData responseData;
             try {
-                responseData = client.execute(request, new ResponseDataResponseHandler());
+                responseData = client.execute(request, new ResponseDataResponseHandler(uri));
             } catch (IOException ex) {
-                responseData = new ResponseData(ex);
+                responseData = new ResponseData(uri, ex);
             }
             return responseData;
         }
         
     }
-    
     
 }
