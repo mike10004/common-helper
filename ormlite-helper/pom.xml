@@ -6,9 +6,9 @@
         <artifactId>common-helper</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>ormlite-helper-core</artifactId>
+    <artifactId>ormlite-helper</artifactId>
     <packaging>jar</packaging>
-    <name>ormlite-helper-core</name>
+    <name>ormlite-helper</name>
     <description>Library that helps you use ORMLite</description>
 
     <properties>

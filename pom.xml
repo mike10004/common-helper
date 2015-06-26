@@ -10,7 +10,7 @@
     <modules>
         <module>imnetio-helper</module>
         <module>native-helper</module>
-        <module>ormlite-helper-core</module>
+        <module>ormlite-helper</module>
         <module>ormlite-helper-testtools</module>
     </modules>
     <properties>

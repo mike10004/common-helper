@@ -4,7 +4,7 @@ Common Helper Libraries
 Libraries that help with some common computing tasks in Java. They are:
 
 * imnetio-helper: imaging, networking, and I/O
-* ormlite-helper-core, ormlite-helper-testtools: help with ORMLite and 
+* ormlite-helper and ormlite-helper-testtools: help with ORMLite and 
   database unit/integration testing
 * native-helper: help with platform-dependent tasks like external 
   processes and platform-specific filesystem conventions
@@ -43,7 +43,7 @@ broken streams?
     ByteSource result = ByteSources.or(first, other);
     System.out.println(Arrays.toString(result.toByteArray())); // [1, 2, 3, 4]
 
-## Database interaction
+## ORMLite helper
 
 Doing some quick database work? This might help you:
 
