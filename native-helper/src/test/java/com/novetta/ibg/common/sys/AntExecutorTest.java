@@ -4,6 +4,7 @@
 package com.novetta.ibg.common.sys;
 
 import com.google.common.base.Function;
+import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.CharSource;
@@ -13,12 +14,10 @@ import com.google.common.io.Files;
 import java.io.IOException;
 import java.util.List;
 import org.apache.tools.ant.BuildException;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  *
@@ -26,34 +25,15 @@ import static org.junit.Assert.*;
  */
 public class AntExecutorTest {
     
-    public AntExecutorTest() {
-    }
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-    }
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
     
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
-    }
-    
-//    public static String ls_pathname;
-    
-    public static final String EXPECTED_WIN_LS_PATHNAME = new File("c:/Program Files (x86)/GnuWin32/bin/ls.exe").getAbsolutePath();
     public static final String EXPECTED_UNIX_LS_PATHNAME = "/bin/ls";
     
-    private static File createTempDirWithFiles() throws IOException {
+    private File createTempDirWithFiles() throws IOException {
         File tmpDir;
         try {
-            tmpDir = Files.createTempDir();
+            tmpDir = temporaryFolder.newFolder();
             System.out.println("created: " + tmpDir);
         } catch (IllegalStateException e) {
             throw new IOException("temp dir not created: " + e);
@@ -119,49 +99,85 @@ public class AntExecutorTest {
     public void testExecuteLS() throws Exception {
         if (!isLinux()) return;
         File tmpDir = createTempDirWithFiles();
-        String ls_pathname = "/bin/ls";
+        String ls_pathname = EXPECTED_UNIX_LS_PATHNAME;
         assertNotNull(ls_pathname);
-        try {
-            String stdout = new AntExecutor().setExecutable(ls_pathname)
-                    .setArguments(tmpDir.getAbsolutePath()).execute().getStdout();
-            System.out.println("---LS ACTUAL START---");
-            System.out.println(stdout);
-            System.out.println("---LS ACTUAL END---");
-            assertEquals(String.format("a%nb%nc"), stdout);
-        } finally {
-            try {
-                if (tmpDir.exists()) {
-                    FileUtils.deleteDirectory(tmpDir);
-                    System.out.println("deleted: " + tmpDir);
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace(System.err);
-            }
-        }
+        String stdout = new AntExecutor().setExecutable(ls_pathname)
+                .setArguments(tmpDir.getAbsolutePath()).execute().getStdout();
+        System.out.println("---LS ACTUAL START---");
+        System.out.println(stdout);
+        System.out.println("---LS ACTUAL END---");
+        assertEquals(String.format("a%nb%nc"), stdout);
     }
 
     static boolean isLinux() {
         return Platforms.getPlatform().isLinux();
     }
     
+    static interface FileLister {
+        String getExecutableName();
+        int getFileNotFoundExitCode();
+    }
+    
+    private FileLister getPlatformFileLister() {
+        Platform platform = Platforms.getPlatform();
+        if (platform.isWindows()) {
+            return new FileLister(){
+
+                @Override
+                public String getExecutableName() {
+                    return "DIR";
+                }
+
+                @Override
+                public int getFileNotFoundExitCode() {
+                    return 1;
+                }
+            };
+        } else {
+            return new FileLister(){
+
+                @Override
+                public String getExecutableName() {
+                    return "ls";
+                }
+
+                @Override
+                public int getFileNotFoundExitCode() {
+                    return 2;
+                }
+            };
+        }
+    }
+    
     @Test(expected=BuildException.class)
-    public void testWhichUnsuccessful() throws BuildException {
-        new AntExecutor().setExecutable("which").setArguments("fakefile").execute();
+    public void testNonzeroExitCode_defaultBehavior() throws BuildException, IOException {
+        System.out.println("testNonzeroExitCode_defaultBehavior");
+        FileLister fileLister = getPlatformFileLister();
+        String executableName = fileLister.getExecutableName();
+        File targetFile = new File(temporaryFolder.newFolder(), "fakefile");
+        checkState(!targetFile.exists());
+        new AntExecutor()
+                .setExecutable(executableName)
+                .setArguments(targetFile.getAbsolutePath())
+                .execute();
     }
     
     @Test
-    public void testWhichUnsuccessfulNoFailOnError() throws BuildException {
+    public void testNonzeroExitCode_NoFailOnError() throws BuildException, IOException {
+        System.out.println("testNonzeroExitCode_NoFailOnError");
+        FileLister fileLister = getPlatformFileLister();
+        String executableName = fileLister.getExecutableName();
+        File targetFile = new File(temporaryFolder.newFolder(), "fakefile");
+        checkState(!targetFile.exists());
         AntExecutor e = new AntExecutor();
-        e.setExecutable("which");
-        e.setArguments("fakefile");
+        e.setExecutable(executableName);
+        e.setArguments(targetFile.getAbsolutePath());
         e.getTask().setFailonerror(false);
         e.execute();
         Integer result = e.getResult();
-        System.out.println("which fakefile returned " + result);
-        assertEquals(result, Integer.valueOf(1));
-        String stdout = e.getStdout();
-        assertEquals("", stdout);
-//        String stderr = e.getStderr();
-//        assertEquals("", stderr);
+        System.out.println("list fake target file returned " + result);
+        assertNotNull("expected nonnull result", result);
+        int expectedExitCode = fileLister.getFileNotFoundExitCode();
+        assertEquals(expectedExitCode, result.intValue());
     }
 }

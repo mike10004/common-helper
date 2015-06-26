@@ -12,16 +12,20 @@ import com.novetta.ibg.common.sys.OutputStreamEcho.BucketEcho;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
@@ -41,14 +45,24 @@ import static org.junit.Assert.*;
  */
 public class ExposedExecTaskTest {
     
-    static final File buildDir = new File(System.getProperty("user.dir"), "target");
-    static final File execsDir = new File(buildDir, "gnuwin32-coreutils");
     static Map<String, File> windowsExecutables;
     
     public ExposedExecTaskTest() {
     }
     
+    static Properties loadMavenProperties() {
+        Properties p = new Properties();
+        try (InputStream in = ExposedExecTask.class.getResourceAsStream("/native-helper/maven.properties")) {
+            p.load(in);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
+        return p;
+    }
+    
     static File prepareExecutable(String nameWithoutExtension) throws IOException {
+        File buildDir = new File(loadMavenProperties().getProperty("project.build.directory"));
+        File execsDir = new File(buildDir, "gnuwin32-coreutils");
         String suffix = ".exe";
         String filename = nameWithoutExtension + suffix;
         execsDir.mkdirs();
@@ -73,18 +87,6 @@ public class ExposedExecTaskTest {
             }
         }
         
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
     }
     
     File findExecutable(String nameWithoutExtension) throws FileNotFoundException {
