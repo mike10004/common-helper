@@ -3,12 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.github.mike10004</groupId>
-        <artifactId>ormlite-helper</artifactId>
+        <artifactId>common-helper</artifactId>
         <version>4.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ormlite-helper-core</artifactId>
     <packaging>jar</packaging>
-    <name>core</name>
+    <name>ormlite-helper-core</name>
     <description>Library that helps you use ORMLite</description>
 
     <properties>

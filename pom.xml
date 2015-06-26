@@ -1,15 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.mike10004</groupId>
-    <artifactId>ormlite-helper</artifactId>
+    <artifactId>common-helper</artifactId>
     <version>4.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>ormlite-helper</name>
-    <description>ORMLite helper tools</description>
+    <name>common-helper</name>
+    <description>Helper library for common computing tasks</description>
     <url>https://github.com/mike10004/ormlite-helper</url>
     <modules>
         <module>core</module>
         <module>testtools</module>
+        <module>imnetio-helper</module>
+        <module>native-helper</module>
     </modules>
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
@@ -175,4 +177,11 @@
             </plugins>
         </pluginManagement>
     </build>
+    <dependencies>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+    </dependencies>    
 </project>
