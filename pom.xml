@@ -8,10 +8,10 @@
     <description>Helper library for common computing tasks</description>
     <url>https://github.com/mike10004/ormlite-helper</url>
     <modules>
-        <module>core</module>
-        <module>testtools</module>
         <module>imnetio-helper</module>
         <module>native-helper</module>
+        <module>ormlite-helper-core</module>
+        <module>ormlite-testtools</module>
     </modules>
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
