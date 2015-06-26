@@ -41,6 +41,26 @@
                 <skip.failsafe.tests>true</skip.failsafe.tests>
             </properties>
         </profile>
+        <profile>
+            <id>artifact-deployment</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-source-plugin</artifactId>
+                    </plugin>
+                    <plugin> 
+                        <artifactId>maven-javadoc-plugin</artifactId> 
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                    </plugin>            
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
     <inceptionYear>2015</inceptionYear>
     <licenses>
