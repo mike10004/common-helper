@@ -23,11 +23,17 @@
  */
 package com.novetta.ibg.common.net;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.novetta.ibg.common.net.HttpRequests.ResponseData;
 import java.net.URI;
+import java.net.UnknownHostException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.easymock.EasyMock;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
@@ -35,16 +41,28 @@ import org.junit.Test;
  *
  * @author mchaberski
  */
-public class ResponseDataTest {
+public class HttpRequestsTest {
     
     @Test
-    public void testGetHeaderValues() {
-        System.out.println("testGetHeaderValues");
+    public void testHostResolutionFailure() throws Exception {
+        System.out.println("testHostResolutionFailure");
+        final HttpClient client = EasyMock.createMock(HttpClient.class);
+        EasyMock.expect(client.execute(EasyMock.anyObject(HttpUriRequest.class), EasyMock.anyObject(ResponseHandler.class))).andThrow(new UnknownHostException()).anyTimes();
+        HttpRequests.HttpRequester unknownHostThrowingRequester = new HttpRequests.DefaultHttpRequester(Functions.<HttpClient>constant(client), new HttpRequests.DefaultHttpRequester.HttpGetRequestFactory());
+        EasyMock.replay(client);
         
+        ResponseData responseData = unknownHostThrowingRequester.retrieve(URI.create("http://localhost:12522/some/file.txt"));
+        System.out.println("response: " + responseData);
+        assertEquals("responseData.data", 0, responseData.data.length);
+        assertTrue("exception present", responseData.exception.isPresent());
+    }
+    
+    @Test
+    public void testResponseData_getHeaderValues() {
+        System.out.println("testResponseData_getHeaderValues");
         ResponseData responseData = new HttpRequests.ResponseData(URI.create("http://example.com"), 200, new byte[0], ImmutableMultimap.of("some-header", "A", "Some-Header", "B", "another-header", "C"));
         Iterable<String> values = responseData.getHeaderValues("some-header");
         assertEquals(ImmutableSet.of("A", "B"), ImmutableSet.copyOf(values));
         assertEquals(0, Iterables.size(responseData.getHeaderValues("not-present")));
-    }
-    
+    }    
 }

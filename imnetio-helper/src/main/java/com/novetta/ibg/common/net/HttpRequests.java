@@ -238,14 +238,14 @@ public class HttpRequests {
          */
         public static final int DEFAULT_TIMEOUT_MS = 0;
         
-        private final Function<URI, HttpClient> httpClientFactory;
+        private final Function<? super URI, HttpClient> httpClientFactory;
         private final HttpRequestFactory httpRequestFactory;
         
         public DefaultHttpRequester() {
             this(new SystemHttpClientFactory(), new HttpGetRequestFactory());
         }
  
-        public DefaultHttpRequester(Function<URI, HttpClient> httpClientFactory, HttpRequestFactory httpRequestFactory) {
+        public DefaultHttpRequester(Function<? super URI, HttpClient> httpClientFactory, HttpRequestFactory httpRequestFactory) {
             this.httpClientFactory = checkNotNull(httpClientFactory, "httpClientFactory");
             this.httpRequestFactory = checkNotNull(httpRequestFactory, "httpRequestFactory");
         }
@@ -269,6 +269,9 @@ public class HttpRequests {
         @Override
         public ResponseData retrieve(URI uri, Multimap<String, String> requestHeaders) {
             HttpClient client = httpClientFactory.apply(uri);
+            if (client == null) {
+                throw new NullPointerException("factory produced null client");
+            }
             HttpUriRequest request = httpRequestFactory.createRequest(uri, requestHeaders);
             ResponseData responseData;
             try {
