@@ -3,20 +3,25 @@
  */
 package com.novetta.ibg.common.net;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteStreams;
+import com.novetta.ibg.common.net.HttpRequests.DefaultHttpRequester.HttpGetRequestFactory;
+import com.novetta.ibg.common.net.HttpRequests.DefaultHttpRequester.RequestConfigFactory;
+import com.novetta.ibg.common.net.HttpRequests.DefaultHttpRequester.SystemHttpClientFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
-import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -27,6 +32,7 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClients;
  
 /**
@@ -42,7 +48,7 @@ public class HttpRequests {
     
     private static final ImmutableMultimap<String, String> emptyMultimap = ImmutableMultimap.of();
  
-    protected static final ImmutableSortedSet<Integer> DEFAULT_NON_ERROR_STATUS_CODES = 
+    private static final ImmutableSortedSet<Integer> DEFAULT_NON_ERROR_STATUS_CODES = 
             ImmutableSortedSet.<Integer>naturalOrder()
             .add(HttpStatus.SC_OK)
             .add(HttpStatus.SC_CREATED)
@@ -56,6 +62,10 @@ public class HttpRequests {
             .add(HttpStatus.SC_TEMPORARY_REDIRECT)
             .add(HttpStatus.SC_NOT_MODIFIED)
             .build();
+    
+    public static ImmutableSortedSet<Integer> getDefaultNonErrorStatusCodes() {
+        return DEFAULT_NON_ERROR_STATUS_CODES;
+    }
     
     /**
      * Class that represents a response from an HTTP request.
@@ -75,12 +85,13 @@ public class HttpRequests {
         
         /**
          * Response status code. For example, 200 for OK or 404 for Not Found.
-         * If it's zero, it means something went horribly wrong.
+         * If it's zero, it means something went horribly wrong, such as a 
+         * hostname resolution failure.
          */
         public final int code;
         
         /**
-         * Response bytes. This is never null.
+         * Response bytes. This is never null, but it may be empty.
          */
         public final byte[] data;
         
@@ -118,6 +129,23 @@ public class HttpRequests {
                     + ", hasException=" + exception.isPresent() + '}';
         }
         
+        /**
+         * Returns an iterable over all header values corresponding to the given header name.
+         * Correspondence evaluation is case-insensitive. This never returns null, but it may
+         * return an empty iterable.
+         * @param headerName the header name
+         * @return an iterable over the header values
+         */
+        public Iterable<String> getHeaderValues(String headerName) {
+            checkNotNull(headerName, "headerName");
+            Iterable<String> headerValues = ImmutableList.of();
+            for (String possibleHeaderName : headers.keySet()) {
+                if (headerName.equalsIgnoreCase(possibleHeaderName)) {
+                    headerValues = Iterables.concat(headerValues, headers.get(possibleHeaderName));
+                }
+            }
+            return headerValues;
+        }
     }
  
     /**
@@ -169,7 +197,7 @@ public class HttpRequests {
      * @return the new requester
      */
     public static HttpRequester newRequester() {
-        return new HttpRequester();
+        return new DefaultHttpRequester();
     }
     
     /**
@@ -178,41 +206,50 @@ public class HttpRequests {
      * @return the requester instance
      */
     public static HttpRequester newRequesterWithTimeout(int timeoutMs) {
-        return new HttpRequester(timeoutMs);
+        return new DefaultHttpRequester(new SystemHttpClientFactory(), new HttpGetRequestFactory(new RequestConfigFactory(timeoutMs)));
     }
     
     /**
      * Class that represents an actor that makes an HTTP request.
      */
-    public static class HttpRequester {
+    public static interface HttpRequester {
+
+        /**
+         * Sends a request to download a given URI with no additional request headers.
+         * @param uri the URI
+         * @return the response data
+         */
+        public ResponseData retrieve(URI uri);
+        
+        /**
+         * Sends a request, with headers, to download a given URI with the 
+         * @param uri the URI
+         * @param requestHeaders the request headers to send
+         * @return the response data
+         */
+        public ResponseData retrieve(URI uri, Multimap<String, String> requestHeaders);
+
+    }
+    
+    public static class DefaultHttpRequester implements HttpRequester {
         
         /**
          * Default timeout (infinite).
          */
         public static final int DEFAULT_TIMEOUT_MS = 0;
         
-        private int timeoutMs;
- 
-        private final ImmutableSortedSet<Integer> nonErrorCodes;
+        private final Function<URI, HttpClient> httpClientFactory;
+        private final HttpRequestFactory httpRequestFactory;
         
-        public HttpRequester() {
-            this(DEFAULT_TIMEOUT_MS);
-        }
- 
-        public HttpRequester(int timeoutMs) {
-            this(timeoutMs, DEFAULT_NON_ERROR_STATUS_CODES);
-        }
-        
-        public HttpRequester(int timeoutMs, Set<Integer> nonErrorCodes) {
-            this.timeoutMs = timeoutMs;
-            this.nonErrorCodes = ImmutableSortedSet.copyOf(nonErrorCodes);
-            checkArgument(timeoutMs >= 0, "timeout must be >= 0");
-        }
-        
-        public boolean isNonError(int statusCode) {
-            return nonErrorCodes.contains(statusCode);
+        public DefaultHttpRequester() {
+            this(new SystemHttpClientFactory(), new HttpGetRequestFactory());
         }
  
+        public DefaultHttpRequester(Function<URI, HttpClient> httpClientFactory, HttpRequestFactory httpRequestFactory) {
+            this.httpClientFactory = checkNotNull(httpClientFactory, "httpClientFactory");
+            this.httpRequestFactory = checkNotNull(httpRequestFactory, "httpRequestFactory");
+        }
+        
         /**
          * Sends a request to download a given URL.
          * @param url the URL for the HTTP request
@@ -224,43 +261,15 @@ public class HttpRequests {
             return retrieve(URI.create(url));
         }
         
-        protected RequestConfig.Builder createAndConfigureRequestConfig() {
-            return RequestConfig.custom()
-                    .setSocketTimeout(timeoutMs);
-        }
-        
-        protected RequestConfig buildRequestConfig() {
-            RequestConfig config = createAndConfigureRequestConfig().build();
-            return config;
-        }
-        
-        protected HttpRequestBase createRequest(URI imageUri, Multimap<String, String> requestHeaders) {
-            checkNotNull(requestHeaders, "requestHeaders");
-            HttpRequestBase request = new HttpGet(imageUri);
-            for (Map.Entry<String, String> entry : requestHeaders.entries()) {
-                request.addHeader(entry.getKey(), entry.getValue());
-            }
-            return request;
-        }
-        
-        protected HttpClient createHttpClient(URI requestedUri) {
-            HttpClient client = HttpClients.createSystem();
-            return client;
-        }
-        
-        /**
-         * Sends a request to download a given URI.
-         * @param uri the URI
-         * @return the response data
-         */
+        @Override
         public ResponseData retrieve(URI uri) {
             return retrieve(uri, emptyMultimap);
         }
         
+        @Override
         public ResponseData retrieve(URI uri, Multimap<String, String> requestHeaders) {
-            HttpClient client = createHttpClient(uri);
-            HttpRequestBase request = createRequest(uri, requestHeaders);
-            request.setConfig(buildRequestConfig());
+            HttpClient client = httpClientFactory.apply(uri);
+            HttpUriRequest request = httpRequestFactory.createRequest(uri, requestHeaders);
             ResponseData responseData;
             try {
                 responseData = client.execute(request, new ResponseDataResponseHandler(uri));
@@ -270,6 +279,87 @@ public class HttpRequests {
             return responseData;
         }
         
+        public static interface HttpRequestFactory {
+            
+            HttpUriRequest createRequest(URI uri, Multimap<String, String> requestHeaders);
+            
+        }
+        
+        public static class SystemHttpClientFactory implements Function<URI, HttpClient> {
+
+            @Override
+            public HttpClient apply(URI uri) {
+                return HttpClients.createSystem();
+            }
+            
+        }
+        
+        public abstract static class HttpRequestFactoryBase implements HttpRequestFactory {
+
+            protected final Supplier<RequestConfig> requestConfigFactory;
+            
+            public HttpRequestFactoryBase(Supplier<RequestConfig> requestConfigFactory) {
+                this.requestConfigFactory = checkNotNull(requestConfigFactory, "requestConfigFactory");
+            }
+            
+            protected abstract HttpRequestBase createRequestBase(URI uri);
+            
+            @Override
+            public HttpUriRequest createRequest(URI uri, Multimap<String, String> requestHeaders) {
+                checkNotNull(requestHeaders, "requestHeaders");
+                HttpRequestBase request = new HttpGet(uri);
+                for (Map.Entry<String, String> entry : requestHeaders.entries()) {
+                    request.addHeader(entry.getKey(), entry.getValue());
+                }
+                request.setConfig(requestConfigFactory.get());
+                return request;
+            }
+
+        }
+        
+        public static class HttpGetRequestFactory extends HttpRequestFactoryBase {
+
+            public HttpGetRequestFactory() {
+                this(new RequestConfigFactory());
+            }
+            
+            public HttpGetRequestFactory(RequestConfigFactory requestConfigFactory) {
+                super(requestConfigFactory);
+            }
+            
+            @Override
+            protected HttpRequestBase createRequestBase(URI uri) {
+                return new HttpGet(uri);
+            }
+            
+        }
+        
+        public static class RequestConfigFactory implements Supplier<RequestConfig> {
+
+            public static final int DEFAULT_TIMEOUT_MS = 0;
+            
+            private final int timeoutMs;
+
+            public RequestConfigFactory() {
+                this(DEFAULT_TIMEOUT_MS);
+            }
+            
+            public RequestConfigFactory(int timeoutMs) {
+                this.timeoutMs = timeoutMs;
+            }
+            
+            @Override
+            public RequestConfig get() {
+                return createAndConfigureRequestConfig().build();
+            }
+            
+            protected RequestConfig.Builder createAndConfigureRequestConfig() {
+                return RequestConfig.custom()
+                        .setSocketTimeout(timeoutMs);
+            }
+
+       }
+
     }
     
 }
