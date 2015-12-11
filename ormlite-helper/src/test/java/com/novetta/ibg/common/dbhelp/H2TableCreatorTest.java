@@ -58,22 +58,30 @@ public class H2TableCreatorTest {
         System.out.println("testInvalidColumnDefinitionCausesFailureWithDefaultTableUtils");
         
         ConnectionSource connectionSource = new H2MemoryConnectionSource();
-        System.out.println("expecting failure on table creation...");
-        for (String stmt : TableUtils.getCreateTableStatements(connectionSource, EntityWithCustomColumnDefinition.class)) {
-            System.out.println(" > " + stmt);
+        try {
+            System.out.println("expecting failure on table creation...");
+            for (String stmt : TableUtils.getCreateTableStatements(connectionSource, EntityWithCustomColumnDefinition.class)) {
+                System.out.println(" > " + stmt);
+            }
+            System.out.println();
+            TableUtils.createTable(connectionSource, EntityWithCustomColumnDefinition.class);
+            fail("should have thrown exception already");
+        } finally {
+            connectionSource.close();
         }
-        System.out.println();
-        TableUtils.createTable(connectionSource, EntityWithCustomColumnDefinition.class);
-        fail("should have thrown exception already");
     }
     
     @Test
     public void testContextTableUtilsStripsInvalidColumnDefinitionArgs() throws SQLException {
         System.out.println("testContextTableUtilsStripsInvalidColumnDefinitionArgs");
         DefaultDatabaseContext dbContext = new DefaultDatabaseContext(new H2MemoryConnectionSource());
-        ContextTableUtils tableUtils = dbContext.getTableUtils();
-        tableUtils.createTable(EntityWithCustomColumnDefinition.class);
-        System.out.println("table created successfully");
+        try {
+            ContextTableUtils tableUtils = dbContext.getTableUtils();
+            tableUtils.createTable(EntityWithCustomColumnDefinition.class);
+            System.out.println("table created successfully");
+        } finally {
+            dbContext.closeConnections(false);
+        }
     }
     
     @Test

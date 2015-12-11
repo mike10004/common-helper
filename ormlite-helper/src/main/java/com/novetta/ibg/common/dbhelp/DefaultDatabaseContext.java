@@ -4,6 +4,7 @@
 
 package com.novetta.ibg.common.dbhelp;
 
+import com.google.common.base.Function;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
@@ -22,16 +23,23 @@ public class DefaultDatabaseContext implements DatabaseContext {
 
     private final UnrecloseableConnectionSource connectionSource;
     private ContextTransactionManager transactionManager;
+    private Function<ConnectionSource, ContextTableUtils> tableUtilsFactory;
     private ContextTableUtils tableUtils;
     private transient final Object lock = new Object();
+    
+    public DefaultDatabaseContext(ConnectionSource connectionSource) {
+        this(connectionSource, new DefaultTableUtilsFactory());
+    }
     
     /**
      * Constructs an instance of the class with the given connection source.
      * @param connectionSource  the connection source
+     * @param tableUtils the table utils
      */
-    public DefaultDatabaseContext(ConnectionSource connectionSource) {
+    public DefaultDatabaseContext(ConnectionSource connectionSource, Function<ConnectionSource, ContextTableUtils> tableUtilsFactory) {
         checkNotNull(connectionSource, "connectionSource");
         this.connectionSource = ConnectionSources.unrecloseable(connectionSource);
+        this.tableUtilsFactory = checkNotNull(tableUtilsFactory, "tableUtilsFactory");
     }
 
     @Override
@@ -41,9 +49,9 @@ public class DefaultDatabaseContext implements DatabaseContext {
 
     @Override
     public ContextTableUtils getTableUtils() {
-        synchronized(lock) {
+        synchronized (lock) {
             if (tableUtils == null) {
-                tableUtils = new TableUtilsImpl();
+                tableUtils = tableUtilsFactory.apply(connectionSource);
             }
             return tableUtils;
         }
@@ -120,32 +128,40 @@ public class DefaultDatabaseContext implements DatabaseContext {
         return DaoManager.createDao(getConnectionSource(), clazz);
     }
     
-    private class TableUtilsImpl implements ContextTableUtils {
+    public static class DefaultTableUtilsFactory implements Function<ConnectionSource, ContextTableUtils> {
 
-        private TableUtilsImpl() {}
+        @Override
+        public ContextTableUtils apply(ConnectionSource connectionSource) {
+            if (connectionSource.getDatabaseType() instanceof com.j256.ormlite.db.H2DatabaseType) {
+                return new H2ContextTableUtils(connectionSource);
+            } else {
+                return new DefaultContextTableUtils(connectionSource);
+                
+            }
+        }
+    
+    }
+    
+    private static class DefaultContextTableUtils implements ContextTableUtils {
+
+        private final ConnectionSource connectionSource;
+        
+        public DefaultContextTableUtils(ConnectionSource connectionSource) {
+            this.connectionSource = checkNotNull(connectionSource);
+        }
+        
+        protected ConnectionSource getConnectionSource() {
+            return connectionSource;
+        }
         
         @Override
         public <T> int createTable(Class<T> dataClass) throws SQLException {
-            boolean ifNotExists = false;
-            ConnectionSource connectionSource_ = getConnectionSource();
-            if (connectionSource_.getDatabaseType() instanceof com.j256.ormlite.db.H2DatabaseType) {
-                H2TableCreator tableCreator = new H2TableCreator();
-                return tableCreator.createTable(connectionSource_, dataClass, ifNotExists);
-            } else {
-                return com.j256.ormlite.table.TableUtils.createTable(getConnectionSource(), dataClass);
-            }
+            return com.j256.ormlite.table.TableUtils.createTable(getConnectionSource(), dataClass);
         }
 
         @Override
         public <T> int createTableIfNotExists(Class<T> dataClass) throws SQLException {
-            boolean ifNotExists = true;
-            ConnectionSource connectionSource = getConnectionSource();
-            if (connectionSource.getDatabaseType() instanceof com.j256.ormlite.db.H2DatabaseType) {
-                H2TableCreator tableCreator = new H2TableCreator();
-                return tableCreator.createTable(connectionSource, dataClass, ifNotExists);
-            } else {
-                return com.j256.ormlite.table.TableUtils.createTableIfNotExists(getConnectionSource(), dataClass);
-            }
+            return com.j256.ormlite.table.TableUtils.createTableIfNotExists(getConnectionSource(), dataClass);
         }
 
         @Override
@@ -204,6 +220,27 @@ public class DefaultDatabaseContext implements DatabaseContext {
         @Override
         public <T> int clearTable(DatabaseTableConfig<T> tableConfig) throws SQLException {
             return com.j256.ormlite.table.TableUtils.clearTable(getConnectionSource(), tableConfig);
+        }
+    }
+
+    private static class H2ContextTableUtils extends DefaultContextTableUtils {
+
+        private final H2TableCreator tableCreator = new H2TableCreator();
+
+        public H2ContextTableUtils(ConnectionSource connectionSource) {
+            super(connectionSource);
+        }
+        
+        @Override
+        public <T> int createTable(Class<T> dataClass) throws SQLException {
+            boolean ifNotExists = false;
+            return tableCreator.createTable(getConnectionSource(), dataClass, ifNotExists);
+        }
+
+        @Override
+        public <T> int createTableIfNotExists(Class<T> dataClass) throws SQLException {
+            boolean ifNotExists = true;
+            return tableCreator.createTable(getConnectionSource(), dataClass, ifNotExists);
         }
     }
 }
