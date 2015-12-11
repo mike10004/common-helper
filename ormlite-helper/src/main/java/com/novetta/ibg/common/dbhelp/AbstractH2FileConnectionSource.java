@@ -1,5 +1,10 @@
 /*
- * (c) 2015 Mike Chaberski
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
 package com.novetta.ibg.common.dbhelp;
 

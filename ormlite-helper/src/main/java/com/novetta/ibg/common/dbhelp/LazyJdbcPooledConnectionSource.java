@@ -1,5 +1,10 @@
 /*
- * (c) 2015 Mike Chaberski
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
 package com.novetta.ibg.common.dbhelp;
 
@@ -11,7 +16,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- *
+ * Class that supports lazy initialization of a JDBC connection source.
  * @author mchaberski
  */
 public abstract class LazyJdbcPooledConnectionSource extends JdbcPooledConnectionSource {
@@ -101,5 +106,13 @@ public abstract class LazyJdbcPooledConnectionSource extends JdbcPooledConnectio
         super.releaseConnection(connection);
     }
     
-    
+    /**
+     * Invokes prepare and initialize methods.
+     * @throws SQLException 
+     * @see #prepare() 
+     * @see #initialize() 
+     */
+    public void forcePrepareAndInitialize() throws SQLException {
+        maybePrepareAndInitialize();
+    }
 }

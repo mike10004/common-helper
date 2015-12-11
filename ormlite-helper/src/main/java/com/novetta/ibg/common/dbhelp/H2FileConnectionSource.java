@@ -1,5 +1,10 @@
 /*
- * (c) 2015 Mike Chaberski
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
 package com.novetta.ibg.common.dbhelp;
 
@@ -8,7 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 
 /**
- *
+ * Class that implements a connection source using an H2 database reading from
+ * and writing to a file.
  * @author mchaberski
  */
 public class H2FileConnectionSource extends AbstractH2FileConnectionSource {
