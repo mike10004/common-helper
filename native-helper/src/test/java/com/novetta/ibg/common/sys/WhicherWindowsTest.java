@@ -7,18 +7,20 @@ import com.google.common.base.Optional;
 import java.io.File;
 import java.io.IOException;
 import org.apache.commons.io.FilenameUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  *
  * @author mchaberski
  */
 public class WhicherWindowsTest {
+    
+    @Rule 
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
     
     private static boolean skip;
     
@@ -57,6 +59,6 @@ public class WhicherWindowsTest {
     @Test
     public void testStandardFile() throws IOException {
         System.out.println("testStandardFile");
-        WhicherTests.testSomeFileFound();
+        WhicherTests.testSomeFileFound(temporaryFolder.newFolder());
     }
 }
