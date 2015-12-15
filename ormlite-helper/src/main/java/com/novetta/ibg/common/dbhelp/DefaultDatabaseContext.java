@@ -1,18 +1,21 @@
 /*
- * (c) 2015 Mike Chaberski 
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
-
 package com.novetta.ibg.common.dbhelp;
 
+import com.google.common.base.Function;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
-import com.j256.ormlite.table.DatabaseTableConfig;
 import com.novetta.ibg.common.dbhelp.ConnectionSources.UnrecloseableConnectionSource;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.concurrent.Callable;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Class that is the default implementation of a database context.
@@ -21,17 +24,37 @@ import java.util.concurrent.Callable;
 public class DefaultDatabaseContext implements DatabaseContext {
 
     private final UnrecloseableConnectionSource connectionSource;
-    private ContextTransactionManager transactionManager;
+    private final Function<ConnectionSource, ContextTableUtils> tableUtilsFactory;
+    private final Function<ConnectionSource, ContextTransactionManager> transactionManagerFactory;
     private ContextTableUtils tableUtils;
+    private ContextTransactionManager transactionManager;
     private transient final Object lock = new Object();
     
     /**
-     * Constructs an instance of the class with the given connection source.
-     * @param connectionSource  the connection source
+     * Constructs an instance of the class with the given connection source and default
+     * context utility factories.
+     * @param connectionSource the connection source
+     * @see DefaultContextTableUtils
+     * @see DefaultContextTransactionManager
      */
     public DefaultDatabaseContext(ConnectionSource connectionSource) {
+        this(connectionSource, new DefaultTableUtilsFactory(), new DefaultTransactionManagerFactory());
+    }
+    
+    /**
+     * Constructs an instance of the class with the given connection source and 
+     * context utility factories.
+     * @param connectionSource  the connection source
+     * @param tableUtilsFactory the table utils factory
+     * @param transactionManagerFactory the transaction manager factory
+     */
+    public DefaultDatabaseContext(ConnectionSource connectionSource, 
+            Function<ConnectionSource, ContextTableUtils> tableUtilsFactory, 
+            Function<ConnectionSource, ContextTransactionManager> transactionManagerFactory) {
         checkNotNull(connectionSource, "connectionSource");
         this.connectionSource = ConnectionSources.unrecloseable(connectionSource);
+        this.tableUtilsFactory = checkNotNull(tableUtilsFactory, "tableUtilsFactory");
+        this.transactionManagerFactory = checkNotNull(transactionManagerFactory, "transactionManagerFactory");
     }
 
     @Override
@@ -41,9 +64,9 @@ public class DefaultDatabaseContext implements DatabaseContext {
 
     @Override
     public ContextTableUtils getTableUtils() {
-        synchronized(lock) {
+        synchronized (lock) {
             if (tableUtils == null) {
-                tableUtils = new TableUtilsImpl();
+                tableUtils = tableUtilsFactory.apply(connectionSource);
             }
             return tableUtils;
         }
@@ -53,7 +76,7 @@ public class DefaultDatabaseContext implements DatabaseContext {
     public ContextTransactionManager getTransactionManager() {
         synchronized(lock) {
             if (transactionManager == null) {
-                transactionManager = new DefaultTransactionManager();
+                transactionManager = transactionManagerFactory.apply(connectionSource);
             }
             return transactionManager;
         }
@@ -78,14 +101,6 @@ public class DefaultDatabaseContext implements DatabaseContext {
         }
     }    
     
-    private class DefaultTransactionManager implements ContextTransactionManager {
-        
-        @Override
-            public <T> T callInTransaction(Callable<T> callable) throws SQLException {
-                return com.j256.ormlite.misc.TransactionManager.callInTransaction(getConnectionSource(), callable);
-            }
-    }
-
     /**
      * Gets the data access object for an entity class that has an integer
      * primary key data type. Dao caching is performed by 
@@ -120,90 +135,22 @@ public class DefaultDatabaseContext implements DatabaseContext {
         return DaoManager.createDao(getConnectionSource(), clazz);
     }
     
-    private class TableUtilsImpl implements ContextTableUtils {
-
-        private TableUtilsImpl() {}
-        
-        @Override
-        public <T> int createTable(Class<T> dataClass) throws SQLException {
-            boolean ifNotExists = false;
-            ConnectionSource connectionSource_ = getConnectionSource();
-            if (connectionSource_.getDatabaseType() instanceof com.j256.ormlite.db.H2DatabaseType) {
-                H2TableCreator tableCreator = new H2TableCreator();
-                return tableCreator.createTable(connectionSource_, dataClass, ifNotExists);
-            } else {
-                return com.j256.ormlite.table.TableUtils.createTable(getConnectionSource(), dataClass);
-            }
-        }
+    private static class DefaultTableUtilsFactory implements Function<ConnectionSource, ContextTableUtils> {
 
         @Override
-        public <T> int createTableIfNotExists(Class<T> dataClass) throws SQLException {
-            boolean ifNotExists = true;
-            ConnectionSource connectionSource = getConnectionSource();
-            if (connectionSource.getDatabaseType() instanceof com.j256.ormlite.db.H2DatabaseType) {
-                H2TableCreator tableCreator = new H2TableCreator();
-                return tableCreator.createTable(connectionSource, dataClass, ifNotExists);
-            } else {
-                return com.j256.ormlite.table.TableUtils.createTableIfNotExists(getConnectionSource(), dataClass);
-            }
+        public ContextTableUtils apply(ConnectionSource connectionSource) {
+            return new DefaultContextTableUtils(connectionSource);
         }
-
-        @Override
-        public <T> int createTable(DatabaseTableConfig<T> tableConfig) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.createTable(getConnectionSource(), tableConfig);
-        }
-
-        @Override
-        public <T> int createTableIfNotExists(DatabaseTableConfig<T> tableConfig) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.createTableIfNotExists(getConnectionSource(), tableConfig);
-        }
-
-        @Override
-        public int createAllTablesIfNotExists(Iterable<Class<?>> dataClasses) throws SQLException {
-            int totalNumStatementsExecuted = 0;
-            for (Class<?> clz : dataClasses) {
-                totalNumStatementsExecuted += createTableIfNotExists(clz);
-            }
-            return totalNumStatementsExecuted;
-        }
-
-        @Override
-        public int createAllTables(Iterable<Class<?>> dataClasses) throws SQLException {
-            int totalNumStatementsExecuted = 0;
-            for (Class<?> clz : dataClasses) {
-                totalNumStatementsExecuted += createTable(clz);
-            }
-            return totalNumStatementsExecuted;
-        }
-
-        @Override
-        public <T, ID> List<String> getCreateTableStatements(Class<T> dataClass) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.getCreateTableStatements(getConnectionSource(), dataClass);
-        }
-
-        @Override
-        public <T, ID> List<String> getCreateTableStatements(DatabaseTableConfig<T> tableConfig) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.getCreateTableStatements(getConnectionSource(), tableConfig);
-        }
-
-        @Override
-        public <T, ID> int dropTable(Class<T> dataClass, boolean ignoreErrors) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.dropTable(getConnectionSource(), dataClass, ignoreErrors);
-        }
-
-        @Override
-        public <T, ID> int dropTable(DatabaseTableConfig<T> tableConfig, boolean ignoreErrors) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.dropTable(getConnectionSource(), tableConfig, ignoreErrors);
-        }
-
-        @Override
-        public <T> int clearTable(Class<T> dataClass) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.clearTable(getConnectionSource(), dataClass);
-        }
-
-        @Override
-        public <T> int clearTable(DatabaseTableConfig<T> tableConfig) throws SQLException {
-            return com.j256.ormlite.table.TableUtils.clearTable(getConnectionSource(), tableConfig);
-        }
+    
     }
+    
+    private static class DefaultTransactionManagerFactory implements Function<ConnectionSource, ContextTransactionManager> {
+
+        @Override
+        public ContextTransactionManager apply(ConnectionSource connectionSource) {
+            return new DefaultContextTransactionManager(connectionSource);
+        }
+        
+    }
+
 }

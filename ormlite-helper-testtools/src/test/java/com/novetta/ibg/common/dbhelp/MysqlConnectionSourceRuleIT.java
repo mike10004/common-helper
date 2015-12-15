@@ -27,7 +27,7 @@ public class MysqlConnectionSourceRuleIT {
     
     @Before
     public void setUp() throws SQLException {
-        context = new DefaultDatabaseContext(connectionSourceRule.createConnectionSource());
+        context = new DefaultDatabaseContext(connectionSourceRule.getConnectionSource());
         context.getTableUtils().createAllTables(Arrays.asList(Customer.class, Order.class));
     }
     

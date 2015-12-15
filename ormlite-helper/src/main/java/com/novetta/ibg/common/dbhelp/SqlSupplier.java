@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 mchaberski.
+ * (c) 2015 Mike Chaberski.
  *
  * See LICENSE in base directory for distribution terms.
  *

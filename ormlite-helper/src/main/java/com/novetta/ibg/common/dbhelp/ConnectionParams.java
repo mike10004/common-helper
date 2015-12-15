@@ -1,14 +1,18 @@
 /*
- * (c) 2015 Mike Chaberski
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
 package com.novetta.ibg.common.dbhelp;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.util.Objects;
 
 /**
- *
+ * Plain old object that stores database connection parameters.
  * @author mchaberski
  */
 public class ConnectionParams {
@@ -109,6 +113,10 @@ public class ConnectionParams {
         return true;
     }
 
+    /**
+     * Constructs a new object that copies the fields from this instance.
+     * @return the new object
+     */
     public ConnectionParams copy() {
         ConnectionParams copy = new ConnectionParams(host, username, password, schema);
         return copy;

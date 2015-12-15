@@ -1,12 +1,14 @@
 /*
- * (c) 2015 Mike Chaberski 
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
-
 package com.novetta.ibg.common.dbhelp;
 
-import com.google.common.base.Optional;
 import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
 import java.sql.SQLException;
 

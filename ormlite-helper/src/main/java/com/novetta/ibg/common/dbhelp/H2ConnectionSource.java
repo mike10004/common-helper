@@ -1,5 +1,10 @@
 /*
- * (c) 2015 Mike Chaberski
+ * The MIT License
+ *
+ * (c) 2015 Mike Chaberski.
+ *
+ * See LICENSE in base directory for distribution terms.
+ *
  */
 package com.novetta.ibg.common.dbhelp;
 
@@ -9,7 +14,7 @@ import com.j256.ormlite.db.DatabaseTypeUtils;
 import java.sql.SQLException;
 
 /**
- *
+ * Abstract superclass for H2 connection source implementations.
  * @author mchaberski
  */
 public abstract class H2ConnectionSource extends LazyJdbcConnectionSource {

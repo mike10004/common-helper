@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-verify-MysqlConnectionSourceRuleIT</actionName>
+            <displayName>verify-MysqlConnectionSourceRuleIT</displayName>
+            <goals>
+                <goal>verify</goal>
+            </goals>
+            <properties>
+                <it.test>MysqlConnectionSourceRuleIT</it.test>
+            </properties>
+        </action>
+        <action>
+            <actionName>CUSTOM-verify-MysqlConnectionSourceIT</actionName>
+            <displayName>verify-MysqlConnectionSourceIT</displayName>
+            <goals>
+                <goal>verify</goal>
+            </goals>
+            <properties>
+                <it.test>MysqlConnectionSourceIT</it.test>
+            </properties>
+        </action>
+    </actions>
