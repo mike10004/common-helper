@@ -7,6 +7,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -21,19 +22,31 @@ import org.junit.rules.ExternalResource;
  */
 public class MysqlConnectionSourceRule extends ExternalResource {
 
-    private ConnectionParams currentParams;
-    private final int port;
+    private final ConnectionParams persistentParams;
+    private MysqlConnectionSource connectionSource;
     private final Function<ConnectionParams, MysqlConnectionSource> connectionSourceCreator;
     
-    public MysqlConnectionSourceRule(int port, Function<ConnectionParams, MysqlConnectionSource> connectionSourceCreator) {
+    public MysqlConnectionSourceRule(ConnectionParams persistentParams, Function<ConnectionParams, MysqlConnectionSource> connectionSourceCreator) {
         super();
-        this.port = port;
-        checkArgument(port >= 1 && port <= 65535, "1 <= port <= 65535 required; not %d", port);
-        this.connectionSourceCreator = checkNotNull(connectionSourceCreator);
+        this.connectionSourceCreator = checkNotNull(connectionSourceCreator, "connectionSourceCreator");
+        this.persistentParams = checkNotNull(persistentParams, "persistentParams");
     }
 
+    public MysqlConnectionSourceRule(int port, Function<ConnectionParams, MysqlConnectionSource> connectionSourceCreator) {
+        this(newDefaultIntegrationTestConnectionParams(port), connectionSourceCreator);
+    }
+    
+    public MysqlConnectionSourceRule(ConnectionParams persistentParams) {
+        this(persistentParams, newDefaultConnectionSourceCreator());
+    }
+    
     public MysqlConnectionSourceRule(int port) {
-        this(port, newDefaultConnectionSourceCreator());
+        this(newDefaultIntegrationTestConnectionParams(port));
+    }
+    
+    protected static ConnectionParams newDefaultIntegrationTestConnectionParams(int port) {
+        checkArgument(port >= 1 && port <= 65535, "1 <= port <= 65535 required; not %d", port);
+        return new ConnectionParams("localhost:" + port, "root", "root");
     }
     
     public static Function<ConnectionParams, MysqlConnectionSource> newDefaultConnectionSourceCreator() {
@@ -47,8 +60,9 @@ public class MysqlConnectionSourceRule extends ExternalResource {
         };
     }
     
-    public MysqlConnectionSource createConnectionSource() {
-        return connectionSourceCreator.apply(currentParams.copy());
+    public MysqlConnectionSource getConnectionSource() {
+        checkState(connectionSource != null, "connectionSource not yet constructed");
+        return connectionSource;
     }
     
     protected static String newUniqueSchemaName() {
@@ -67,21 +81,25 @@ public class MysqlConnectionSourceRule extends ExternalResource {
         
     }
 
-    private void dropSchemaIfExists(ConnectionParams connectionParams) throws SQLException {
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://" 
-                + connectionParams.host + "/", connectionParams.username, 
-                connectionParams.password);
-                Statement stmt = conn.createStatement()) {
-            String sql = "DROP SCHEMA `" + connectionParams.schema + "`";
-            System.out.println("executing: " + sql);
-            stmt.execute(sql);
+    private void dropSchemaIfExists() throws SQLException {
+        MysqlConnectionSource currentConnectionSource = connectionSource;
+        if (currentConnectionSource != null) {
+            ConnectionParams connectionParams = currentConnectionSource.getConnectionParams();
+            try (Connection conn = DriverManager.getConnection("jdbc:mysql://" 
+                    + connectionParams.host + "/", connectionParams.username, 
+                    connectionParams.password);
+                    Statement stmt = conn.createStatement()) {
+                String sql = "DROP SCHEMA `" + connectionParams.schema + "`";
+                System.out.println("executing: " + sql);
+                stmt.execute(sql);
+            }
         }
     }
 
     @Override
     protected void after() {
         try {
-            dropSchemaIfExists(currentParams);
+            dropSchemaIfExists();
         } catch (SQLException ex) {
             ex.printStackTrace(System.err);
         }
@@ -89,12 +107,13 @@ public class MysqlConnectionSourceRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        currentParams = newConnectionParams(newUniqueSchemaName());
+        ConnectionParams currentParams = newConnectionParams(newUniqueSchemaName());
+        connectionSource = connectionSourceCreator.apply(currentParams);
         createSchema(currentParams);
     }
     
     protected ConnectionParams newConnectionParams(String schema) {
-        ConnectionParams cp = new ConnectionParams("localhost:" + port, "root", "root");
+        ConnectionParams cp = persistentParams.copy();
         cp.schema = schema;
         return cp;
     }

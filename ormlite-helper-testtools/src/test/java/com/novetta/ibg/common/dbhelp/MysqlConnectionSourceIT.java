@@ -79,7 +79,7 @@ public class MysqlConnectionSourceIT {
         boolean clean = false;
         List<DbTask> tasks = new ArrayList<>();
         int count;
-        CountingConnectionSource cs = (CountingConnectionSource) connectionSourceRule.createConnectionSource();
+        CountingConnectionSource cs = (CountingConnectionSource) connectionSourceRule.getConnectionSource();
         DatabaseContext db = new DefaultDatabaseContext(cs);
         List<Customer> customers = Collections.synchronizedList(new ArrayList<Customer>());
         try {
