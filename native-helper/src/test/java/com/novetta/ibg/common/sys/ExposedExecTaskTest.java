@@ -22,6 +22,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -239,7 +242,7 @@ public class ExposedExecTaskTest {
         
         String processStdout = task.getProject().getProperty("stdout");
         printAbbreviated(System.out, "expected process stdout", inputString);
-        assertEquals(inputString, processStdout);
+        assertThat("process stdout does not equal input string", inputString, lenientStringMatcher(processStdout, true));
     }
 
     @Test
@@ -315,12 +318,16 @@ public class ExposedExecTaskTest {
             String processStderr = project.getProperty("stderr");
             String echoedStdout = new String(stdoutEcho.toByteArray(), Charset.defaultCharset()); // executable would have used default platform charset
             String echoedStderr = new String(stderrEcho.toByteArray(), Charset.defaultCharset());
+            processStdout = normalizeLineEndings(processStdout);
+            processStderr = normalizeLineEndings(processStderr);
+            echoedStdout = normalizeLineEndings(echoedStdout);
+            echoedStderr = normalizeLineEndings(echoedStderr);
             printAbbreviated(System.out, "process stdout", processStdout);
             printAbbreviated(System.out, "process stderr", processStderr);
             printAbbreviated(System.out, "echoed stdout", echoedStdout);
             printAbbreviated(System.out, "echoed stderr", echoedStderr);
-            assertEquals(processStdout.trim(), echoedStdout.trim());
-            assertEquals(processStderr.trim(), echoedStderr.trim());
+            assertThat("process stdout != echoed stdout", echoedStdout, lenientStringMatcher(processStdout, true));
+            assertThat("process stderr != echoed stderr", echoedStderr, lenientStringMatcher(processStderr, true));
             return task;
         }
         
@@ -336,4 +343,61 @@ public class ExposedExecTaskTest {
         }
 
     }
+
+    private static String normalizeLineEndings(String input) {
+        input = input.replaceAll("\\r\\n", "\n");
+        input = input.replaceAll("\\r", "\n");
+        return input;
+    }
+        
+    private static Matcher<String> lenientStringMatcher(final String unnormalizedExpected, final boolean normalizeLineEndings) {
+        final String expected = (normalizeLineEndings ? normalizeLineEndings(unnormalizedExpected) : unnormalizedExpected).trim();
+        return new BaseMatcher<String>() {
+
+            private Object item;
+            private int indexOfFirstMismatch = -1;
+
+            @Override
+            public boolean matches(Object item) {
+                this.item = item;
+                if (item == null && expected == null) {
+                    return true;
+                }
+                if (item == null) {
+                    return false;
+                }
+                String actual = (normalizeLineEndings ? normalizeLineEndings((String) item) : (String) item).trim();
+                final int expectedLen = expected.length(), actualLen = actual.length();
+                for (int i = 0; i < Math.max(expectedLen, actualLen); i++) {
+                    if (i < expectedLen && i < actualLen) {
+                        char ech = expected.charAt(i);
+                        char ach = actual.charAt(i);
+                        if (ech != ach) {
+                            indexOfFirstMismatch = i;
+                            return false;
+                        }
+                    } else {
+                        indexOfFirstMismatch = i;
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description d) {
+                if (item == null || expected == null) {
+                    d.appendText("actual and expected null-ness mismatch");
+                } else {
+                    int i = indexOfFirstMismatch;
+                    checkState(i >= 0);
+                    String actual = (String) item;
+                    d.appendText("first mismatch at index ").appendValue(i);
+                    d.appendText("; expected = ").appendValue(i < expected.length() ? expected.charAt(i) : "<len>");
+                    d.appendText(", actual = ").appendValue(i < actual.length() ? actual.charAt(i) : "<len>");
+                }
+            }
+        };
+    }
+
 }
