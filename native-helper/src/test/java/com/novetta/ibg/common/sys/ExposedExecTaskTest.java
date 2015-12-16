@@ -276,8 +276,9 @@ public class ExposedExecTaskTest {
 
         private void configureTaskToCatStdin(ExecTask task) {
             if (platform.isWindows()) {
-                task.setExecutable("type");
-                task.createArg().setValue("CON");
+                task.setExecutable("cmd");
+                task.createArg().setValue("/C");
+                task.createArg().setValue("type CON");
             } else {
                 task.setExecutable("cat");
             }
