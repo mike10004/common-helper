@@ -4,40 +4,26 @@
 package com.novetta.ibg.common.sys;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
-import com.google.common.io.Resources;
 import com.novetta.ibg.common.sys.OutputStreamEcho.BucketEcho;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
-import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.apache.tools.ant.taskdefs.ExecTask;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  *
@@ -45,74 +31,38 @@ import static org.junit.Assert.*;
  */
 public class ExposedExecTaskTest {
     
-    static Map<String, File> windowsExecutables;
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
     
     public ExposedExecTaskTest() {
+        platform = Platforms.getPlatform();
     }
     
-    static Properties loadMavenProperties() {
-        Properties p = new Properties();
-        try (InputStream in = ExposedExecTask.class.getResourceAsStream("/native-helper/maven.properties")) {
-            p.load(in);
-        } catch (IOException e) {
-            throw new AssertionError(e);
-        }
-        return p;
-    }
+    private transient final Platform platform;
     
-    static File prepareExecutable(String nameWithoutExtension) throws IOException {
-        File buildDir = new File(loadMavenProperties().getProperty("project.build.directory"));
-        File execsDir = new File(buildDir, "gnuwin32-coreutils");
-        String suffix = ".exe";
-        String filename = nameWithoutExtension + suffix;
-        execsDir.mkdirs();
-        File executableFile = File.createTempFile(nameWithoutExtension, suffix, execsDir);
-        Files.createParentDirs(executableFile);
-        URL resource = ExposedExecTaskTest.class.getResource(filename);
-        if (resource == null) {
-            throw new IOException("source resource not found: " + nameWithoutExtension);
-        }
-        Resources.asByteSource(resource).copyTo(Files.asByteSink(executableFile));
-        return executableFile;
-    }
-    
-    @BeforeClass
-    public static void setUpClass() throws IOException {
-        windowsExecutables = new TreeMap<>();
-        List<String> programs = ImmutableList.of("sleep", "cat");
-        if (Platforms.getPlatform().isWindows()) {
-            for (String program : programs) {
-                File executable = prepareExecutable(program);
-                windowsExecutables.put(program, executable);
-            }
-        }
-        
-    }
-    
-    File findExecutable(String nameWithoutExtension) throws FileNotFoundException {
-        if (Platforms.getPlatform().isWindows()) {
-            return windowsExecutables.get(nameWithoutExtension);
-        } else { 
-            Optional<File> file = Whicher.gnu().which(nameWithoutExtension);
-            if (!file.isPresent()) {
-                throw new FileNotFoundException(nameWithoutExtension);
-            }
-            return file.get();
-        }
-    }
-    
-    static void printAbbreviated(PrintStream out, String tag, String content) {
+    private static void printAbbreviated(PrintStream out, String tag, String content) {
         printAbbreviated(out, tag, content, 64);
     }
     
-    static void printAbbreviated(PrintStream out, String tag, String content, int maxLength) {
+    private static void printAbbreviated(PrintStream out, String tag, String content, int maxLength) {
         out.println(tag + ": " + StringUtils.abbreviateMiddle(content, "...", maxLength));
+    }
+    
+    private void configureTaskToExecuteProcessThatSleeps(ExecTask task, int sleepDurationInSeconds) {
+        if (platform.isWindows()) {
+            task.setExecutable("cmd");
+            task.createArg().setValue("/C");
+            task.createArg().setValue(String.format("timeout %d >nul", sleepDurationInSeconds + 1));
+        } else {
+            task.setExecutable("sleep");
+            task.createArg().setValue(String.valueOf(sleepDurationInSeconds));
+        }
     }
     
     @Test
     public void testAbortProcess() throws Exception {
         System.out.println("\n\ntestAbortProcess");
-        long processDuration = 5; // seconds
+        int processDuration = 5; // seconds
         final long killAfter = 50; // ms
         
         /*
@@ -127,8 +77,7 @@ public class ExposedExecTaskTest {
         project.init();
         task.setProject(project);
         task.setResultProperty("exitCode");
-        task.setExecutable(findExecutable("sleep").getAbsolutePath());
-        task.createArg().setValue(String.valueOf(processDuration));
+        configureTaskToExecuteProcessThatSleeps(task, processDuration);
         task.setDestructible(true);
         
         final AtomicBoolean taskEnded = new AtomicBoolean(false);
@@ -197,8 +146,7 @@ public class ExposedExecTaskTest {
         Random random = new Random();
         random.nextBytes(randomBytes);
         String inputString = new Base64().encodeAsString(randomBytes);
-        final File inputFile = File.createTempFile("random", ".txt");
-        inputFile.deleteOnExit();
+        final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
         
         Files.write(inputString, inputFile, Charsets.US_ASCII);
         printAbbreviated(System.out, "input", inputString);
@@ -226,8 +174,7 @@ public class ExposedExecTaskTest {
         Random random = new Random();
         random.nextBytes(randomBytes);
         String inputString = new Base64().encodeAsString(randomBytes);
-        final File inputFile = File.createTempFile("random", ".txt");
-        inputFile.deleteOnExit();
+        final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
         
         Files.write(inputString, inputFile, Charsets.US_ASCII);
         printAbbreviated(System.out, "input", inputString);
@@ -251,8 +198,8 @@ public class ExposedExecTaskTest {
         OutputEchoTester tester = new OutputEchoTester("1") {
 
             @Override
-            protected void configureTask(ExposedExecTask task) {
-                File file = new File(FileUtils.getTempDirectory(), UUID.randomUUID().toString());
+            protected void configureTask(ExposedExecTask task) throws IOException {
+                File file = new File(temporaryFolder.newFolder(), "ThisFileDoesNotExist");
                 task.createArg().setFile(file);
                 task.setFailonerror(false);
             }
@@ -297,14 +244,14 @@ public class ExposedExecTaskTest {
          * @throws FileNotFoundException
          * @throws BuildException 
          */
-        public ExposedExecTask testOutputEcho() throws FileNotFoundException, BuildException {
+        public ExposedExecTask testOutputEcho() throws IOException, BuildException {
             
             final ExposedExecTask task = new ExposedExecTask();
             final Project project = new Project();
             project.init();
             task.setProject(project);
             task.setResultProperty("exitCode");
-            task.setExecutable(findExecutable("cat").getAbsolutePath());
+            configureTaskToCatStdin(task);
             task.setOutputproperty("stdout");
             task.setErrorProperty("stderr");
             task.getRedirector().setStdoutEcho(stdoutEcho);
@@ -325,6 +272,16 @@ public class ExposedExecTaskTest {
             return task;
         }
         
-        protected abstract void configureTask(ExposedExecTask task);
+        protected abstract void configureTask(ExposedExecTask task) throws IOException;
+
+        private void configureTaskToCatStdin(ExecTask task) {
+            if (platform.isWindows()) {
+                task.setExecutable("type");
+                task.createArg().setValue("CON");
+            } else {
+                task.setExecutable("cat");
+            }
+        }
+
     }
 }

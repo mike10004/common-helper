@@ -57,8 +57,14 @@ public class WhicherWindowsTest {
     }
     
     @Test
-    public void testStandardFile() throws IOException {
-        System.out.println("testStandardFile");
-        WhicherTests.testSomeFileFound(temporaryFolder.newFolder());
+    public void testWhich_found() throws IOException {
+        System.out.println("testWhich_found");
+        WhicherTests.testWhich_found(temporaryFolder.newFolder());
+    }
+
+    @Test
+    public void testWhich_notFound() throws IOException {
+        System.out.println("testWhich_notFound");
+        WhicherTests.testWhich_notFound(temporaryFolder.newFolder());
     }
 }
