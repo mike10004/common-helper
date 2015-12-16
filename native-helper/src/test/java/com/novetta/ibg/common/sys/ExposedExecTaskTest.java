@@ -4,6 +4,8 @@
 package com.novetta.ibg.common.sys;
 
 import com.google.common.base.Charsets;
+import static com.google.common.base.Preconditions.checkState;
+import com.google.common.base.Supplier;
 import com.google.common.io.Files;
 import com.novetta.ibg.common.sys.OutputStreamEcho.BucketEcho;
 import java.io.File;
@@ -70,7 +72,7 @@ public class ExposedExecTaskTest {
          * half the specified duration, so here we make sure that our 
          * time-to-kill is low enough
          */
-        assertTrue(killAfter < (processDuration * 1000 / 2));
+        checkState(killAfter < (processDuration * 1000 / 2));
         
         final ExposedExecTask task = new ExposedExecTask();
         final Project project = new Project();
@@ -136,6 +138,49 @@ public class ExposedExecTaskTest {
         assertTrue("expected kill-task to succeed", killTaskSucceeded.get());
         long processDurationMs = processDuration * 1000;
         assertTrue(taskDuration.get() < (processDurationMs / 2));
+    }
+    
+    @Test
+    public void testOriginalAntTimeoutWorks() throws Exception {
+        System.out.println("\n\ntestOriginalAntTimeoutWorks");
+        testOriginalAntTimeoutWorks(new ExposedExecTask());
+    }
+    
+    @Test
+    public void demonstrateExecTaskTimeout() throws Exception {
+        System.out.println("demonstrateExecTaskTimeout");
+        testOriginalAntTimeoutWorks(new ExecTask());
+    }
+    
+    private void testOriginalAntTimeoutWorks(ExecTask task) throws Exception {        
+        
+        int commandedDuration = 1; // seconds
+        final long killAfter = 50; // ms
+        
+        /*
+         * we're gonna check later that the process didn't last longer than
+         * half the specified duration, so here we make sure that our 
+         * time-to-kill is low enough
+         */
+        checkState(killAfter < (commandedDuration * 1000 / 2));
+        
+        final Project project = new Project();
+        project.init();
+        task.setProject(project);
+        task.setResultProperty("exitCode");
+        configureTaskToExecuteProcessThatSleeps(task, commandedDuration);
+        task.setTimeout(killAfter);
+        long taskStartTime = System.currentTimeMillis();
+        task.execute();
+        long taskDuration = System.currentTimeMillis() - taskStartTime;
+        System.out.format("actual duration (seconds) %.1f (commanded duration %d)%n", taskDuration / 1000f, commandedDuration);
+        String actualExitCode = project.getProperty("exitCode");
+        System.out.println("exit code from timed-out process: " + actualExitCode);
+        
+        
+        long processDurationMs = commandedDuration * 1000;
+        assertTrue("expect actual task duration to be less than half of commanded duration", taskDuration < (processDurationMs / 2));
+        assertFalse("expected nonzero exit code", "0".equals(actualExitCode));
     }
     
     @Test
