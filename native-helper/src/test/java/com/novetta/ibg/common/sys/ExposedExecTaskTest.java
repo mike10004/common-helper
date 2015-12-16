@@ -143,11 +143,11 @@ public class ExposedExecTaskTest {
     @Test
     public void testOriginalAntTimeoutWorks() throws Exception {
         System.out.println("\n\ntestOriginalAntTimeoutWorks");
+        demonstrateExecTaskTimeout();
         testOriginalAntTimeoutWorks(new ExposedExecTask());
     }
     
-    @Test
-    public void demonstrateExecTaskTimeout() throws Exception {
+    private void demonstrateExecTaskTimeout() throws Exception {
         System.out.println("demonstrateExecTaskTimeout");
         testOriginalAntTimeoutWorks(new ExecTask());
     }
@@ -198,7 +198,7 @@ public class ExposedExecTaskTest {
         ExposedExecTask task = new OutputEchoTester() {
 
             @Override
-            protected void configureTask(ExposedExecTask task) {
+            protected void provideInputSource(ExposedExecTask task) {
                 task.createArg().setFile(inputFile);
             }
             
@@ -211,22 +211,27 @@ public class ExposedExecTaskTest {
 
     int numBytesForOutputEchoTest = 16385;
     
+    private String generateRandomString() {
+        byte[] randomBytes = new byte[numBytesForOutputEchoTest];
+        Random random = new Random();
+        random.nextBytes(randomBytes);
+        Base64 encoder = new Base64(80);
+        String inputString = encoder.encodeAsString(randomBytes);
+        return inputString.trim();
+    }
+    
     @Test
     public void testOutputEcho_fromStdin() throws Exception {
         System.out.println("\n\ntestOutputEcho_fromStdin");
         
-        byte[] randomBytes = new byte[numBytesForOutputEchoTest];
-        Random random = new Random();
-        random.nextBytes(randomBytes);
-        String inputString = new Base64().encodeAsString(randomBytes);
         final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
-        
+        String inputString = generateRandomString();
         Files.write(inputString, inputFile, Charsets.US_ASCII);
         printAbbreviated(System.out, "input", inputString);
         ExposedExecTask task = new OutputEchoTester() {
 
             @Override
-            protected void configureTask(ExposedExecTask task) {
+            protected void provideInputSource(ExposedExecTask task) {
                 task.setInput(inputFile);
             }
             
@@ -240,11 +245,12 @@ public class ExposedExecTaskTest {
     @Test
     public void testOutputEcho_stderr() throws Exception {
         System.out.println("\n\ntestOutputEcho_stderr");
+        final File file = new File(temporaryFolder.newFolder(), "ThisFileDoesNotExist");
+        checkState(!file.exists());
         OutputEchoTester tester = new OutputEchoTester("1") {
 
             @Override
-            protected void configureTask(ExposedExecTask task) throws IOException {
-                File file = new File(temporaryFolder.newFolder(), "ThisFileDoesNotExist");
+            protected void provideInputSource(ExposedExecTask task) {
                 task.createArg().setFile(file);
                 task.setFailonerror(false);
             }
@@ -302,7 +308,7 @@ public class ExposedExecTaskTest {
             task.setErrorProperty("stderr");
             task.getRedirector().setStdoutEcho(stdoutEcho);
             task.getRedirector().setStderrEcho(stderrEcho);
-            configureTask(task);
+            provideInputSource(task);
             task.execute();
             assertEquals("expect exit code " + expectedExitCode, expectedExitCode, project.getProperty("exitCode"));
             String processStdout = project.getProperty("stdout");
@@ -318,13 +324,12 @@ public class ExposedExecTaskTest {
             return task;
         }
         
-        protected abstract void configureTask(ExposedExecTask task) throws IOException;
+        protected abstract void provideInputSource(ExposedExecTask task);
 
         private void configureTaskToCatStdin(ExecTask task) {
             if (platform.isWindows()) {
-                task.setExecutable("cmd");
-                task.createArg().setValue("/C");
-                task.createArg().setValue("type CON");
+                task.setExecutable("findstr.exe");
+                task.createArg().setValue("^");
             } else {
                 task.setExecutable("cat");
             }
