@@ -250,6 +250,7 @@ public class ExposedExecTaskTest {
             final Project project = new Project();
             project.init();
             task.setProject(project);
+            task.setTimeout(3000);
             task.setResultProperty("exitCode");
             configureTaskToCatStdin(task);
             task.setOutputproperty("stdout");
