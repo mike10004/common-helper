@@ -4,6 +4,7 @@
 package com.novetta.ibg.common.sys;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
 import org.junit.BeforeClass;
@@ -21,6 +22,7 @@ public class WhicherLinuxTest {
     @Rule 
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
     
+    private static final ImmutableSet<String> expectedGrepPathnames = ImmutableSet.of("/bin/grep", "/usr/bin/grep");
     private static boolean skip;
     
     public WhicherLinuxTest() {
@@ -42,8 +44,11 @@ public class WhicherLinuxTest {
         String searchString = "grep";
         result = w.which(searchString);
         System.out.format("which '%s' = %s%n", searchString, result);
-        assertTrue(result.isPresent());
-        assertEquals(result.get().getAbsolutePath(), "/bin/grep");
+        assertTrue("grep executable must be found", result.isPresent());
+        String grepAbsPath = result.get().getAbsolutePath();
+        assertTrue("expect grep in one of these pathnames: " + expectedGrepPathnames, 
+                expectedGrepPathnames.contains(grepAbsPath));
+        
         
         searchString = "notanexecutable";
         result = w.which(searchString);
