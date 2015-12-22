@@ -34,7 +34,7 @@ import java.nio.charset.Charset;
 public class HttpRequestsIT {
     
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule();
+    public WireMockRule wireMockRule = new WireMockRule(getWireMockPort());
     
     @Test
     public void testDownloadHtmlFile() {
@@ -75,5 +75,12 @@ public class HttpRequestsIT {
         HttpRequester requester = HttpRequests.newRequester();
         expectAndVerify("/resource/not/found", "<html><body><h1>404 Not Found</h1></body></html>".getBytes(Charsets.UTF_8), MediaType.HTML_UTF_8, HTTP_NOT_FOUND, requester);
     }
-    
+
+    private static int getWireMockPort() {
+        String portStr = System.getProperty("wiremock.port");
+        if (portStr == null) {
+            throw new IllegalStateException("system property wiremock.port is not defined; the build-helper-maven-plugin must execute before this test in order to reserve a network port");
+        }
+        return Integer.parseInt(portStr);
+    }
 }
