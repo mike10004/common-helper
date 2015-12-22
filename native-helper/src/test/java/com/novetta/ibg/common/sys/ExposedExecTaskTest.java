@@ -4,40 +4,31 @@
 package com.novetta.ibg.common.sys;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.checkState;
+import com.google.common.base.Supplier;
 import com.google.common.io.Files;
-import com.google.common.io.Resources;
 import com.novetta.ibg.common.sys.OutputStreamEcho.BucketEcho;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
-import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.apache.tools.ant.taskdefs.ExecTask;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 /**
  *
@@ -45,74 +36,38 @@ import static org.junit.Assert.*;
  */
 public class ExposedExecTaskTest {
     
-    static Map<String, File> windowsExecutables;
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
     
     public ExposedExecTaskTest() {
+        platform = Platforms.getPlatform();
     }
     
-    static Properties loadMavenProperties() {
-        Properties p = new Properties();
-        try (InputStream in = ExposedExecTask.class.getResourceAsStream("/native-helper/maven.properties")) {
-            p.load(in);
-        } catch (IOException e) {
-            throw new AssertionError(e);
-        }
-        return p;
-    }
+    private transient final Platform platform;
     
-    static File prepareExecutable(String nameWithoutExtension) throws IOException {
-        File buildDir = new File(loadMavenProperties().getProperty("project.build.directory"));
-        File execsDir = new File(buildDir, "gnuwin32-coreutils");
-        String suffix = ".exe";
-        String filename = nameWithoutExtension + suffix;
-        execsDir.mkdirs();
-        File executableFile = File.createTempFile(nameWithoutExtension, suffix, execsDir);
-        Files.createParentDirs(executableFile);
-        URL resource = ExposedExecTaskTest.class.getResource(filename);
-        if (resource == null) {
-            throw new IOException("source resource not found: " + nameWithoutExtension);
-        }
-        Resources.asByteSource(resource).copyTo(Files.asByteSink(executableFile));
-        return executableFile;
-    }
-    
-    @BeforeClass
-    public static void setUpClass() throws IOException {
-        windowsExecutables = new TreeMap<>();
-        List<String> programs = ImmutableList.of("sleep", "cat");
-        if (Platforms.getPlatform().isWindows()) {
-            for (String program : programs) {
-                File executable = prepareExecutable(program);
-                windowsExecutables.put(program, executable);
-            }
-        }
-        
-    }
-    
-    File findExecutable(String nameWithoutExtension) throws FileNotFoundException {
-        if (Platforms.getPlatform().isWindows()) {
-            return windowsExecutables.get(nameWithoutExtension);
-        } else { 
-            Optional<File> file = Whicher.gnu().which(nameWithoutExtension);
-            if (!file.isPresent()) {
-                throw new FileNotFoundException(nameWithoutExtension);
-            }
-            return file.get();
-        }
-    }
-    
-    static void printAbbreviated(PrintStream out, String tag, String content) {
+    private static void printAbbreviated(PrintStream out, String tag, String content) {
         printAbbreviated(out, tag, content, 64);
     }
     
-    static void printAbbreviated(PrintStream out, String tag, String content, int maxLength) {
+    private static void printAbbreviated(PrintStream out, String tag, String content, int maxLength) {
         out.println(tag + ": " + StringUtils.abbreviateMiddle(content, "...", maxLength));
+    }
+    
+    private void configureTaskToExecuteProcessThatSleeps(ExecTask task, int sleepDurationInSeconds) {
+        if (platform.isWindows()) {
+            task.setExecutable("cmd");
+            task.createArg().setValue("/C");
+            task.createArg().setValue(String.format("timeout %d >nul", sleepDurationInSeconds + 1));
+        } else {
+            task.setExecutable("sleep");
+            task.createArg().setValue(String.valueOf(sleepDurationInSeconds));
+        }
     }
     
     @Test
     public void testAbortProcess() throws Exception {
         System.out.println("\n\ntestAbortProcess");
-        long processDuration = 5; // seconds
+        int processDuration = 5; // seconds
         final long killAfter = 50; // ms
         
         /*
@@ -120,15 +75,14 @@ public class ExposedExecTaskTest {
          * half the specified duration, so here we make sure that our 
          * time-to-kill is low enough
          */
-        assertTrue(killAfter < (processDuration * 1000 / 2));
+        checkState(killAfter < (processDuration * 1000 / 2));
         
         final ExposedExecTask task = new ExposedExecTask();
         final Project project = new Project();
         project.init();
         task.setProject(project);
         task.setResultProperty("exitCode");
-        task.setExecutable(findExecutable("sleep").getAbsolutePath());
-        task.createArg().setValue(String.valueOf(processDuration));
+        configureTaskToExecuteProcessThatSleeps(task, processDuration);
         task.setDestructible(true);
         
         final AtomicBoolean taskEnded = new AtomicBoolean(false);
@@ -190,6 +144,49 @@ public class ExposedExecTaskTest {
     }
     
     @Test
+    public void testOriginalAntTimeoutWorks() throws Exception {
+        System.out.println("\n\ntestOriginalAntTimeoutWorks");
+        demonstrateExecTaskTimeout();
+        testOriginalAntTimeoutWorks(new ExposedExecTask());
+    }
+    
+    private void demonstrateExecTaskTimeout() throws Exception {
+        System.out.println("demonstrateExecTaskTimeout");
+        testOriginalAntTimeoutWorks(new ExecTask());
+    }
+    
+    private void testOriginalAntTimeoutWorks(ExecTask task) throws Exception {        
+        
+        int commandedDuration = 1; // seconds
+        final long killAfter = 50; // ms
+        
+        /*
+         * we're gonna check later that the process didn't last longer than
+         * half the specified duration, so here we make sure that our 
+         * time-to-kill is low enough
+         */
+        checkState(killAfter < (commandedDuration * 1000 / 2));
+        
+        final Project project = new Project();
+        project.init();
+        task.setProject(project);
+        task.setResultProperty("exitCode");
+        configureTaskToExecuteProcessThatSleeps(task, commandedDuration);
+        task.setTimeout(killAfter);
+        long taskStartTime = System.currentTimeMillis();
+        task.execute();
+        long taskDuration = System.currentTimeMillis() - taskStartTime;
+        System.out.format("actual duration (seconds) %.1f (commanded duration %d)%n", taskDuration / 1000f, commandedDuration);
+        String actualExitCode = project.getProperty("exitCode");
+        System.out.println("exit code from timed-out process: " + actualExitCode);
+        
+        
+        long processDurationMs = commandedDuration * 1000;
+        assertTrue("expect actual task duration to be less than half of commanded duration", taskDuration < (processDurationMs / 2));
+        assertFalse("expected nonzero exit code", "0".equals(actualExitCode));
+    }
+    
+    @Test
     public void testOutputEcho_fromFile() throws Exception {
         System.out.println("\n\ntestOutputEcho_fromFile");
         
@@ -197,15 +194,14 @@ public class ExposedExecTaskTest {
         Random random = new Random();
         random.nextBytes(randomBytes);
         String inputString = new Base64().encodeAsString(randomBytes);
-        final File inputFile = File.createTempFile("random", ".txt");
-        inputFile.deleteOnExit();
+        final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
         
         Files.write(inputString, inputFile, Charsets.US_ASCII);
         printAbbreviated(System.out, "input", inputString);
         ExposedExecTask task = new OutputEchoTester() {
 
             @Override
-            protected void configureTask(ExposedExecTask task) {
+            protected void provideInputSource(ExposedExecTask task) {
                 task.createArg().setFile(inputFile);
             }
             
@@ -218,23 +214,27 @@ public class ExposedExecTaskTest {
 
     int numBytesForOutputEchoTest = 16385;
     
+    private String generateRandomString() {
+        byte[] randomBytes = new byte[numBytesForOutputEchoTest];
+        Random random = new Random();
+        random.nextBytes(randomBytes);
+        Base64 encoder = new Base64(80);
+        String inputString = encoder.encodeAsString(randomBytes);
+        return inputString.trim();
+    }
+    
     @Test
     public void testOutputEcho_fromStdin() throws Exception {
         System.out.println("\n\ntestOutputEcho_fromStdin");
         
-        byte[] randomBytes = new byte[numBytesForOutputEchoTest];
-        Random random = new Random();
-        random.nextBytes(randomBytes);
-        String inputString = new Base64().encodeAsString(randomBytes);
-        final File inputFile = File.createTempFile("random", ".txt");
-        inputFile.deleteOnExit();
-        
+        final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
+        String inputString = generateRandomString();
         Files.write(inputString, inputFile, Charsets.US_ASCII);
         printAbbreviated(System.out, "input", inputString);
         ExposedExecTask task = new OutputEchoTester() {
 
             @Override
-            protected void configureTask(ExposedExecTask task) {
+            protected void provideInputSource(ExposedExecTask task) {
                 task.setInput(inputFile);
             }
             
@@ -242,17 +242,18 @@ public class ExposedExecTaskTest {
         
         String processStdout = task.getProject().getProperty("stdout");
         printAbbreviated(System.out, "expected process stdout", inputString);
-        assertEquals(inputString, processStdout);
+        assertThat("process stdout does not equal input string", inputString, lenientStringMatcher(processStdout, true));
     }
 
     @Test
     public void testOutputEcho_stderr() throws Exception {
         System.out.println("\n\ntestOutputEcho_stderr");
+        final File file = new File(temporaryFolder.newFolder(), "ThisFileDoesNotExist");
+        checkState(!file.exists());
         OutputEchoTester tester = new OutputEchoTester("1") {
 
             @Override
-            protected void configureTask(ExposedExecTask task) {
-                File file = new File(FileUtils.getTempDirectory(), UUID.randomUUID().toString());
+            protected void provideInputSource(ExposedExecTask task) {
                 task.createArg().setFile(file);
                 task.setFailonerror(false);
             }
@@ -297,34 +298,106 @@ public class ExposedExecTaskTest {
          * @throws FileNotFoundException
          * @throws BuildException 
          */
-        public ExposedExecTask testOutputEcho() throws FileNotFoundException, BuildException {
+        public ExposedExecTask testOutputEcho() throws IOException, BuildException {
             
             final ExposedExecTask task = new ExposedExecTask();
             final Project project = new Project();
             project.init();
             task.setProject(project);
+            task.setTimeout(3000);
             task.setResultProperty("exitCode");
-            task.setExecutable(findExecutable("cat").getAbsolutePath());
+            configureTaskToCatStdin(task);
             task.setOutputproperty("stdout");
             task.setErrorProperty("stderr");
             task.getRedirector().setStdoutEcho(stdoutEcho);
             task.getRedirector().setStderrEcho(stderrEcho);
-            configureTask(task);
+            provideInputSource(task);
             task.execute();
             assertEquals("expect exit code " + expectedExitCode, expectedExitCode, project.getProperty("exitCode"));
             String processStdout = project.getProperty("stdout");
             String processStderr = project.getProperty("stderr");
             String echoedStdout = new String(stdoutEcho.toByteArray(), Charset.defaultCharset()); // executable would have used default platform charset
             String echoedStderr = new String(stderrEcho.toByteArray(), Charset.defaultCharset());
+            processStdout = normalizeLineEndings(processStdout);
+            processStderr = normalizeLineEndings(processStderr);
+            echoedStdout = normalizeLineEndings(echoedStdout);
+            echoedStderr = normalizeLineEndings(echoedStderr);
             printAbbreviated(System.out, "process stdout", processStdout);
             printAbbreviated(System.out, "process stderr", processStderr);
             printAbbreviated(System.out, "echoed stdout", echoedStdout);
             printAbbreviated(System.out, "echoed stderr", echoedStderr);
-            assertEquals(processStdout.trim(), echoedStdout.trim());
-            assertEquals(processStderr.trim(), echoedStderr.trim());
+            assertThat("process stdout != echoed stdout", echoedStdout, lenientStringMatcher(processStdout, true));
+            assertThat("process stderr != echoed stderr", echoedStderr, lenientStringMatcher(processStderr, true));
             return task;
         }
         
-        protected abstract void configureTask(ExposedExecTask task);
+        protected abstract void provideInputSource(ExposedExecTask task);
+
+        private void configureTaskToCatStdin(ExecTask task) {
+            if (platform.isWindows()) {
+                task.setExecutable("findstr.exe");
+                task.createArg().setValue("^");
+            } else {
+                task.setExecutable("cat");
+            }
+        }
+
     }
+
+    private static String normalizeLineEndings(String input) {
+        input = input.replaceAll("\\r\\n", "\n");
+        input = input.replaceAll("\\r", "\n");
+        return input;
+    }
+        
+    private static Matcher<String> lenientStringMatcher(final String unnormalizedExpected, final boolean normalizeLineEndings) {
+        final String expected = (normalizeLineEndings ? normalizeLineEndings(unnormalizedExpected) : unnormalizedExpected).trim();
+        return new BaseMatcher<String>() {
+
+            private Object item;
+            private int indexOfFirstMismatch = -1;
+
+            @Override
+            public boolean matches(Object item) {
+                this.item = item;
+                if (item == null && expected == null) {
+                    return true;
+                }
+                if (item == null) {
+                    return false;
+                }
+                String actual = (normalizeLineEndings ? normalizeLineEndings((String) item) : (String) item).trim();
+                final int expectedLen = expected.length(), actualLen = actual.length();
+                for (int i = 0; i < Math.max(expectedLen, actualLen); i++) {
+                    if (i < expectedLen && i < actualLen) {
+                        char ech = expected.charAt(i);
+                        char ach = actual.charAt(i);
+                        if (ech != ach) {
+                            indexOfFirstMismatch = i;
+                            return false;
+                        }
+                    } else {
+                        indexOfFirstMismatch = i;
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description d) {
+                if (item == null || expected == null) {
+                    d.appendText("actual and expected null-ness mismatch");
+                } else {
+                    int i = indexOfFirstMismatch;
+                    checkState(i >= 0);
+                    String actual = (String) item;
+                    d.appendText("first mismatch at index ").appendValue(i);
+                    d.appendText("; expected = ").appendValue(i < expected.length() ? expected.charAt(i) : "<len>");
+                    d.appendText(", actual = ").appendValue(i < actual.length() ? actual.charAt(i) : "<len>");
+                }
+            }
+        };
+    }
+
 }

@@ -23,7 +23,7 @@ import org.apache.tools.ant.taskdefs.*;
  */
 public class ExposedExecTask extends ExecTask {
 
-    private LethalWatchdog watchdog;
+    private ExecuteWatchdog watchdog;
     private Execute execute;
     private Long timeout;
     private boolean destructible; 
@@ -46,9 +46,12 @@ public class ExposedExecTask extends ExecTask {
      * @throws BuildException under unknown circumstances.
      */
     @Override
-    protected LethalWatchdog createWatchdog() throws BuildException {
+    protected ExecuteWatchdog createWatchdog() throws BuildException {
+        if (timeout != null && destructible) {
+            throw new IllegalStateException("setting timeout non-null and destructible=true is not yet supported");
+        }
         if (timeout != null) {
-            return watchdog = new LethalWatchdog(timeout.longValue());
+            return watchdog = new ExecuteWatchdog(timeout.longValue());
         }
         if (destructible) {
             return watchdog = new LethalWatchdog(Long.MAX_VALUE);
@@ -73,7 +76,13 @@ public class ExposedExecTask extends ExecTask {
         this.destructible = destructible;
     }
     
-    public LethalWatchdog getWatchdog() {
+    /**
+     * Returns the watchdog. This will be a {@link LethalWatchdog} instance if 
+     * {@code destructible} was set to true and {@code createWatchdog()} has been
+     * invoked. Invoking {@code execute()} invokes {@code createWatchdog()}.
+     * @return  the watchdog
+     */
+    public ExecuteWatchdog getWatchdog() {
         return watchdog;
     }
 
@@ -97,10 +106,14 @@ public class ExposedExecTask extends ExecTask {
      * @return true if abort succeeded
      */
     public boolean abort() {
-        LethalWatchdog dog = getWatchdog();
+        ExecuteWatchdog dog = getWatchdog();
         if (dog != null) {
-            dog.destroy();
-            return true;
+            if (dog instanceof LethalWatchdog) {
+                ((LethalWatchdog)dog).destroy();
+                return true;
+            } else {
+                throw new IllegalStateException("watchdog is not a LethalWatchdog; this task was incorrectly set up");
+            }
         }
         return false;
     }

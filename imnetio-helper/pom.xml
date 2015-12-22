@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>4.1.1-SNAPSHOT</version>
+        <version>4.1.1</version>
     </parent>
     <artifactId>imnetio-helper</artifactId>
     <packaging>jar</packaging>
@@ -22,10 +22,25 @@
                 <artifactId>sonar-maven-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.9.1</version>
+                <executions>
+                    <execution>
+                        <id>reserve-wiremock-port</id>
+                        <goals>
+                            <goal>reserve-network-port</goal>
+                        </goals>
+                        <configuration>
+                            <portNames>
+                                <portName>wiremock.port</portName>
+                            </portNames>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <argLine>-Djava.awt.headless=true</argLine>
-                </configuration>
                 <executions>
                     <execution>
                         <id>integration-test</id>
@@ -40,6 +55,11 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <systemPropertyVariables>
+                        <wiremock.port>${wiremock.port}</wiremock.port>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>        
         </plugins>
     </build>
