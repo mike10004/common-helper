@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
     </parent>
     <artifactId>ormlite-helper-testtools</artifactId>
     <name>ormlite-helper-testtools</name>
@@ -15,6 +15,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <mysql-dist.version>5.5.34</mysql-dist.version><!-- see http://mvnrepository.com/artifact/com.jcabi/mysql-dist for other versions -->
         <jcabi-mysql-maven-plugin.version>0.8.1</jcabi-mysql-maven-plugin.version>
+        <mysql-dist.groupId>com.jcabi</mysql-dist.groupId>
     </properties>
     <profiles>
         <profile>
@@ -25,7 +26,8 @@
                 </os>
             </activation>
             <properties>
-                <mysql-dist.version>5.5.41</mysql-dist.version>
+                <mysql-dist.version>5.6.28</mysql-dist.version>
+                <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
             </properties>
         </profile>
         <profile>
@@ -96,7 +98,7 @@
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
-                                    <groupId>com.jcabi</groupId>
+                                    <groupId>${mysql-dist.groupId}</groupId>
                                     <artifactId>mysql-dist</artifactId>
                                     <version>${mysql-dist.version}</version> 
                                     <classifier>${mysql.classifier}</classifier>
