@@ -98,7 +98,7 @@
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
-                                    <groupId>com.jcabi</groupId>
+                                    <groupId>${mysql-dist.groupId}</groupId>
                                     <artifactId>mysql-dist</artifactId>
                                     <version>${mysql-dist.version}</version> 
                                     <classifier>${mysql.classifier}</classifier>
