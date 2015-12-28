@@ -73,7 +73,7 @@
     <scm>
         <connection>scm:git:https://github.com/mike10004/common-helper.git</connection>
         <developerConnection>scm:git:git@github.com:mike10004/common-helper.git</developerConnection>
-        <url>https://github.com/mike10004/common-helper/tags/4.0.0</url>
+        <url>https://github.com/mike10004/common-helper/tags/${project.version}</url>
     </scm>
     <issueManagement>
         <system>Github</system>
