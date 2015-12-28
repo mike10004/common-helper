@@ -77,17 +77,17 @@ installed and `perl.exe` on the system path. Visit
 On Linux, make sure the **libaio1** (Linux kernel asynchronous I/O access 
 library) package is installed, or else the MySQL integration tests will fail.
 
-A MySQL distribution dependency is not available from Maven central on some 
-platforms (e.g. FreeBSD). If that is the case for you, you must go to 
-[MySQL](http://www.mysql.com), download a release, re-package it into a zip
-file, and install it to your local repository. For example:
+The MySQL distribution dependency is platform-dependent and Maven central may 
+not host an artifact corresponding to your platform. If that is the case, you
+can download a [MySQL](http://www.mysql.com) tarball release, re-package it 
+into a zip file, and install it to your local repository. For example:
 
     $ mvn install:install-file -DartifactId=mysql-dist -DgroupId=com.jcabi \
-        -Dversion=5.5.41 -Dclassifier=freebsd-amd64 -Dpackaging=zip \
-        -Dfile=/path/to/downloaded/mysql-dist-5.5.41-freebsd-amd64.zip
+        -Dversion=5.5.41 -Dclassifier=myoperatingsystem-amd64 -Dpackaging=zip \
+        -Dfile=/path/to/downloaded/mysql-dist-5.5.41-myoperatingsystem-amd64.zip
 
-Add a profile that only gets activated when your platform is detected. (There 
-is an example of this for FreeBSD in the current pom.)
+Add a profile to your `$HOME/.m2/settings.xml` that only gets activated when your
+platform is detected.
 
 ## Build
 
