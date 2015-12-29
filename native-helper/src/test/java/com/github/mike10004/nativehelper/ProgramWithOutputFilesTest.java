@@ -29,8 +29,10 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Set;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -56,7 +58,7 @@ public class ProgramWithOutputFilesTest {
     public void testExecute_outputToFiles_stderr() throws IOException {
         System.out.println("testExecute_outputToFiles_stderr");
         byte[] expectedStderr = ("hello" + System.getProperty("line.separator")).getBytes(Charset.defaultCharset());
-        testExecute_outputToFiles("echo hello >&2", 0, new byte[0], expectedStderr);
+        testExecute_outputToFiles("echo hello>&2", 0, new byte[0], expectedStderr);
     }
     
     private void testExecute_outputToFiles(String command, int expectedExitCode, byte[] expectedStdout, byte[] expectedStderr) throws IOException {
@@ -84,9 +86,22 @@ public class ProgramWithOutputFilesTest {
         byte[] actualStderr = Files.toByteArray(result.getStderrFile());
         System.out.println("stdout length: " + actualStdout.length);
         System.out.println("stderr length: " + actualStderr.length);
-        assertArrayEquals("stderr", expectedStderr, actualStderr);
+        Charset chs = Charset.defaultCharset();
+        if (!Arrays.equals(expectedStdout, actualStdout)) {
+            System.out.format("expecting %s, actual is %s%n", describeByteArrayAsString(expectedStdout, chs), describeByteArrayAsString(actualStdout, chs));
+        }
+        if (!Arrays.equals(expectedStderr, actualStderr)) {
+            System.out.format("expecting %s, actual is %s%n", describeByteArrayAsString(expectedStderr, chs), describeByteArrayAsString(actualStderr, chs));
+        }
         assertArrayEquals("stdout", expectedStdout, actualStdout);
+        assertArrayEquals("stderr", expectedStderr, actualStderr);
         return result;
+    }
+
+    private String describeByteArrayAsString(byte[] bytes, Charset charset) {
+        String s = new String(bytes, charset);
+        s = StringEscapeUtils.escapeJava(s);
+        return String.format("%s -> \"%s\"%n", Arrays.toString(bytes), s);
     }
 
     @Test
@@ -102,7 +117,7 @@ public class ProgramWithOutputFilesTest {
         System.out.println("testExecute_tempDirSpecified_stderr");
         File tempDir = temporaryFolder.newFolder();
         byte[] expectedStderr = ("hello" + System.getProperty("line.separator")).getBytes(Charset.defaultCharset());
-        testExecute_tempDirSpecified(tempDir, "echo hello >&2", 0, new byte[0], expectedStderr);
+        testExecute_tempDirSpecified(tempDir, "echo hello>&2", 0, new byte[0], expectedStderr);
     }
     
     private void testExecute_tempDirSpecified(final File tempDir, String command, int expectedExitCode, byte[] expectedStdout, byte[] expectedStderr) throws IOException {

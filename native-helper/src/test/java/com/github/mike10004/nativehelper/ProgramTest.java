@@ -73,47 +73,56 @@ public class ProgramTest {
         
     }
     
-    private static final int testAbortProgram_commandedProcessDuration_seconds = 3;
-    private static final long testAbortProgram_timeout = (testAbortProgram_commandedProcessDuration_seconds * 2) * 1000;
+    private static final int testAbortProgram_commandedProcessDuration_seconds = 300;
+    private static final int testAbortProgram_trials = 5;
+    private static final long testAbortProgram_timeout = (testAbortProgram_commandedProcessDuration_seconds * testAbortProgram_trials * 2) * 1000;
     
     @Test(timeout = testAbortProgram_timeout)
     public void testAbortProgram() throws InterruptedException {
         System.out.println("\ntestAbortProgram");
-        int commandedProcessDuration = testAbortProgram_commandedProcessDuration_seconds; // seconds
-        final long killAfter = 50; // ms
-        
-        /*
-         * we're gonna check later that the process didn't last longer than
-         * half the specified duration, so here we make sure that our 
-         * time-to-kill is low enough
-         */
-        checkState(killAfter < (commandedProcessDuration * 1000 / 2));
-        
-        Program.Builder builder;
-        if (platform.isWindows()) {
-            builder = Program.running("cmd").arg("/C").arg(String.format("timeout %d >nul", commandedProcessDuration + 1));
-        } else {
-            builder = Program.running("sleep").arg(String.valueOf(commandedProcessDuration));
-        }
+        for (int trial = 0; trial < testAbortProgram_trials; trial++) {
+            System.out.println("testAbortProgram trial " + trial);
+            int commandedProcessDuration = testAbortProgram_commandedProcessDuration_seconds; // seconds
+            final long killAfter = 50; // ms
 
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        Program program = builder.ignoreOutput();
-        long executionStartTime = System.currentTimeMillis();
-        ListenableFuture<ProgramResult> future = program.executeAsync(executorService);
-        Thread.sleep(killAfter);
-        boolean cancellationResult = future.cancel(true);
-        System.out.println("cancellationResult: " + cancellationResult);
-        assertTrue("expected future.isCancelled = true", future.isCancelled());
-        try {
-            future.get();
-            fail("should have thrown cancellationexception");
-        } catch (CancellationException expected) {
-        } catch (ExecutionException unexpected) {
-            fail("should have thrown cancellationexception, not " + unexpected);
+            /*
+             * we're gonna check later that the process didn't last longer than
+             * half the specified duration, so here we make sure that our
+             * time-to-kill is low enough
+             */
+            checkState(killAfter < (commandedProcessDuration * 1000 / 2));
+
+            Program.Builder builder;
+            if (platform.isWindows()) {
+//                String command = String.format("timeout %d >nul", commandedProcessDuration + 1);
+                String command = String.format("ping 127.0.0.1 -n %d > nul", commandedProcessDuration);
+                System.out.println("windows command: " + command);
+                builder = Program.running("cmd").arg("/C").arg(command);
+            } else {
+                builder = Program.running("sleep").arg(String.valueOf(commandedProcessDuration));
+            }
+
+            ExecutorService executorService = Executors.newFixedThreadPool(2);
+            Program program = builder.outputToStrings();
+            assertNull(program.getStandardInput().getLeft());
+            assertNull(program.getStandardInput().getRight());
+            long executionStartTime = System.currentTimeMillis();
+            ListenableFuture<ProgramResult> future = program.executeAsync(executorService);
+            Thread.sleep(killAfter);
+            boolean cancellationResult = future.cancel(true);
+            System.out.println("cancellationResult: " + cancellationResult);
+            try {
+                System.out.println(future.get());
+                fail("should have thrown cancellationexception");
+            } catch (CancellationException expected) {
+            } catch (ExecutionException unexpected) {
+                fail("should have thrown cancellationexception, not " + unexpected);
+            }
+            assertTrue("expected future.isCancelled = true", future.isCancelled());
+            long executionDuration = System.currentTimeMillis() - executionStartTime;
+            long commandedProcessDurationMs = commandedProcessDuration * 1000;
+            assertTrue("expect execution duration to be less than half commanded process duration", executionDuration < (commandedProcessDurationMs / 2));
         }
-        long executionDuration = System.currentTimeMillis() - executionStartTime;
-        long commandedProcessDurationMs = commandedProcessDuration * 1000;
-        assertTrue("expect execution duration to be less than half commanded process duration", executionDuration < (commandedProcessDurationMs / 2));
     }
     
 

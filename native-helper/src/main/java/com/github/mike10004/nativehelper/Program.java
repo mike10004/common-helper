@@ -89,7 +89,7 @@ public abstract class Program<R extends ProgramResult> {
 
     /**
      * Launches the external process.
-     * @return
+     * @return the execution result
      * @throws BuildException if the program fails to execute, for example because 
      * the executable is not found 
      */
@@ -308,5 +308,21 @@ public abstract class Program<R extends ProgramResult> {
             return "ProgramResult{" + "exitCode=" + exitCode + '}';
         }
         
+    }
+
+    protected String getExecutable() {
+        return executable;
+    }
+
+    protected ImmutablePair<String, File> getStandardInput() {
+        return standardInput;
+    }
+
+    protected ImmutableList<String> getArguments() {
+        return arguments;
+    }
+
+    protected @Nullable File getWorkingDirectory() {
+        return workingDirectory;
     }
 }
