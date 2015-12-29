@@ -278,7 +278,7 @@ public abstract class Program<R extends ProgramResult> {
 
     protected static class ExitCodeProgramResult implements ProgramResult {
 
-        private final int exitCode;
+        protected final int exitCode;
 
         public ExitCodeProgramResult(int exitCode) {
             this.exitCode = exitCode;
@@ -287,6 +287,11 @@ public abstract class Program<R extends ProgramResult> {
         @Override
         public int getExitCode() {
             return exitCode;
+        }
+
+        @Override
+        public String toString() {
+            return "ProgramResult{" + "exitCode=" + exitCode + '}';
         }
         
     }

@@ -23,9 +23,12 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.novetta.ibg.common.sys.Platform;
 import com.novetta.ibg.common.sys.Platforms;
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import org.apache.tools.ant.BuildException;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -37,24 +40,34 @@ public class ProgramWithOutputStringsTest {
     
     @Test
     public void testExecute_stdoutToString() throws IOException {
-        System.out.println("testExecute_filesSpecified");
-        
+        System.out.println("testExecute_stdoutToString");
+        testExecute("echo hello", 0, "hello", "");
+    }
+    
+    @Test
+    public void testExecute_stderrToString() throws IOException {
+        System.out.println("testExecute_stderrToString");
+        testExecute("echo goodbye >&2", 0, "", "goodbye");
+    }
+    
+    private void testExecute(String shellCommand, int expectedExitCode, String expectedStdout, String expectedStderr) throws BuildException {
         Program.Builder builder = ProgramBuilders.shell();
-        ProgramWithOutputStrings program = builder.arg("echo hello").outputToStrings();
+        System.out.println("executing command: " + shellCommand);
+        ProgramWithOutputStrings program = builder.arg(shellCommand).outputToStrings();
         ProgramWithOutputStringsResult result = program.execute();
-        System.out.println("exit code " + result.getExitCode());
-        assertEquals("exitCode", 0, result.getExitCode());
-        String actualStdout = result.getStdoutString();
-        System.out.println(actualStdout);
-        assertEquals("hello", actualStdout);
-        String actualStderr = result.getStderrString();
-        assertEquals("stderr.length " + actualStderr.length(), 0, actualStderr.length());
+        System.out.println(result);
+        assertEquals("exitCode", expectedExitCode, result.getExitCode());
+        assertEquals("stdout", expectedStdout, result.getStdoutString());
+        assertEquals("stderr", expectedStderr, result.getStderrString());
     }
 
     @Test
     public void testExecuteAsync() throws Exception {
-        System.out.println("test");
-        
-        
+        System.out.println("testExecuteAsync");
+        ProgramWithOutputStrings program = ProgramBuilders.shell().arg("echo hello").outputToStrings();
+        ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(Executors.newSingleThreadExecutor());
+        ProgramWithOutputStringsResult result = future.get();
+        System.out.println("program result: " + result);
+        assertEquals("hello", result.getStdoutString());
     }
 }

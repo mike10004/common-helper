@@ -64,5 +64,10 @@ public class ProgramWithOutputFilesResult extends ExitCodeProgramResult implemen
     public File getStderrFile() {
         return stderrFile;
     }
+
+    @Override
+    public String toString() {
+        return "ProgramWithOutputFilesResult{" + "exitCode=" + exitCode + ", stdoutFile=" + stdoutFile + ", stderrFile=" + stderrFile + '}';
+    }
     
 }

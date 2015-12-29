@@ -27,12 +27,15 @@ import com.github.mike10004.nativehelper.Program.ExitCodeProgramResult;
 import com.google.common.io.ByteSource;
 import java.nio.charset.Charset;
 import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
  * @author mchaberski
  */
 public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
+    
+    public static final int DEFAULT_STRING_ABBREVIATION_LENGTH = 256;
     
     private final String stdoutString, stderrString;
     private final Charset charset;
@@ -74,5 +77,17 @@ public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implem
             return stderr;
         }
     }
+
+    @Override
+    public String toString() {
+        return toString(DEFAULT_STRING_ABBREVIATION_LENGTH);
+    }
+    
+    public String toString(int maxStringLength) {
+        String abbreviatedStdoutString = StringUtils.abbreviate(stdoutString, maxStringLength);
+        String abbreviatedStderrString = StringUtils.abbreviate(stderrString, maxStringLength);
+        return "ProgramWithOutputStringsResult{" + "exitCode=" + exitCode + ", stdoutString=" + abbreviatedStdoutString + ", stderrString=" + abbreviatedStderrString + '}';
+    }
+    
     
 }

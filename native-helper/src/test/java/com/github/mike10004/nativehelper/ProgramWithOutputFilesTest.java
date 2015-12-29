@@ -23,6 +23,7 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.novetta.ibg.common.sys.Platform;
@@ -47,46 +48,78 @@ public class ProgramWithOutputFilesTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void testExecute_outputToFiles() throws IOException {
-        System.out.println("testExecute_outputToFiles");
-        
-        File stdoutFile = temporaryFolder.newFile();
-        File stderrFile = temporaryFolder.newFile();
-        
+    public void testExecute_outputToFiles_stdout() throws IOException {
+        System.out.println("testExecute_outputToFiles_stdout");
+        byte[] expectedStdout = ("hello" + System.getProperty("line.separator")).getBytes(Charset.defaultCharset());
+        testExecute_outputToFiles("echo hello", 0, expectedStdout, new byte[0]);
+    }
+    
+    @Test
+    public void testExecute_outputToFiles_stderr() throws IOException {
+        System.out.println("testExecute_outputToFiles_stderr");
+        byte[] expectedStderr = ("hello" + System.getProperty("line.separator")).getBytes(Charset.defaultCharset());
+        testExecute_outputToFiles("echo hello >&2", 0, new byte[0], expectedStderr);
+    }
+    
+    private void testExecute_outputToFiles(String command, int expectedExitCode, byte[] expectedStdout, byte[] expectedStderr) throws IOException {
+        final File stdoutFile = temporaryFolder.newFile();
+        final File stderrFile = temporaryFolder.newFile();
+        System.out.format("output files: %s, %s%n", stdoutFile, stderrFile);
+        ProgramWithOutputFilesResult result = testExecute(command, expectedExitCode, expectedStdout, expectedStderr, new Function<Program.Builder, ProgramWithOutputFiles>() {
+            @Override
+            public ProgramWithOutputFiles apply(Program.Builder builder) {
+                return builder.outputToFiles(stdoutFile, stderrFile);
+            }
+        });
+        assertEquals(stdoutFile, result.getStdoutFile());
+        assertEquals(stderrFile, result.getStderrFile());
+    }
+    
+    private ProgramWithOutputFilesResult testExecute(String command, int expectedExitCode, byte[] expectedStdout, byte[] expectedStderr, Function<Program.Builder, ProgramWithOutputFiles> programMaker) throws IOException {
         Program.Builder builder = ProgramBuilders.shell();
-        ProgramWithOutputFiles program = builder.arg("echo hello").outputToFiles(stdoutFile, stderrFile);
+        ProgramWithOutputFiles program = programMaker.apply(builder.arg(command));
+        @SuppressWarnings("null")
         ProgramWithOutputFilesResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());
-        assertEquals("exitCode", 0, result.getExitCode());
-        String actualStdout = Files.toString(stdoutFile, Charset.defaultCharset());
-        System.out.println(actualStdout);
-        assertEquals("hello" + System.getProperty("line.separator"), actualStdout);
-        assertEquals("stderr.length " + stderrFile.length(), 0L, stderrFile.length());
+        assertEquals("exitCode", expectedExitCode, result.getExitCode());
+        byte[] actualStdout= Files.toByteArray(result.getStdoutFile());
+        byte[] actualStderr = Files.toByteArray(result.getStderrFile());
+        System.out.println("stdout length: " + actualStdout.length);
+        System.out.println("stderr length: " + actualStderr.length);
+        assertArrayEquals("stderr", expectedStderr, actualStderr);
+        assertArrayEquals("stdout", expectedStdout, actualStdout);
+        return result;
     }
 
     @Test
-    public void testExecute_tempDirSpecified() throws IOException {
-        System.out.println("testExecute_tempDirSpecified");
-        
+    public void testExecute_tempDirSpecified_stdout() throws IOException {
+        System.out.println("testExecute_tempDirSpecified_stdout");
         File tempDir = temporaryFolder.newFolder();
+        byte[] expectedStdout = ("hello" + System.getProperty("line.separator")).getBytes(Charset.defaultCharset());
+        testExecute_tempDirSpecified(tempDir, "echo hello", 0, expectedStdout, new byte[0]);
+    }
+    
+    @Test
+    public void testExecute_tempDirSpecified_stderr() throws IOException {
+        System.out.println("testExecute_tempDirSpecified_stderr");
+        File tempDir = temporaryFolder.newFolder();
+        byte[] expectedStderr = ("hello" + System.getProperty("line.separator")).getBytes(Charset.defaultCharset());
+        testExecute_tempDirSpecified(tempDir, "echo hello >&2", 0, new byte[0], expectedStderr);
+    }
+    
+    private void testExecute_tempDirSpecified(final File tempDir, String command, int expectedExitCode, byte[] expectedStdout, byte[] expectedStderr) throws IOException {
         
-        Program.Builder builder = ProgramBuilders.shell();
-        ProgramWithOutputFiles program = builder.arg("echo hello").outputToTempFiles(tempDir.toPath());
-        ProgramWithOutputFilesResult result = program.execute();
-        System.out.println("exit code " + result.getExitCode());
-        assertEquals("exitCode", 0, result.getExitCode());
+        ProgramWithOutputFilesResult result = testExecute(command, expectedExitCode, expectedStdout, expectedStderr, new Function<Program.Builder, ProgramWithOutputFiles>() {
+            @Override
+            public ProgramWithOutputFiles apply(Program.Builder input) {
+                return input.outputToTempFiles(tempDir.toPath());
+            }
+        });
         
         // check that they're the only two files in the temp dir
         Set<File> filesInTempDir = ImmutableSet.copyOf(FileUtils.listFiles(tempDir, null, true));
         assertEquals("expect 2 files in temp dir", 2, filesInTempDir.size());
         assertEquals(filesInTempDir, ImmutableSet.of(result.getStdoutFile(), result.getStderrFile()));
-        File stdoutFile = result.getStdoutFile();
-        String actualStdout = Files.toString(stdoutFile, Charset.defaultCharset());
-        System.out.println(actualStdout);
-        assertEquals("hello" + System.getProperty("line.separator"), actualStdout);
-        File stderrFile = result.getStderrFile();
-        assertEquals("stderr.length " + stderrFile.length(), 0L, stderrFile.length());
-        
     }
     
 }
