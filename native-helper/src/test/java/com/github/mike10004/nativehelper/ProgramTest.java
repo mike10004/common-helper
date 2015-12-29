@@ -73,10 +73,13 @@ public class ProgramTest {
         
     }
     
-    @Test
+    private static final int testAbortProgram_commandedProcessDuration_seconds = 3;
+    private static final long testAbortProgram_timeout = (testAbortProgram_commandedProcessDuration_seconds * 2) * 1000;
+    
+    @Test(timeout = testAbortProgram_timeout)
     public void testAbortProgram() throws InterruptedException {
         System.out.println("\ntestAbortProgram");
-        int commandedProcessDuration = 3; // seconds
+        int commandedProcessDuration = testAbortProgram_commandedProcessDuration_seconds; // seconds
         final long killAfter = 50; // ms
         
         /*

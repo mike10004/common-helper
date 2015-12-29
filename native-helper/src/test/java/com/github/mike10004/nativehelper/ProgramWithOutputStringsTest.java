@@ -70,7 +70,7 @@ public class ProgramWithOutputStringsTest {
         assertEquals("hello", result.getStdoutString());
     }
     
-    @Test
+    @Test(timeout = 1000L)
     public void testExecute_inputString() {
         System.out.println("testExecute_inputString");
         String inputString = "hello";
