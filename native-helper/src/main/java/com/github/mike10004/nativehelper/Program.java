@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
@@ -49,7 +50,7 @@ import org.apache.tools.ant.taskdefs.ExecTask;
  *
  * @author mchaberski
  */
-public abstract class Program {
+public class Program {
     
     private static final CharMatcher alphanumeric = CharMatcher.JAVA_LETTER_OR_DIGIT;
     public static final String KEY_RESULT_PROPERTY_NAME = Program.class.getName() + ".resultPropertyName";
@@ -72,7 +73,6 @@ public abstract class Program {
     public ProgramResult execute() {
         Map<String, Object> localContext = new HashMap<>();
         ExposedExecTask task = taskFactory.get();
-        task.setProject(new Project());
         configureTask(task, localContext);
         executeInContext(task, localContext);
         ProgramResult result = produceResultFromExecutedTask(task, localContext);
@@ -102,31 +102,39 @@ public abstract class Program {
         }
     }
     
-    protected abstract ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext);
+    protected ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
+        int exitCode = getExitCode(task, executionContext);
+        return new SimpleProgramResult(exitCode);
+    }
     
+    protected static class DefaultTaskFactory implements Supplier<ExposedExecTask> {
+        @Override
+        public ExposedExecTask get() {
+            ExposedExecTask task = new ExposedExecTask();
+            task.setProject(new Project()); // do not call Project.init()
+            return task;
+        }
+    }
+    
+    @NotThreadSafe
     public static class Builder {
         
         protected final String executable;
         protected String standardInput;
         protected File standardInputFile;
         protected File workingDirectory;
-        protected Supplier<ExposedExecTask> taskFactory;
+        protected Supplier<? extends ExposedExecTask> taskFactory;
         protected final List<String> arguments;
         
         protected Builder(String executable) {
             this.executable = checkNotNull(executable);
             checkArgument(!executable.isEmpty(), "executable must be non-empty string");
             arguments = new ArrayList<>();
-            taskFactory = new Supplier<ExposedExecTask>(){
-                @Override
-                public ExposedExecTask get() {
-                    return new ExposedExecTask();
-                }
-            };
+            taskFactory = new DefaultTaskFactory();
         }
         
         public Program build() {
-            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+            return new Program(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
         }
         
         protected static void copyFields(Builder src, Builder dst) {
@@ -177,6 +185,9 @@ public abstract class Program {
             return new ProgramWithOutputFiles.Builder(this, parentDirectory);
         }
         
+        public ProgramWithOutputStrings.Builder stringOutput() {
+            return new ProgramWithOutputStrings.Builder(this);
+        }
     }
     
     public static Builder builder(File executable) {
@@ -188,29 +199,16 @@ public abstract class Program {
         return new Builder(executable);
     }
     
-    protected static class SimpleProgram extends Program {
-
-        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-            super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+    protected int getExitCode(ExecTask task, Map<String, Object> executionContext) {
+        String resultPropertyName = (String) executionContext.get(KEY_RESULT_PROPERTY_NAME);
+        String resultPropertyStr = task.getProject().getProperty(resultPropertyName);
+        if (resultPropertyStr == null) {
+            throw new IllegalStateException("result property not set (maybe failonerror=false?) or task not yet executed");
         }
-
-        @Override
-        protected ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
-            int exitCode = getExitCode(task, executionContext);
-            return new SimpleProgramResult(exitCode);
-        }
-        
-        protected int getExitCode(ExecTask task, Map<String, Object> executionContext) {
-            String resultPropertyName = (String) executionContext.get(KEY_RESULT_PROPERTY_NAME);
-            String resultPropertyStr = task.getProject().getProperty(resultPropertyName);
-            if (resultPropertyStr == null) {
-                throw new IllegalStateException("result property not set (maybe failonerror=false?) or task not yet executed");
-            }
-            int exitCode = Integer.parseInt(resultPropertyStr);
-            return exitCode;
-        }
+        int exitCode = Integer.parseInt(resultPropertyStr);
+        return exitCode;
     }
-    
+
     protected static class SimpleProgramResult implements ProgramResult {
 
         private final int exitCode;

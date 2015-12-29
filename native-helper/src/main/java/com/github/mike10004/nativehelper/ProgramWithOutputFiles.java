@@ -29,10 +29,10 @@ import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.apache.tools.ant.taskdefs.ExecTask;
 import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.file.Path;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  *
@@ -45,7 +45,7 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
 
     private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
     
-    protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<ExposedExecTask> taskFactory, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
+    protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
         super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
         this.stdoutFileSupplier = Suppliers.memoize(stdoutFileSupplier);
         this.stderrFileSupplier = Suppliers.memoize(stderrFileSupplier);
@@ -76,13 +76,15 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
         return result;
     }
 
+    @NotThreadSafe
     public static class Builder extends Program.Builder {
         
         protected Supplier<File> stdoutFileSupplier, stderrFileSupplier;
         
+        @SuppressWarnings("LeakingThisInConstructor")
         protected Builder(Program.Builder superclassBuilder, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
             super(superclassBuilder.executable);
-            initFrom(superclassBuilder);
+            copyFields(superclassBuilder, this);
             this.stdoutFileSupplier = checkNotNull(stdoutFileSupplier);
             this.stderrFileSupplier = checkNotNull(stderrFileSupplier);
         }
@@ -100,10 +102,6 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
             return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, stdoutFileSupplier, stderrFileSupplier);
         }
         
-        private void initFrom(Program.Builder superclassBuilder) {
-            copyFields(superclassBuilder, this);
-        }
-
         @Override
         public Builder args(Iterable<String> arguments) {
             return (Builder) super.args(arguments);

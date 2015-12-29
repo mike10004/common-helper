@@ -115,4 +115,10 @@ public class ProgramWithOutputFilesTest {
     public void confirmAllBuilderSetterMethodsReturnSubclass() throws Exception {
         BuilderTests.confirmAllBuilderSetterMethodsReturnSubclass(ProgramWithOutputFiles.Builder.class);
     }
+
+    @Test
+    public void confirmBuilderSubclassExists() throws Exception {
+        BuilderTests.confirmBuilderSubclassExists(ProgramWithOutputFiles.class);
+    }
+    
 }

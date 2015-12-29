@@ -33,8 +33,8 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import org.apache.commons.lang3.StringUtils;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 
 /**
  *
@@ -44,9 +44,14 @@ public class BuilderTests {
 
     private BuilderTests() {}
     
-    public static void confirmAllSuperclassBuilderSetterMethodsAreOverridden(Class<? extends Program.Builder> classToCheck) {
-        System.out.println("confirmAllSuperclassBuilderSetterMethodsAreOverridden in " + classToCheck);
-        checkArgument(!classToCheck.equals(Program.Builder.class));
+    public static void confirmBuilderSubclassExists(Class programSubclass) throws ClassNotFoundException { 
+        Class<?> builderSubclass = Class.forName(programSubclass.getName() + "$Builder");
+        assertFalse(Program.Builder.class.equals(builderSubclass));
+    }
+    
+    public static void confirmAllSuperclassBuilderSetterMethodsAreOverridden(Class<? extends Program.Builder> builderSubclass) {
+        System.out.println("confirmAllSuperclassBuilderSetterMethodsAreOverridden in " + builderSubclass);
+        checkArgument(!builderSubclass.equals(Program.Builder.class));
         final Class<?> superclass = Program.Builder.class;
         Predicate<Method> isBuilderSetter = new Predicate<Method>(){
             @Override
@@ -59,7 +64,7 @@ public class BuilderTests {
         Iterable<Method> superclassMethods = Arrays.asList(superclass.getDeclaredMethods());
         superclassMethods = Iterables.filter(superclassMethods, isBuilderSetter);
         
-        Iterable<Method> subclassMethods = Arrays.asList(classToCheck.getDeclaredMethods());
+        Iterable<Method> subclassMethods = Arrays.asList(builderSubclass.getDeclaredMethods());
         Iterable<Method> nonBridgeSubclassMethods = Iterables.filter(subclassMethods, new Predicate<Method>(){
             @Override
             public boolean apply(Method method) {
@@ -72,7 +77,7 @@ public class BuilderTests {
             boolean found = false;
             for (Method subclassMethod : nonBridgeSubclassMethods) {
                 if (isOverriddenMethod(superclassMethod, subclassMethod)) {
-                    System.out.format("%s.%s overrides %s.%s%n", packageless(classToCheck), subclassMethod.getName(), packageless(superclass), superclassMethod.getName());
+                    System.out.format("%s.%s overrides %s.%s%n", packageless(builderSubclass), subclassMethod.getName(), packageless(superclass), superclassMethod.getName());
                     found = true;
                     break;
                 }
@@ -86,17 +91,17 @@ public class BuilderTests {
                 && Arrays.deepEquals(superclassMethod.getParameterTypes(), subclassMethod.getParameterTypes());
     }
     
-    public static void confirmAllBuilderSetterMethodsReturnSubclass(final Class<? extends Program.Builder> classToCheck) {
-        System.out.println("confirmAllBuilderSetterMethodsReturnSubclass in " + classToCheck);
-        checkArgument(!classToCheck.equals(Program.Builder.class));
-        Iterable<Method> setterMethods = Arrays.asList(classToCheck.getMethods());
+    public static void confirmAllBuilderSetterMethodsReturnSubclass(final Class<? extends Program.Builder> builderSubclass) {
+        System.out.println("confirmAllBuilderSetterMethodsReturnSubclass in " + builderSubclass);
+        checkArgument(!builderSubclass.equals(Program.Builder.class));
+        Iterable<Method> setterMethods = Arrays.asList(builderSubclass.getDeclaredMethods());
         Function<Class, String> classnamer = new Function<Class, String>(){
             @Override
             public String apply(Class input) {
                 return packageless(input);
             }
         };
-        System.out.println(classToCheck + " methods:");
+        System.out.println(builderSubclass + " methods:");
         setterMethods = Iterables.filter(setterMethods, new Predicate<Method>(){
             @Override
             public boolean apply(Method method) {
@@ -114,7 +119,7 @@ public class BuilderTests {
         for (Method method : setterMethods) {
             Class<?> returnType = method.getReturnType();
             System.out.format("%s returns %s%n", method, returnType);
-            assertEquals("expect return " + packageless(classToCheck) + " but actual is " + packageless(returnType), classToCheck, returnType);
+            assertEquals("expect return " + packageless(builderSubclass) + " but actual is " + packageless(returnType), builderSubclass, returnType);
             atLeastOneChecked = true;
         }
         assertTrue(atLeastOneChecked);

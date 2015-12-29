@@ -1,0 +1,127 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2015 mchaberski.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package com.github.mike10004.nativehelper;
+
+import com.google.common.base.Charsets;
+import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Supplier;
+import com.novetta.ibg.common.sys.ExposedExecTask;
+import java.io.File;
+import java.nio.charset.Charset;
+import java.util.Map;
+import javax.annotation.concurrent.NotThreadSafe;
+import org.apache.tools.ant.taskdefs.ExecTask;
+
+/**
+ *
+ * @author mchaberski
+ */
+public class ProgramWithOutputStrings extends ProgramWithOutput {
+
+    private static final String STDOUT_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stdout";
+    private static final String STDERR_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stderr";
+    
+    private final Charset charset;
+    
+    protected ProgramWithOutputStrings(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Charset charset) {
+        super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+        this.charset = checkNotNull(charset);
+    }
+
+    @Override
+    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        super.configureTask(task, executionContext);
+        task.setOutputproperty(STDOUT_PROPERTY_NAME);
+        task.setErrorProperty(STDERR_PROPERTY_NAME);
+    }
+    
+    @Override
+    protected ProgramWithOutputStringsResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
+        String stdout = task.getProject().getProperty(STDOUT_PROPERTY_NAME);
+        String stderr = task.getProject().getProperty(STDERR_PROPERTY_NAME);
+        int exitCode = getExitCode(task, executionContext);
+        ProgramWithOutputStringsResult result = new ProgramWithOutputStringsResult(exitCode, stdout, stderr, charset);
+        return result;
+    }
+
+    @Override
+    public ProgramWithOutputStringsResult execute() {
+        return (ProgramWithOutputStringsResult) super.execute();
+    }
+
+    @NotThreadSafe
+    public static class Builder extends Program.Builder {
+        
+        private Charset charset = Charsets.UTF_8;
+        
+        @SuppressWarnings("LeakingThisInConstructor")
+        protected Builder(Program.Builder superclassBuilder) {
+            super(superclassBuilder.executable);
+            copyFields(superclassBuilder, this);
+        }
+        
+        @Override
+        public ProgramWithOutputStrings build() {
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, charset);
+        }
+
+        public Builder charset(Charset charset) {
+            this.charset = checkNotNull(charset);
+            return this;
+        }
+        
+        @Override
+        public Builder args(Iterable<String> arguments) {
+            return (Builder) super.args(arguments);
+        }
+
+        @Override
+        public Builder args(String firstArgument, String... otherArguments) {
+            return (Builder) super.args(firstArgument, otherArguments);
+        }
+
+        @Override
+        public Builder arg(String argument) {
+            return (Builder) super.arg(argument);
+        }
+
+        @Override
+        public Builder in(File workingDirectory) {
+            return (Builder) super.in(workingDirectory);
+        }
+
+        @Override
+        public Builder read(File standardInputFile) {
+            return (Builder) super.read(standardInputFile);
+        }
+
+        @Override
+        public Builder read(String standardInputString) {
+            return (Builder) super.read(standardInputString);
+        }
+        
+        
+    }
+    
+}

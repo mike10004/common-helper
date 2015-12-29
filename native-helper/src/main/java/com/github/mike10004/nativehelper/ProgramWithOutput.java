@@ -23,7 +23,6 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Program.SimpleProgram;
 import com.google.common.base.Supplier;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
@@ -34,7 +33,7 @@ import org.apache.tools.ant.taskdefs.ExecTask;
  *
  * @author mchaberski
  */
-public abstract class ProgramWithOutput extends SimpleProgram {
+public abstract class ProgramWithOutput extends Program {
 
     protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
         super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
