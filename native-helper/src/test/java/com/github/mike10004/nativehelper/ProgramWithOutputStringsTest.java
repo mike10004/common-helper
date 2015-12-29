@@ -46,7 +46,8 @@ public class ProgramWithOutputStringsTest {
     @Test
     public void testExecute_stderrToString() {
         System.out.println("testExecute_stderrToString");
-        testExecute("echo goodbye >&2", 0, "", "goodbye");
+        String expectedStderr = "goodbye";
+        testExecute("echo goodbye>&2", 0, "", expectedStderr);
     }
     
     private void testExecute(String shellCommand, int expectedExitCode, String expectedStdout, String expectedStderr) throws BuildException {
@@ -74,12 +75,13 @@ public class ProgramWithOutputStringsTest {
     public void testExecute_inputString() {
         System.out.println("testExecute_inputString");
         String inputString = "hello";
-        Program.Builder builder = ProgramBuilders.shell().reading(inputString);
+        Program.Builder builder;
         if (Platforms.getPlatform().isWindows()) {
-            builder = builder.arg("type CON");
+            builder = Program.running("findstr.exe").arg("^"); // greps anything
         } else {
-            builder = builder.arg("cat");
+            builder = Program.running("cat");
         }
+        builder = builder.reading(inputString);
         ProgramWithOutputStringsResult result = builder.outputToStrings().execute();
         System.out.println("result: " + result);
         assertEquals(inputString, result.getStdoutString());
