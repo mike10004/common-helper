@@ -55,7 +55,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 /**
- *
+ * Class that represents a program that is to be executed in an external process.
+ * Instances of this class are immutable, so it is safe to execute the same 
+ * program in a multithreaded context. All configuration is performed with a 
+ * {@link Builder} instance. Use {@link #running(java.lang.String) } to create
+ * a builder instance.
+ * 
+ * <p>The interface is designed to be somewhat fluent, so you can write
+ * <pre>    String output = Program.running("echo").arg("hello")
+ *             .outputToStrings().getStdoutString();
+ *    System.out.println(output); // "hello"
+ * </pre>
  * @author mchaberski
  */
 public abstract class Program<R extends ProgramResult> {
@@ -150,7 +160,7 @@ public abstract class Program<R extends ProgramResult> {
     
     protected abstract R produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext);
     
-    public static class SimpleProgram extends Program<ProgramResult> {
+    protected static class SimpleProgram extends Program<ProgramResult> {
         
         public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
             super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
@@ -173,6 +183,10 @@ public abstract class Program<R extends ProgramResult> {
         }
     }
     
+    /**
+     * Class that represents a builder of program instances.
+     * @see Program
+     */
     @NotThreadSafe
     public static final class Builder {
         
