@@ -24,11 +24,7 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -43,7 +39,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -52,75 +47,20 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
 /**
  *
  * @author mchaberski
  */
-public class Program {
+public abstract class Program<R extends ProgramResult> {
     
-    private static final CharMatcher alphanumeric = CharMatcher.JAVA_LETTER_OR_DIGIT;
-    public static final String KEY_RESULT_PROPERTY_NAME = Program.class.getName() + ".resultPropertyName";
+    public static final String RESULT_PROPERTY_NAME = Program.class.getName() + ".exitCode";
     
     private final String executable;
     private final ImmutablePair<String, File> standardInput;
@@ -138,29 +78,62 @@ public class Program {
     }
 
     /**
-     * 
+     * Launches the external process.
      * @return
      * @throws BuildException if the program fails to execute, for example because 
      * the executable is not found 
      */
-    public ProgramResult execute() throws BuildException {
-        Map<String, Object> localContext = new HashMap<>();
+    public R execute() throws BuildException {
         ExposedExecTask task = taskFactory.get();
+        return execute(task);
+    }
+    
+    protected R execute(ExposedExecTask task) throws BuildException {
+        Map<String, Object> localContext = new HashMap<>();
         configureTask(task, localContext);
-        executeInContext(task, localContext);
-        ProgramResult result = produceResultFromExecutedTask(task, localContext);
+        task.execute();
+        R result = produceResultFromExecutedTask(task, localContext);
         return result;
     }
     
-    protected void executeInContext(ExecTask task, Map<String, Object> executionContext) {
-        task.execute();
+    protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
+        return new Callable<R>(){
+            @Override
+            public R call() throws BuildException {
+                return execute(task);
+            }
+        };
+    }
+    
+    private static class WrappedFuture<R> extends SimpleForwardingListenableFuture<R> {
+        
+        private final ExposedExecTask task;
+
+        public WrappedFuture(ExposedExecTask task, ListenableFuture<R> wrapped) {
+            super(wrapped);
+            this.task = task;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            task.abort();
+            return super.cancel(mayInterruptIfRunning);
+        }
+
+    }
+    
+    public ListenableFuture<R> executeAsync(ExecutorService executorService) {
+        ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
+        ExposedExecTask task = taskFactory.get();
+        ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task));
+        WrappedFuture<R> future = new WrappedFuture<>(task, innerFuture);
+        return future;
     }
     
     protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        task.setDestructible(true);
         task.setFailonerror(false);
-        String resultPropertyName = Program.class.getName() + "." + alphanumeric.retainFrom(UUID.randomUUID().toString());
-        executionContext.put(KEY_RESULT_PROPERTY_NAME, resultPropertyName);
-        task.setResultProperty(resultPropertyName);
+        task.setResultProperty(RESULT_PROPERTY_NAME);
         task.setExecutable(executable);
         if (standardInput.getLeft() != null) {
             task.setInputString(standardInput.getLeft());
@@ -175,9 +148,20 @@ public class Program {
         }
     }
     
-    protected ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
-        int exitCode = getExitCode(task, executionContext);
-        return new SimpleProgramResult(exitCode);
+    protected abstract R produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext);
+    
+    public static class SimpleProgram extends Program<ProgramResult> {
+        
+        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+            super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+        }
+
+        @Override
+        protected ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
+            int exitCode = getExitCode(task, executionContext);
+            return new ExitCodeProgramResult(exitCode);
+        }
+        
     }
     
     protected static class DefaultTaskFactory implements Supplier<ExposedExecTask> {
@@ -231,6 +215,11 @@ public class Program {
             return this;
         }
         
+        public Builder clearArgs() {
+            this.arguments.clear();
+            return this;
+        }
+        
         public Builder arg(String argument) {
             this.arguments.add(checkNotNull(argument));
             return this;
@@ -246,8 +235,8 @@ public class Program {
             return this;
         }
         
-        public Program ignoreOutput() {
-            return new Program(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+        public Program<ProgramResult> ignoreOutput() {
+            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
         }
         
         public ProgramWithOutputFiles outputToFiles(File stdoutFile, File stderrFile) {
@@ -279,8 +268,7 @@ public class Program {
     }
     
     protected int getExitCode(ExecTask task, Map<String, Object> executionContext) {
-        String resultPropertyName = (String) executionContext.get(KEY_RESULT_PROPERTY_NAME);
-        String resultPropertyStr = task.getProject().getProperty(resultPropertyName);
+        String resultPropertyStr = task.getProject().getProperty(RESULT_PROPERTY_NAME);
         if (resultPropertyStr == null) {
             throw new IllegalStateException("result property not set (maybe failonerror=false?) or task not yet executed");
         }
@@ -288,11 +276,11 @@ public class Program {
         return exitCode;
     }
 
-    protected static class SimpleProgramResult implements ProgramResult {
+    protected static class ExitCodeProgramResult implements ProgramResult {
 
         private final int exitCode;
 
-        public SimpleProgramResult(int exitCode) {
+        public ExitCodeProgramResult(int exitCode) {
             this.exitCode = exitCode;
         }
         

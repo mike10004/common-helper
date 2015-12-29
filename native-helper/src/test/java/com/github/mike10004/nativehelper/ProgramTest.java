@@ -23,9 +23,15 @@
  */
 package com.github.mike10004.nativehelper;
 
+import static com.google.common.base.Preconditions.checkState;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.novetta.ibg.common.sys.Platform;
 import com.novetta.ibg.common.sys.Platforms;
 import java.util.Random;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.tools.ant.BuildException;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -37,6 +43,7 @@ import org.junit.Assume;
  */
 public class ProgramTest {
 
+    private static final Random random = new Random(0x10004);
     private transient final Platform platform;
     
     public ProgramTest() {
@@ -44,25 +51,11 @@ public class ProgramTest {
     }
 
     @Test
-    public void testExecute_nonWindows() {
-        Assume.assumeTrue(!platform.isWindows());
-        System.out.println("testExecute_nonWindows");
-        
-        int trueExitCode = Program.running("true").ignoreOutput().execute().getExitCode();
+    public void testExecute() {
+        int trueExitCode = ProgramBuilders.shell().arg("exit 0").ignoreOutput().execute().getExitCode();
         System.out.println("true: " + trueExitCode);
         assertEquals("trueExitCode", 0, trueExitCode);
-        int falseExitCode = Program.running("false").ignoreOutput().execute().getExitCode();
-        System.out.println("false: " + falseExitCode);
-        assertEquals("falseExitCode", 1, falseExitCode);
-    }
-
-    @Test
-    public void testExecute_windows() {
-        Assume.assumeTrue(platform.isWindows());
-        int trueExitCode = Program.running("cmd").args("/C", "exit 0").ignoreOutput().execute().getExitCode();
-        System.out.println("true: " + trueExitCode);
-        assertEquals("trueExitCode", 0, trueExitCode);
-        int falseExitCode = Program.running("cmd").args("/C", "exit 1").ignoreOutput().execute().getExitCode();
+        int falseExitCode = ProgramBuilders.shell().arg("exit 1").ignoreOutput().execute().getExitCode();
         System.out.println("false: " + falseExitCode);
         assertEquals("falseExitCode", 1, falseExitCode);
     }
@@ -81,5 +74,45 @@ public class ProgramTest {
         
     }
     
-    private static final Random random = new Random(0x10004);
+    @Test
+    public void testAbortProgram() throws InterruptedException {
+        System.out.println("\ntestAbortProgram");
+        int commandedProcessDuration = 3; // seconds
+        final long killAfter = 50; // ms
+        
+        /*
+         * we're gonna check later that the process didn't last longer than
+         * half the specified duration, so here we make sure that our 
+         * time-to-kill is low enough
+         */
+        checkState(killAfter < (commandedProcessDuration * 1000 / 2));
+        
+        Program.Builder builder;
+        if (platform.isWindows()) {
+            builder = Program.running("cmd").arg("/C").arg(String.format("timeout %d >nul", commandedProcessDuration + 1));
+        } else {
+            builder = Program.running("sleep").arg(String.valueOf(commandedProcessDuration));
+        }
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Program program = builder.ignoreOutput();
+        long executionStartTime = System.currentTimeMillis();
+        ListenableFuture<ProgramResult> future = program.executeAsync(executorService);
+        Thread.sleep(killAfter);
+        boolean cancellationResult = future.cancel(true);
+        System.out.println("cancellationResult: " + cancellationResult);
+        assertTrue("expected future.isCancelled = true", future.isCancelled());
+        try {
+            future.get();
+            fail("should have thrown cancellationexception");
+        } catch (CancellationException expected) {
+        } catch (ExecutionException unexpected) {
+            fail("should have thrown cancellationexception, not " + unexpected);
+        }
+        long executionDuration = System.currentTimeMillis() - executionStartTime;
+        long commandedProcessDurationMs = commandedProcessDuration * 1000;
+        assertTrue("expect execution duration to be less than half commanded process duration", executionDuration < (commandedProcessDurationMs / 2));
+    }
+    
+
 }

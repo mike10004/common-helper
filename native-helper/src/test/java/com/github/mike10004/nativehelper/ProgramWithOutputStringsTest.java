@@ -35,22 +35,11 @@ import static org.junit.Assert.*;
  */
 public class ProgramWithOutputStringsTest {
     
-    private transient final Platform platform;
-    
-    public ProgramWithOutputStringsTest() {
-        platform = Platforms.getPlatform();
-    }
-
     @Test
     public void testExecute_stdoutToString() throws IOException {
         System.out.println("testExecute_filesSpecified");
         
-        Program.Builder builder;
-        if (platform.isWindows()) {
-            builder = Program.running("cmd").arg("/C");
-        } else {
-            builder = Program.running("sh").arg("-c");
-        }
+        Program.Builder builder = ProgramBuilders.shell();
         ProgramWithOutputStrings program = builder.arg("echo hello").outputToStrings();
         ProgramWithOutputStringsResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());
@@ -62,4 +51,10 @@ public class ProgramWithOutputStringsTest {
         assertEquals("stderr.length " + actualStderr.length(), 0, actualStderr.length());
     }
 
+    @Test
+    public void testExecuteAsync() throws Exception {
+        System.out.println("test");
+        
+        
+    }
 }

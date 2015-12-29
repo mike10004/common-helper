@@ -30,18 +30,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.tools.ant.taskdefs.ExecTask;
-import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.file.Path;
-import javax.annotation.concurrent.NotThreadSafe;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  *
  * @author mchaberski
  */
-public class ProgramWithOutputFiles extends ProgramWithOutput {
+public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputFilesResult> {
 
     private static final String KEY_STDERR = ProgramWithOutputFiles.class.getName() + ".stderrFile";
     private static final String KEY_STDOUT = ProgramWithOutputFiles.class.getName() + ".stdoutFile";

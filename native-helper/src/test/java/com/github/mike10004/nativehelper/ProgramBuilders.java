@@ -23,18 +23,24 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Supplier;
-import com.novetta.ibg.common.sys.ExposedExecTask;
-import java.io.File;
+import com.novetta.ibg.common.sys.Platform;
+import com.novetta.ibg.common.sys.Platforms;
 
 /**
- *
+ * Static utility methods.
  * @author mchaberski
  */
-public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
-
-    protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-        super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+public class ProgramBuilders {
+    
+    private ProgramBuilders() {}
+    
+    public static Program.Builder shell(Platform platform) {
+        return platform.isWindows() 
+                ? Program.running("cmd").arg("/C") 
+                : Program.running("sh").arg("-c");
     }
 
+    public static Program.Builder shell() {
+        return shell(Platforms.getPlatform());
+    }
 }

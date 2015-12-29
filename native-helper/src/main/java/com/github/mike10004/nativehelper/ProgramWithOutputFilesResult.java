@@ -23,7 +23,7 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Program.SimpleProgramResult;
+import com.github.mike10004.nativehelper.Program.ExitCodeProgramResult;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 import java.io.File;
@@ -33,7 +33,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author mchaberski
  */
-public class ProgramWithOutputFilesResult extends SimpleProgramResult implements ProgramWithOutputResult {
+public class ProgramWithOutputFilesResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
     
     private final File stdoutFile;
     private final File stderrFile;

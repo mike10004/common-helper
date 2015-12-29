@@ -23,27 +23,22 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Charsets;
-import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Supplier;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.Map;
-import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.tools.ant.taskdefs.ExecTask;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  *
  * @author mchaberski
  */
-public class ProgramWithOutputStrings extends ProgramWithOutput {
+public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutputStringsResult> {
 
-    private static final String STDOUT_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stdout";
-    private static final String STDERR_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stderr";
+    public static final String STDOUT_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stdout";
+    public static final String STDERR_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stderr";
     
     private final Charset charset;
     

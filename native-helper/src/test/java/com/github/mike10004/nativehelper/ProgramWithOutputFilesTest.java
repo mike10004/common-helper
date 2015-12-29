@@ -46,12 +46,6 @@ public class ProgramWithOutputFilesTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private transient final Platform platform;
-    
-    public ProgramWithOutputFilesTest() {
-        platform = Platforms.getPlatform();
-    }
-
     @Test
     public void testExecute_outputToFiles() throws IOException {
         System.out.println("testExecute_outputToFiles");
@@ -59,12 +53,7 @@ public class ProgramWithOutputFilesTest {
         File stdoutFile = temporaryFolder.newFile();
         File stderrFile = temporaryFolder.newFile();
         
-        Program.Builder builder;
-        if (platform.isWindows()) {
-            builder = Program.running("cmd").arg("/C");
-        } else {
-            builder = Program.running("sh").arg("-c");
-        }
+        Program.Builder builder = ProgramBuilders.shell();
         ProgramWithOutputFiles program = builder.arg("echo hello").outputToFiles(stdoutFile, stderrFile);
         ProgramWithOutputFilesResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());
@@ -81,12 +70,7 @@ public class ProgramWithOutputFilesTest {
         
         File tempDir = temporaryFolder.newFolder();
         
-        Program.Builder builder;
-        if (platform.isWindows()) {
-            builder = Program.running("cmd").arg("/C");
-        } else {
-            builder = Program.running("sh").arg("-c");
-        }
+        Program.Builder builder = ProgramBuilders.shell();
         ProgramWithOutputFiles program = builder.arg("echo hello").outputToTempFiles(tempDir.toPath());
         ProgramWithOutputFilesResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());

@@ -23,7 +23,7 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Program.SimpleProgramResult;
+import com.github.mike10004.nativehelper.Program.ExitCodeProgramResult;
 import com.google.common.io.ByteSource;
 import java.nio.charset.Charset;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author mchaberski
  */
-public class ProgramWithOutputStringsResult extends SimpleProgramResult implements ProgramWithOutputResult {
+public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
     
     private final String stdoutString, stderrString;
     private final Charset charset;
