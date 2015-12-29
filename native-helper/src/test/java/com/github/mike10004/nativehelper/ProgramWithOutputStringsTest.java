@@ -47,11 +47,11 @@ public class ProgramWithOutputStringsTest {
         
         Program.Builder builder;
         if (platform.isWindows()) {
-            builder = Program.builder("cmd").arg("/C");
+            builder = Program.running("cmd").arg("/C");
         } else {
-            builder = Program.builder("sh").arg("-c");
+            builder = Program.running("sh").arg("-c");
         }
-        ProgramWithOutputStrings program = builder.arg("echo hello").stringOutput().build();
+        ProgramWithOutputStrings program = builder.arg("echo hello").outputToStrings();
         ProgramWithOutputStringsResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());
         assertEquals("exitCode", 0, result.getExitCode());
@@ -62,20 +62,4 @@ public class ProgramWithOutputStringsTest {
         assertEquals("stderr.length " + actualStderr.length(), 0, actualStderr.length());
     }
 
-
-    @Test
-    public void confirmBuilderSubclassExists() throws Exception {
-        BuilderTests.confirmBuilderSubclassExists(ProgramWithOutputStrings.class);
-    }
-    
-    @Test
-    public void confirmAllSuperclassBuilderSetterMethodsAreOverridden() throws Exception {
-        BuilderTests.confirmAllSuperclassBuilderSetterMethodsAreOverridden(ProgramWithOutputStrings.Builder.class);
-    }
-    
-    
-    @Test
-    public void confirmAllBuilderSetterMethodsReturnSubclass() throws Exception {
-        BuilderTests.confirmAllBuilderSetterMethodsReturnSubclass(ProgramWithOutputStrings.Builder.class);
-    }
 }

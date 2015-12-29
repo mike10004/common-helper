@@ -23,17 +23,21 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,8 +47,71 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  *
@@ -58,19 +125,25 @@ public class Program {
     private final String executable;
     private final ImmutablePair<String, File> standardInput;
     private final ImmutableList<String> arguments;
-    private final Optional<File> workingDirectory;
+    private final @Nullable File workingDirectory;
     private final Supplier<? extends ExposedExecTask> taskFactory;
     
     protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
         this.executable = checkNotNull(executable);
         this.standardInput = ImmutablePair.<String, File>of(standardInput, standardInputFile);
         checkArgument(standardInput == null || standardInputFile == null, "can't set both standard input string and file");
-        this.workingDirectory = Optional.fromNullable(workingDirectory);
+        this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);
         this.taskFactory = checkNotNull(taskFactory);
     }
 
-    public ProgramResult execute() {
+    /**
+     * 
+     * @return
+     * @throws BuildException if the program fails to execute, for example because 
+     * the executable is not found 
+     */
+    public ProgramResult execute() throws BuildException {
         Map<String, Object> localContext = new HashMap<>();
         ExposedExecTask task = taskFactory.get();
         configureTask(task, localContext);
@@ -96,7 +169,7 @@ public class Program {
         } else if (standardInput.getLeft() != null && standardInput.getRight() != null) {
             throw new IllegalStateException("stdin misconfiguration");
         }
-        task.setDir(workingDirectory.orNull());
+        task.setDir(workingDirectory);
         for (String argument : arguments) {
             task.createArg().setValue(argument);
         }
@@ -117,7 +190,7 @@ public class Program {
     }
     
     @NotThreadSafe
-    public static class Builder {
+    public static final class Builder {
         
         protected final String executable;
         protected String standardInput;
@@ -133,10 +206,6 @@ public class Program {
             taskFactory = new DefaultTaskFactory();
         }
         
-        public Program build() {
-            return new Program(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
-        }
-        
         protected static void copyFields(Builder src, Builder dst) {
             checkArgument(!dst.getClass().isAssignableFrom(src.getClass()), "expected destination instance to be a proper subclass of source class");
             dst.arguments.clear();
@@ -147,17 +216,17 @@ public class Program {
             dst.taskFactory = src.taskFactory;
         }
         
-        public Builder read(String standardInputString) {
+        public Builder reading(String standardInputString) {
             this.standardInput = checkNotNull(standardInputString);
             return this;
         }
         
-        public Builder read(File standardInputFile) {
+        public Builder reading(File standardInputFile) {
             this.standardInputFile = checkNotNull(standardInputFile);
             return this;
         }
         
-        public Builder in(File workingDirectory) {
+        public Builder from(File workingDirectory) {
             this.workingDirectory = checkNotNull(workingDirectory);
             return this;
         }
@@ -177,25 +246,35 @@ public class Program {
             return this;
         }
         
-        public ProgramWithOutputFiles.Builder writeFiles(File stdoutFile, File stderrFile) {
-            return new ProgramWithOutputFiles.Builder(this, stdoutFile, stderrFile);
+        public Program ignoreOutput() {
+            return new Program(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
         }
         
-        public ProgramWithOutputFiles.Builder writeTempFiles(Path parentDirectory) {
-            return new ProgramWithOutputFiles.Builder(this, parentDirectory);
+        public ProgramWithOutputFiles outputToFiles(File stdoutFile, File stderrFile) {
+            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
         }
         
-        public ProgramWithOutputStrings.Builder stringOutput() {
-            return new ProgramWithOutputStrings.Builder(this);
+        public ProgramWithOutputFiles outputToTempFiles(Path directory) {
+            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
+        }
+        
+        public static final Charset DEFAULT_STRING_OUTPUT_CHARSET = Charsets.UTF_8;
+        
+        public ProgramWithOutputStrings outputToStrings() {
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
+        }
+
+        public ProgramWithOutputStrings outputToStrings(Charset charset) {
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, charset);
         }
     }
     
-    public static Builder builder(File executable) {
+    public static Builder running(File executable) {
         checkArgument(executable.canExecute(), "executable.canExecute");
-        return builder(executable.getPath());
+        return running(executable.getPath());
     }
     
-    public static Builder builder(String executable) {
+    public static Builder running(String executable) {
         return new Builder(executable);
     }
     

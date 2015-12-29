@@ -53,19 +53,19 @@ public class ProgramWithOutputFilesTest {
     }
 
     @Test
-    public void testExecute_filesSpecified() throws IOException {
-        System.out.println("testExecute_filesSpecified");
+    public void testExecute_outputToFiles() throws IOException {
+        System.out.println("testExecute_outputToFiles");
         
         File stdoutFile = temporaryFolder.newFile();
         File stderrFile = temporaryFolder.newFile();
         
         Program.Builder builder;
         if (platform.isWindows()) {
-            builder = Program.builder("cmd").arg("/C");
+            builder = Program.running("cmd").arg("/C");
         } else {
-            builder = Program.builder("sh").arg("-c");
+            builder = Program.running("sh").arg("-c");
         }
-        ProgramWithOutputFiles program = builder.arg("echo hello").writeFiles(stdoutFile, stderrFile).build();
+        ProgramWithOutputFiles program = builder.arg("echo hello").outputToFiles(stdoutFile, stderrFile);
         ProgramWithOutputFilesResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());
         assertEquals("exitCode", 0, result.getExitCode());
@@ -83,11 +83,11 @@ public class ProgramWithOutputFilesTest {
         
         Program.Builder builder;
         if (platform.isWindows()) {
-            builder = Program.builder("cmd").arg("/C");
+            builder = Program.running("cmd").arg("/C");
         } else {
-            builder = Program.builder("sh").arg("-c");
+            builder = Program.running("sh").arg("-c");
         }
-        ProgramWithOutputFiles program = builder.arg("echo hello").writeTempFiles(tempDir.toPath()).build();
+        ProgramWithOutputFiles program = builder.arg("echo hello").outputToTempFiles(tempDir.toPath());
         ProgramWithOutputFilesResult result = program.execute();
         System.out.println("exit code " + result.getExitCode());
         assertEquals("exitCode", 0, result.getExitCode());
@@ -103,22 +103,6 @@ public class ProgramWithOutputFilesTest {
         File stderrFile = result.getStderrFile();
         assertEquals("stderr.length " + stderrFile.length(), 0L, stderrFile.length());
         
-    }
-
-    @Test
-    public void confirmAllSuperclassBuilderSetterMethodsAreOverridden() throws Exception {
-        BuilderTests.confirmAllSuperclassBuilderSetterMethodsAreOverridden(ProgramWithOutputFiles.Builder.class);
-    }
-    
-    
-    @Test
-    public void confirmAllBuilderSetterMethodsReturnSubclass() throws Exception {
-        BuilderTests.confirmAllBuilderSetterMethodsReturnSubclass(ProgramWithOutputFiles.Builder.class);
-    }
-
-    @Test
-    public void confirmBuilderSubclassExists() throws Exception {
-        BuilderTests.confirmBuilderSubclassExists(ProgramWithOutputFiles.class);
     }
     
 }

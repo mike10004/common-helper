@@ -48,10 +48,10 @@ public class ProgramTest {
         Assume.assumeTrue(!platform.isWindows());
         System.out.println("testExecute_nonWindows");
         
-        int trueExitCode = Program.builder("true").build().execute().getExitCode();
+        int trueExitCode = Program.running("true").ignoreOutput().execute().getExitCode();
         System.out.println("true: " + trueExitCode);
         assertEquals("trueExitCode", 0, trueExitCode);
-        int falseExitCode = Program.builder("false").build().execute().getExitCode();
+        int falseExitCode = Program.running("false").ignoreOutput().execute().getExitCode();
         System.out.println("false: " + falseExitCode);
         assertEquals("falseExitCode", 1, falseExitCode);
     }
@@ -59,10 +59,10 @@ public class ProgramTest {
     @Test
     public void testExecute_windows() {
         Assume.assumeTrue(platform.isWindows());
-        int trueExitCode = Program.builder("cmd").args("/C", "exit 0").build().execute().getExitCode();
+        int trueExitCode = Program.running("cmd").args("/C", "exit 0").ignoreOutput().execute().getExitCode();
         System.out.println("true: " + trueExitCode);
         assertEquals("trueExitCode", 0, trueExitCode);
-        int falseExitCode = Program.builder("cmd").args("/C", "exit 1").build().execute().getExitCode();
+        int falseExitCode = Program.running("cmd").args("/C", "exit 1").ignoreOutput().execute().getExitCode();
         System.out.println("false: " + falseExitCode);
         assertEquals("falseExitCode", 1, falseExitCode);
     }
@@ -71,7 +71,7 @@ public class ProgramTest {
     public void testExecute_executableNotFound() {
         System.out.println("testExecute_executableNotFound");
         String executableName = "u" + String.format("%10x", Math.abs(random.nextLong()));
-        Program program = Program.builder(executableName).build();
+        Program program = Program.running(executableName).ignoreOutput();
         try {
             program.execute().getExitCode();
             fail("should have failed");

@@ -32,6 +32,9 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.tools.ant.taskdefs.ExecTask;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  *
@@ -70,58 +73,4 @@ public class ProgramWithOutputStrings extends ProgramWithOutput {
         return (ProgramWithOutputStringsResult) super.execute();
     }
 
-    @NotThreadSafe
-    public static class Builder extends Program.Builder {
-        
-        private Charset charset = Charsets.UTF_8;
-        
-        @SuppressWarnings("LeakingThisInConstructor")
-        protected Builder(Program.Builder superclassBuilder) {
-            super(superclassBuilder.executable);
-            copyFields(superclassBuilder, this);
-        }
-        
-        @Override
-        public ProgramWithOutputStrings build() {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, charset);
-        }
-
-        public Builder charset(Charset charset) {
-            this.charset = checkNotNull(charset);
-            return this;
-        }
-        
-        @Override
-        public Builder args(Iterable<String> arguments) {
-            return (Builder) super.args(arguments);
-        }
-
-        @Override
-        public Builder args(String firstArgument, String... otherArguments) {
-            return (Builder) super.args(firstArgument, otherArguments);
-        }
-
-        @Override
-        public Builder arg(String argument) {
-            return (Builder) super.arg(argument);
-        }
-
-        @Override
-        public Builder in(File workingDirectory) {
-            return (Builder) super.in(workingDirectory);
-        }
-
-        @Override
-        public Builder read(File standardInputFile) {
-            return (Builder) super.read(standardInputFile);
-        }
-
-        @Override
-        public Builder read(String standardInputString) {
-            return (Builder) super.read(standardInputString);
-        }
-        
-        
-    }
-    
 }

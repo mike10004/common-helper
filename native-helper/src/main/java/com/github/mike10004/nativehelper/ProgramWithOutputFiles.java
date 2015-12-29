@@ -33,6 +33,9 @@ import org.apache.tools.ant.taskdefs.ExecTask;
 import static com.google.common.base.Preconditions.checkNotNull;
 import java.nio.file.Path;
 import javax.annotation.concurrent.NotThreadSafe;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  *
@@ -76,65 +79,6 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
         return result;
     }
 
-    @NotThreadSafe
-    public static class Builder extends Program.Builder {
-        
-        protected Supplier<File> stdoutFileSupplier, stderrFileSupplier;
-        
-        @SuppressWarnings("LeakingThisInConstructor")
-        protected Builder(Program.Builder superclassBuilder, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
-            super(superclassBuilder.executable);
-            copyFields(superclassBuilder, this);
-            this.stdoutFileSupplier = checkNotNull(stdoutFileSupplier);
-            this.stderrFileSupplier = checkNotNull(stderrFileSupplier);
-        }
-        
-        protected Builder(Program.Builder superclassBuilder, File stdoutFile, File stderrFile) {
-            this(superclassBuilder, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
-        }
-
-        protected Builder(Program.Builder superclassBuilder, Path directory) {
-            this(superclassBuilder, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
-        }
-        
-        @Override
-        public ProgramWithOutputFiles build() {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, stdoutFileSupplier, stderrFileSupplier);
-        }
-        
-        @Override
-        public Builder args(Iterable<String> arguments) {
-            return (Builder) super.args(arguments);
-        }
-
-        @Override
-        public Builder args(String firstArgument, String... otherArguments) {
-            return (Builder) super.args(firstArgument, otherArguments);
-        }
-
-        @Override
-        public Builder arg(String argument) {
-            return (Builder) super.arg(argument);
-        }
-
-        @Override
-        public Builder in(File workingDirectory) {
-            return (Builder) super.in(workingDirectory);
-        }
-
-        @Override
-        public Builder read(File standardInputFile) {
-            return (Builder) super.read(standardInputFile);
-        }
-
-        @Override
-        public Builder read(String standardInputString) {
-            return (Builder) super.read(standardInputString);
-        }
-        
-        
-    }
-    
     public static class TempDirCreationException extends RuntimeException {
 
         public TempDirCreationException() {
