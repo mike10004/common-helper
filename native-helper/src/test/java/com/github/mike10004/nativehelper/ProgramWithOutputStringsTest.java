@@ -24,7 +24,6 @@
 package com.github.mike10004.nativehelper;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.novetta.ibg.common.sys.Platform;
 import com.novetta.ibg.common.sys.Platforms;
 import java.io.IOException;
 import java.util.concurrent.Executors;
@@ -39,13 +38,13 @@ import static org.junit.Assert.*;
 public class ProgramWithOutputStringsTest {
     
     @Test
-    public void testExecute_stdoutToString() throws IOException {
+    public void testExecute_stdoutToString() {
         System.out.println("testExecute_stdoutToString");
         testExecute("echo hello", 0, "hello", "");
     }
     
     @Test
-    public void testExecute_stderrToString() throws IOException {
+    public void testExecute_stderrToString() {
         System.out.println("testExecute_stderrToString");
         testExecute("echo goodbye >&2", 0, "", "goodbye");
     }
@@ -69,5 +68,20 @@ public class ProgramWithOutputStringsTest {
         ProgramWithOutputStringsResult result = future.get();
         System.out.println("program result: " + result);
         assertEquals("hello", result.getStdoutString());
+    }
+    
+    @Test
+    public void testExecute_inputString() {
+        System.out.println("testExecute_inputString");
+        String inputString = "hello";
+        Program.Builder builder = ProgramBuilders.shell().reading(inputString);
+        if (Platforms.getPlatform().isWindows()) {
+            builder = builder.arg("type CON");
+        } else {
+            builder = builder.arg("cat");
+        }
+        ProgramWithOutputStringsResult result = builder.outputToStrings().execute();
+        System.out.println("result: " + result);
+        assertEquals(inputString, result.getStdoutString());
     }
 }

@@ -35,7 +35,6 @@ import java.util.concurrent.Executors;
 import org.apache.tools.ant.BuildException;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import org.junit.Assume;
 
 /**
  *

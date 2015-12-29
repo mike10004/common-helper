@@ -26,8 +26,6 @@ package com.github.mike10004.nativehelper;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
-import com.novetta.ibg.common.sys.Platform;
-import com.novetta.ibg.common.sys.Platforms;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
