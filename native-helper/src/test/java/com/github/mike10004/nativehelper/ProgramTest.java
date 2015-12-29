@@ -73,7 +73,7 @@ public class ProgramTest {
         
     }
     
-    private static final int testAbortProgram_commandedProcessDuration_seconds = 300;
+    private static final int testAbortProgram_commandedProcessDuration_seconds = 3;
     private static final int testAbortProgram_trials = 5;
     private static final long testAbortProgram_timeout = (testAbortProgram_commandedProcessDuration_seconds * testAbortProgram_trials * 2) * 1000;
     
