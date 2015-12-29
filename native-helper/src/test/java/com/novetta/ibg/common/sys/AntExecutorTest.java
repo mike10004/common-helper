@@ -3,8 +3,10 @@
  */
 package com.novetta.ibg.common.sys;
 
+import com.github.mike10004.nativehelper.test.ExternalProcessTestCase;
+import com.github.mike10004.nativehelper.test.ExternalProcessTestCase.NonwindowsZeroExitTestCase;
+import com.github.mike10004.nativehelper.test.ExternalProcessTestCase.WindowsZeroExitTestCase;
 import com.google.common.base.Function;
-import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.CharSource;
@@ -12,9 +14,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import com.google.common.io.Files;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
-import javax.annotation.Nullable;
 import org.apache.tools.ant.BuildException;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -31,7 +31,7 @@ public class AntExecutorTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
     
-    public static final String EXPECTED_UNIX_LS_PATHNAME = "/bin/ls";
+    private static final String EXPECTED_UNIX_LS_PATHNAME = "/bin/ls";
     
     private File createTempDirWithFiles() throws IOException {
         File tmpDir;
@@ -49,6 +49,7 @@ public class AntExecutorTest {
     
     @Test
     public void testExecuteTree() throws Exception {
+        Assume.assumeTrue(Platforms.getPlatform().isWindows());
         if (!Platforms.getPlatform().isWindows()) {
             return;
         }
@@ -100,6 +101,7 @@ public class AntExecutorTest {
     
     @Test
     public void testExecuteLS() throws Exception {
+        Assume.assumeTrue(isLinux());
         if (!isLinux()) return;
         File tmpDir = createTempDirWithFiles();
         String ls_pathname = EXPECTED_UNIX_LS_PATHNAME;
@@ -116,134 +118,11 @@ public class AntExecutorTest {
         return Platforms.getPlatform().isLinux();
     }
     
-    static interface ExecutableTestCase {
-        String getName();
-        List<String> buildArguments() throws Exception;
-        int getExpectedExitCode();
-    }
-    
-    private static class FreebsdNonzeroExitTestCase implements ExecutableTestCase {
-        
-        private final File emptyDir;
-
-        public FreebsdNonzeroExitTestCase(File emptyDir) {
-            this.emptyDir = emptyDir;
-        }
-
-        @Override
-        public String getName() {
-            return "ls";
-        }
-
-        @Override
-        public List<String> buildArguments() throws IOException {
-            File file = new File(emptyDir, "fileThatDoesNotExist");
-            return Arrays.asList(file.getAbsolutePath());
-        }
-
-        @Override
-        public int getExpectedExitCode() {
-            return 1;
-        }
-        
-    }
-
-    private static class LinuxNonzeroExitTestCase implements ExecutableTestCase {
-        
-        private final File emptyDir;
-
-        public LinuxNonzeroExitTestCase(File emptyDir) {
-            this.emptyDir = emptyDir;
-        }
-
-        @Override
-        public String getName() {
-            return "ls";
-        }
-
-        @Override
-        public List<String> buildArguments() throws IOException {
-            File file = new File(emptyDir, "fileThatDoesNotExist");
-            return Arrays.asList(file.getAbsolutePath());
-        }
-
-        @Override
-        public int getExpectedExitCode() {
-            return 2;
-        }
-        
-    }
-
-    private static class NonwindowsZeroExitTestCase implements ExecutableTestCase {
-        
-        private final File emptyDir;
-
-        public NonwindowsZeroExitTestCase(File emptyDir) {
-            this.emptyDir = emptyDir;
-        }
-
-        @Override
-        public String getName() {
-            return "ls";
-        }
-
-        @Override
-        public List<String> buildArguments() throws IOException {
-            File file = new File(emptyDir, "newfile");
-            Files.touch(file);
-            return Arrays.asList(file.getAbsolutePath());
-        }
-
-        @Override
-        public int getExpectedExitCode() {
-            return 0;
-        }
-        
-    }
-    
-    private static class WindowsZeroExitTestCase implements ExecutableTestCase {
-
-        @Override
-        public String getName() {
-            return "cmd";
-        }
-
-        @Override
-        public List<String> buildArguments() {
-            return Arrays.asList("/C", "echo", "hello, world");
-        }
-
-        @Override
-        public int getExpectedExitCode() {
-            return 0;
-        }
-        
-    }
-    
-    private static class WindowsNonzeroExitTestCase implements ExecutableTestCase {
-
-        @Override
-        public String getName() {
-            return "cmd";
-        }
-
-        @Override
-        public List<String> buildArguments() {
-            return Arrays.asList("/c", "notacommand");
-        }
-
-        @Override
-        public int getExpectedExitCode() {
-            return 1;
-        }
-        
-    }
-    
     @Test(expected=BuildException.class)
     public void testNonzeroExitCode_defaultBehavior() throws Exception {
         System.out.println("testNonzeroExitCode_defaultBehavior");
         File emptyDir = temporaryFolder.newFolder();
-        ExecutableTestCase testCase = createTestCase(emptyDir);
+        ExternalProcessTestCase testCase =ExternalProcessTestCase.createTestCase(emptyDir);
         Assume.assumeNotNull(testCase);
         String executableName = testCase.getName();
         new AntExecutor()
@@ -252,26 +131,12 @@ public class AntExecutorTest {
                 .execute();
     }
     
-    private ExecutableTestCase createTestCase(File emptyDir) {
-        Platform platform = Platforms.getPlatform();
-        if (platform.isWindows()) {
-            return new WindowsNonzeroExitTestCase();
-        } else if (platform.isLinux()) {
-            return new LinuxNonzeroExitTestCase(emptyDir);
-        } else if (platform.isBSD()) {
-            return new FreebsdNonzeroExitTestCase(emptyDir);
-        } else {
-            System.out.println("don't know how to test for platform " + platform);
-            return null;
-        }
-    }
-    
     @Test
     @SuppressWarnings("UnnecessaryUnboxing")
     public void testNonzeroExitCode_NoFailOnError() throws Exception {
         System.out.println("testNonzeroExitCode_NoFailOnError");
         File emptyDir = temporaryFolder.newFolder();
-        ExecutableTestCase testCase = createTestCase(emptyDir);
+        ExternalProcessTestCase testCase = ExternalProcessTestCase.createTestCase(emptyDir);
         Assume.assumeNotNull(testCase);
         String executableName = testCase.getName();
         AntExecutor e = new AntExecutor();
@@ -291,7 +156,7 @@ public class AntExecutorTest {
     public void testZeroExitCode() throws Exception {
         System.out.println("testZeroExitCode");
         File emptyDir = temporaryFolder.newFolder();
-        ExecutableTestCase testCase = Platforms.getPlatform().isWindows() 
+        ExternalProcessTestCase testCase = Platforms.getPlatform().isWindows() 
                 ? new WindowsZeroExitTestCase()
                 : new NonwindowsZeroExitTestCase(emptyDir);
         String executableName = testCase.getName();

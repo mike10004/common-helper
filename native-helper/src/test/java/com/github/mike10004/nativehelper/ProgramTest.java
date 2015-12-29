@@ -25,10 +25,8 @@ package com.github.mike10004.nativehelper;
 
 import com.novetta.ibg.common.sys.Platform;
 import com.novetta.ibg.common.sys.Platforms;
-import java.util.Map;
 import java.util.Random;
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.taskdefs.ExecTask;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Assume;

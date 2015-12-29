@@ -32,6 +32,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.tools.ant.taskdefs.ExecTask;
 import static com.google.common.base.Preconditions.checkNotNull;
+import java.nio.file.Path;
 
 /**
  *
@@ -62,6 +63,8 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
         File stderrFile = stderrFileSupplier.get();
         executionContext.put(KEY_STDOUT, stdoutFile);
         executionContext.put(KEY_STDERR, stderrFile);
+        task.setOutput(stdoutFile);
+        task.setError(stderrFile);
     }
     
     @Override
@@ -88,8 +91,8 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
             this(superclassBuilder, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
         }
 
-        protected Builder(Program.Builder superclassBuilder, File directory) {
-            this(superclassBuilder, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory));
+        protected Builder(Program.Builder superclassBuilder, Path directory) {
+            this(superclassBuilder, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
         }
         
         @Override
@@ -100,6 +103,38 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
         private void initFrom(Program.Builder superclassBuilder) {
             copyFields(superclassBuilder, this);
         }
+
+        @Override
+        public Builder args(Iterable<String> arguments) {
+            return (Builder) super.args(arguments);
+        }
+
+        @Override
+        public Builder args(String firstArgument, String... otherArguments) {
+            return (Builder) super.args(firstArgument, otherArguments);
+        }
+
+        @Override
+        public Builder arg(String argument) {
+            return (Builder) super.arg(argument);
+        }
+
+        @Override
+        public Builder in(File workingDirectory) {
+            return (Builder) super.in(workingDirectory);
+        }
+
+        @Override
+        public Builder read(File standardInputFile) {
+            return (Builder) super.read(standardInputFile);
+        }
+
+        @Override
+        public Builder read(String standardInputString) {
+            return (Builder) super.read(standardInputString);
+        }
+        
+        
     }
     
     public static class TempDirCreationException extends RuntimeException {
@@ -122,7 +157,7 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
     }
     
     public static class TempFileCreationException extends RuntimeException {
-        public TempFileCreationException(File parentDirectory, Throwable cause) {
+        public TempFileCreationException(Path parentDirectory, Throwable cause) {
             this("failed to create file in parent directory " + parentDirectory, cause);
         }
 
@@ -143,18 +178,18 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
         
     }
     
-    public static class TempDirSupplier implements Supplier<File> {
+    public static class TempDirSupplier implements Supplier<Path> {
 
-        private final File parent;
+        private final Path parent;
 
-        public TempDirSupplier(@Nullable File parent) {
-            this.parent = parent == null ? new File(System.getProperty("java.io.tmpdir")) : parent;
+        public TempDirSupplier(Path parent) {
+            this.parent = checkNotNull(parent);
         }
         
         @Override
-        public File get() {
+        public Path get() {
             try {
-                return java.nio.file.Files.createTempDirectory(parent.toPath(), "TempDirSupplier").toFile();
+                return java.nio.file.Files.createTempDirectory(parent, "TempDirSupplier");
             } catch (IOException ex) {
                 throw new TempDirCreationException(ex);
             }
@@ -165,24 +200,24 @@ public class ProgramWithOutputFiles extends ProgramWithOutput {
     public static class TempFileSupplier implements Supplier<File> {
 
         private final String prefix, suffix;
-        private final Supplier<File> temporaryDirectorySupplier;
+        private final Supplier<Path> temporaryDirectorySupplier;
 
-        public TempFileSupplier(String prefix, String suffix, Supplier<File> temporaryDirectorySupplier) {
+        public TempFileSupplier(String prefix, String suffix, Supplier<Path> temporaryDirectorySupplier) {
             this.prefix = checkNotNull(prefix);
             this.suffix = checkNotNull(suffix);
             this.temporaryDirectorySupplier = checkNotNull(temporaryDirectorySupplier);
         }
         
         public TempFileSupplier(String prefix, String suffix, File temporaryDirectory) {
-            this(prefix, suffix, Suppliers.ofInstance(temporaryDirectory));
+            this(prefix, suffix, Suppliers.ofInstance(temporaryDirectory.toPath()));
         }
         
         @Override
         public File get() {
-            File tempDir = temporaryDirectorySupplier.get();
+            Path tempDir = temporaryDirectorySupplier.get();
             File tempFile;
             try {
-                tempFile = File.createTempFile(prefix, suffix, tempDir);
+                tempFile = File.createTempFile(prefix, suffix, tempDir.toFile());
             } catch (IOException ex) {
                 throw new TempFileCreationException(tempDir, ex);
             }

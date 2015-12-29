@@ -34,6 +34,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -168,9 +169,14 @@ public abstract class Program {
             return this;
         }
         
-        public ProgramWithOutputFiles.Builder writeOutputToFiles(File stdoutFile, File stderrFile) {
+        public ProgramWithOutputFiles.Builder writeFiles(File stdoutFile, File stderrFile) {
             return new ProgramWithOutputFiles.Builder(this, stdoutFile, stderrFile);
         }
+        
+        public ProgramWithOutputFiles.Builder writeTempFiles(Path parentDirectory) {
+            return new ProgramWithOutputFiles.Builder(this, parentDirectory);
+        }
+        
     }
     
     public static Builder builder(File executable) {
