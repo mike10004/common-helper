@@ -24,11 +24,17 @@
 package com.github.mike10004.nativehelper;
 
 /**
- *
+ * Interface for classes that represent the result of a program.
+ * At minimum, a program that finishes executing returns an 
+ * exit code.
  * @author mchaberski
  */
 public interface ProgramResult {
     
+    /**
+     * Gets the process exit code.
+     * @return the exit code
+     */
     int getExitCode();
     
 }

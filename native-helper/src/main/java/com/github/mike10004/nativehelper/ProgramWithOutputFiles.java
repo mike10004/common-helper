@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- *
+ * Class representing a program whose output is written to file.
  * @author mchaberski
  */
 public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputFilesResult> {
@@ -48,11 +48,6 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
         super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
         this.stdoutFileSupplier = Suppliers.memoize(stdoutFileSupplier);
         this.stderrFileSupplier = Suppliers.memoize(stderrFileSupplier);
-    }
-
-    @Override
-    public ProgramWithOutputFilesResult execute() {
-        return (ProgramWithOutputFilesResult) super.execute();
     }
 
     @Override

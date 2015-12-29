@@ -28,8 +28,9 @@ import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
 
 /**
- *
+ * Abstract superclass for programs whose output is captured.
  * @author mchaberski
+ * @see ProgramWithOutputResult
  */
 public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
 

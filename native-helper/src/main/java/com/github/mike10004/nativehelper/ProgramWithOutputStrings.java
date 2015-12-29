@@ -32,7 +32,7 @@ import org.apache.tools.ant.taskdefs.ExecTask;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- *
+ * Class that represents a program whose output is captured in memory as strings.
  * @author mchaberski
  */
 public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutputStringsResult> {
@@ -61,11 +61,6 @@ public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutpu
         int exitCode = getExitCode(task, executionContext);
         ProgramWithOutputStringsResult result = new ProgramWithOutputStringsResult(exitCode, stdout, stderr, charset);
         return result;
-    }
-
-    @Override
-    public ProgramWithOutputStringsResult execute() {
-        return (ProgramWithOutputStringsResult) super.execute();
     }
 
 }

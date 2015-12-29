@@ -26,12 +26,24 @@ package com.github.mike10004.nativehelper;
 import com.google.common.io.ByteSource;
 
 /**
- *
+ * Interface for classes that represent the results of programs whose
+ * output was captured.
  * @author mchaberski
  */
 public interface ProgramWithOutputResult extends ProgramResult {
     
+    /**
+     * Gets a byte source that represents the contents of 
+     * the process's standard output stream.
+     * @return the byte source
+     */
     ByteSource getStdout();
+    
+    /**
+     * Gets a byte source that represents the contents of the
+     * process's standard error stream.
+     * @return the byte source
+     */
     ByteSource getStderr();
     
 }

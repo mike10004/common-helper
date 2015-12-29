@@ -48,6 +48,7 @@ import org.apache.tools.ant.taskdefs.ExecTask;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -62,8 +63,8 @@ import java.util.concurrent.ExecutorService;
  * a builder instance.
  * 
  * <p>The interface is designed to be somewhat fluent, so you can write
- * <pre>    String output = Program.running("echo").arg("hello")
- *             .outputToStrings().getStdoutString();
+ * <pre>    Program program = Program.running("echo").arg("hello").outputToStrings();
+ *    String output = program.execute().getStdoutString();
  *    System.out.println(output); // "hello"
  * </pre>
  * @author mchaberski
@@ -88,7 +89,7 @@ public abstract class Program<R extends ProgramResult> {
     }
 
     /**
-     * Launches the external process.
+     * Launches the external process, blocking on the same thread until complete.
      * @return the execution result
      * @throws BuildException if the program fails to execute, for example because 
      * the executable is not found 
@@ -115,11 +116,11 @@ public abstract class Program<R extends ProgramResult> {
         };
     }
     
-    private static class WrappedFuture<R> extends SimpleForwardingListenableFuture<R> {
+    private static class TaskAbortingFuture<R> extends SimpleForwardingListenableFuture<R> {
         
         private final ExposedExecTask task;
 
-        public WrappedFuture(ExposedExecTask task, ListenableFuture<R> wrapped) {
+        public TaskAbortingFuture(ExposedExecTask task, ListenableFuture<R> wrapped) {
             super(wrapped);
             this.task = task;
         }
@@ -132,11 +133,23 @@ public abstract class Program<R extends ProgramResult> {
 
     }
     
+    /**
+     * Executes the program asynchronously with a given executor service. Use
+     * {@link Futures#addCallback(ListenableFuture, 
+     * com.google.common.util.concurrent.FutureCallback, java.util.concurrent.Executor) }
+     * to add a callback to the future. (Using the overloaded version of that method that 
+     * provides a {@code directExecutor} as the executor argument is probably okay; see the
+     * discussion in {@link ListenableFuture#addListener(java.lang.Runnable, java.util.concurrent.Executor) }.
+     * Calling {@link java.util.concurrent.Future#cancel(boolean) } will invoke 
+     * {@link Process#destroy() } on the process instance.
+     * @param executorService the executor service
+     * @return a future representing the computation
+     */
     public ListenableFuture<R> executeAsync(ExecutorService executorService) {
         ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
         ExposedExecTask task = taskFactory.get();
         ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task));
-        WrappedFuture<R> future = new WrappedFuture<>(task, innerFuture);
+        TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
         return future;
     }
     
@@ -184,11 +197,14 @@ public abstract class Program<R extends ProgramResult> {
     }
     
     /**
-     * Class that represents a builder of program instances.
-     * @see Program
+     * Class that represents a builder of program instances. Create a builder
+     * instance with {@link Program#running(java.lang.String) }.
+     * @see Program 
      */
     @NotThreadSafe
     public static final class Builder {
+        
+        public static final Charset DEFAULT_STRING_OUTPUT_CHARSET = Charsets.UTF_8;
         
         protected final String executable;
         protected String standardInput;
@@ -197,6 +213,10 @@ public abstract class Program<R extends ProgramResult> {
         protected Supplier<? extends ExposedExecTask> taskFactory;
         protected final List<String> arguments;
         
+        /**
+         * Constructs a builder instance.
+         * @param executable the executable name or pathname of the executable file
+         */
         protected Builder(String executable) {
             this.executable = checkNotNull(executable);
             checkArgument(!executable.isEmpty(), "executable must be non-empty string");
@@ -214,69 +234,145 @@ public abstract class Program<R extends ProgramResult> {
             dst.taskFactory = src.taskFactory;
         }
         
+        /**
+         * Feeds the given string to the process's standard input stream.
+         * @param standardInputString the input string
+         * @return this builder instance
+         */
         public Builder reading(String standardInputString) {
             this.standardInput = checkNotNull(standardInputString);
             return this;
         }
         
+        /**
+         * Feeds the contents of the gtiven file to the process standard input stream.
+         * @param standardInputFile the input file
+         * @return this builder instance
+         */
         public Builder reading(File standardInputFile) {
             this.standardInputFile = checkNotNull(standardInputFile);
             return this;
         }
         
+        /**
+         * Launch the process from this working directory.
+         * @param workingDirectory the directory
+         * @return this builder instance
+         */
         public Builder from(File workingDirectory) {
             this.workingDirectory = checkNotNull(workingDirectory);
             return this;
         }
         
+        /**
+         * Clears the argument list of this builder.
+         * @return this builder instance
+         */
         public Builder clearArgs() {
             this.arguments.clear();
             return this;
         }
         
+        /**
+         * Appends an argument to the argument list of this builder.
+         * @param argument the argument
+         * @return this builder instance
+         */
         public Builder arg(String argument) {
             this.arguments.add(checkNotNull(argument));
             return this;
         }
-        
+
+        /**
+         * Appends arguments to the argument list of this builder.
+         * @param firstArgument the first argument to append
+         * @param otherArguments the other arguments to append
+         * @return this builder instance
+         * @see #args(java.lang.Iterable) 
+         */        
         public Builder args(String firstArgument, String...otherArguments) {
             return args(Lists.asList(checkNotNull(firstArgument), otherArguments));
         }
-        
+
+        /**
+         * Appends arguments to the argument list of this builder.
+         * @param arguments
+         * @return this builder instance
+         */
         public Builder args(Iterable<String> arguments) {
             checkArgument(Iterables.all(arguments, Predicates.notNull()), "all arguments must be non-null");
             Iterables.addAll(this.arguments, arguments);
             return this;
         }
         
+        /**
+         * Constructs a program whose output is ignored. Use this if you only care
+         * about the process exit code.
+         * @return the program
+         */
         public Program<ProgramResult> ignoreOutput() {
             return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
         }
         
+        /**
+         * Constructs a program that writes output to the given files.
+         * @param stdoutFile the file to which standard output contents are to be written
+         * @param stderrFile the file to which standard error contents are to be written
+         * @return the program
+         */
         public ProgramWithOutputFiles outputToFiles(File stdoutFile, File stderrFile) {
             return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
         }
         
+        /**
+         * Constructs a program that writes output to uniquely-named files 
+         * in a given directory.
+         * @param directory the directory
+         * @return the program
+         */
         public ProgramWithOutputFiles outputToTempFiles(Path directory) {
             return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
         }
         
-        public static final Charset DEFAULT_STRING_OUTPUT_CHARSET = Charsets.UTF_8;
-        
+        /**
+         * Constructs a program that saves output in memory as strings.
+         * @return the program
+         */
         public ProgramWithOutputStrings outputToStrings() {
             return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
         }
 
+        /**
+         * Constructs a program that saves output in memory as strings. The 
+         * charset argument only matters if {@link ProgramWithOutputResult#getStdout() }
+         * or {@code getStderr()} is called, in which case the byte source will
+         * represent the byte encoding of the output strings in the given charset.
+         * @param charset the charset
+         * @return the program
+         */
         public ProgramWithOutputStrings outputToStrings(Charset charset) {
             return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, charset);
         }
     }
     
+    /**
+     * Constructs a builder instance that will produce a program that 
+     * launches the given executable.
+     * @param executable the executable file
+     * @return a builder instance
+     * @throws IllegalArgumentException if {@link File#canExecute() } is false
+     */
     public static Builder running(File executable) {
         checkArgument(executable.canExecute(), "executable.canExecute");
         return running(executable.getPath());
     }
     
+    /**
+     * Constructs a builder instance that will produce a program that 
+     * launches an executable corresponding to the argument string.
+     * @param executable the name of an executable or a path to a file
+     * @return a builder instance
+     */
     public static Builder running(String executable) {
         return new Builder(executable);
     }

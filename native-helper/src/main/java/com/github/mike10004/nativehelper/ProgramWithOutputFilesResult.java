@@ -30,7 +30,10 @@ import java.io.File;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- *
+ * Class that represents the result of a program that finished executing
+ * and whose output was written to file.
+ * @see Program.Builder#outputToFiles(java.io.File, java.io.File) 
+ * @see Program.Builder#outputToTempFiles(java.nio.file.Path) 
  * @author mchaberski
  */
 public class ProgramWithOutputFilesResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
@@ -57,10 +60,18 @@ public class ProgramWithOutputFilesResult extends ExitCodeProgramResult implemen
         return stderr;
     }
 
+    /**
+     * Gets the pathname of the file containing the process standard output stream contents.
+     * @return the pathname
+     */
     public File getStdoutFile() {
         return stdoutFile;
     }
 
+    /**
+     * Gets the pathname of the file containing the process standard error stream contents.
+     * @return the pathname
+     */
     public File getStderrFile() {
         return stderrFile;
     }

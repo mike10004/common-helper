@@ -30,7 +30,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- *
+ * Class that represents the result of a program whose output was captured as strings.
  * @author mchaberski
  */
 public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
@@ -50,10 +50,18 @@ public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implem
         bytesLock = new Object();
     }
     
+    /**
+     * Gets the string containing the contents of the process standard output stream.
+     * @return the string
+     */
     public String getStdoutString() {
         return stdoutString;
     }
     
+    /**
+     * Gets the string containing the contents of the process standard error stream.
+     * @return the string
+     */
     public String getStderrString() {
         return stderrString;
     }
