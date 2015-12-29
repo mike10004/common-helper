@@ -166,7 +166,7 @@ public abstract class ExternalProcessTestCase {
             return new WindowsNonzeroExitTestCase();
         } else if (platform.isLinux()) {
             return new LinuxNonzeroExitTestCase(emptyDir);
-        } else if (platform.isBSD()) {
+        } else if (platform.isBSD() || platform.isOSX()) {
             return new FreebsdNonzeroExitTestCase(emptyDir);
         } else {
             System.out.println("don't know how to test for platform " + platform);
