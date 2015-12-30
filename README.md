@@ -1,4 +1,4 @@
-[![Maven Central](https://img.shields.io/maven-central/v/com.github.mike10004/common-helper.svg](https://repo1.maven.org/maven2/com/github/mike10004/common-helper/)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.mike10004/common-helper.svg)](https://repo1.maven.org/maven2/com/github/mike10004/common-helper/)
 [![Build Status](https://img.shields.io/travis/mike10004/common-helper.svg)](https://travis-ci.org/mike10004/common-helper)
 
 Common Helper Libraries
