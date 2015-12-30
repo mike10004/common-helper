@@ -202,7 +202,7 @@ public abstract class Program<R extends ProgramResult> {
      * @see Program 
      */
     @NotThreadSafe
-    public static final class Builder {
+    public static class Builder {
         
         public static final Charset DEFAULT_STRING_OUTPUT_CHARSET = Charsets.UTF_8;
         
@@ -304,7 +304,12 @@ public abstract class Program<R extends ProgramResult> {
             Iterables.addAll(this.arguments, arguments);
             return this;
         }
-        
+
+        protected Builder usingTaskFactory(Supplier<? extends ExposedExecTask> taskFactory) {
+            this.taskFactory = checkNotNull(taskFactory, "taskFactory");
+            return this;
+        }
+
         /**
          * Constructs a program whose output is ignored. Use this if you only care
          * about the process exit code.
