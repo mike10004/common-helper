@@ -21,7 +21,9 @@ import org.apache.tools.ant.types.Commandline;
  * {@link #getStdout() }, and {@link #getResult() } methods.
  * @author mchaberski
  * @see ExecTask
+ * @deprecated use {@link com.github.mike10004.nativehelper.Program Program} API instead
  */
+@Deprecated
 public class AntExecutor {
     
     public static final String TASK_NAME = "antexecutor";
