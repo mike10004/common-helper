@@ -26,6 +26,7 @@ import org.junit.rules.TemporaryFolder;
  *
  * @author mchaberski
  */
+@SuppressWarnings("deprecation")
 public class AntExecutorTest {
     
     @Rule
