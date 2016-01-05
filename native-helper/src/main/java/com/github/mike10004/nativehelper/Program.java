@@ -224,16 +224,6 @@ public abstract class Program<R extends ProgramResult> {
             taskFactory = new DefaultTaskFactory();
         }
         
-        protected static void copyFields(Builder src, Builder dst) {
-            checkArgument(!dst.getClass().isAssignableFrom(src.getClass()), "expected destination instance to be a proper subclass of source class");
-            dst.arguments.clear();
-            dst.arguments.addAll(src.arguments);
-            dst.standardInput = src.standardInput;
-            dst.standardInputFile = src.standardInputFile;
-            dst.workingDirectory = src.workingDirectory;
-            dst.taskFactory = src.taskFactory;
-        }
-        
         /**
          * Feeds the given string to the process's standard input stream.
          * @param standardInputString the input string
