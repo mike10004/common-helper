@@ -19,6 +19,9 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Class that provides static utility methods relating to byte sources.
@@ -193,4 +196,33 @@ public class ByteSources {
     }
 
     private static final ByteSource emptyByteSourceInstance = new EmptyByteSource();
+
+    private static class GunzippingByteSource extends ByteSource {
+
+        private final ByteSource gzippedByteSource;
+
+        private GunzippingByteSource(ByteSource gzippedByteSource) {
+            this.gzippedByteSource = checkNotNull(gzippedByteSource);
+        }
+
+
+        @Override
+        public InputStream openStream() throws IOException {
+            return new GZIPInputStream(gzippedByteSource.openStream());
+        }
+
+        @Override
+        public String toString() {
+            return "GunzippingByteSource{wrapped=" + gzippedByteSource + "}";
+        }
+    }
+
+    /**
+     * Creates and returns a byte source that decompresses a gzipped byte source.
+     * @param gzippedByteSource the gzipped byte source to decompress
+     * @return the byte source providing uncompressed data
+     */
+    public static ByteSource gunzipping(ByteSource gzippedByteSource) {
+        return new GunzippingByteSource(gzippedByteSource);
+    }
 }
