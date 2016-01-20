@@ -68,16 +68,28 @@ public class H2 {
             }
         }
 
+        public static final Compression DEFAULT_COMPRESSION = Compression.NONE;
+
         private final Compression compression;
         private final Charset charset;
         private boolean verbose;
         private EnumSet<DumpOption> dumpOptions;
         private ImmutableSet<String> tables = ImmutableSet.of();
 
-        public Dumper() {
-            this(Charsets.UTF_8, Compression.GZIP);
+        /**
+         * Constructs an instance with the given charset and default compression mode.
+         * @param charset the charset to write the sql file in
+         * @see #DEFAULT_COMPRESSION
+         */
+        public Dumper(Charset charset) {
+            this(charset, DEFAULT_COMPRESSION);
         }
 
+        /**
+         * Constructs an instance with the given charset and compression mode.
+         * @param charset the charset to write the sql file in
+         * @param compression the compression to use
+         */
         public Dumper(Charset charset, Compression compression) {
             this.charset = Preconditions.checkNotNull(charset);
             this.compression = Preconditions.checkNotNull(compression);
@@ -117,6 +129,15 @@ public class H2 {
             return this;
         }
 
+        /**
+         * Dumps the database at a given JDBC URL to a SQL script in a file at the given pathname.
+         * @param url the JDBC URL
+         * @param username the username to use, or null for none
+         * @param password the password to use, or null for none
+         * @param outputH2SqlFile pathname of the file to write
+         * @throws IOException
+         * @throws SQLException
+         */
         public synchronized void dump(String url, @Nullable String username, @Nullable String password, File outputH2SqlFile) throws IOException, SQLException {
             Preconditions.checkNotNull(outputH2SqlFile);
             Preconditions.checkNotNull(url);
@@ -150,19 +171,33 @@ public class H2 {
         }
     }
 
+    /**
+     * Exports the contents of a database at a given JDBC URL to another JDBC URL.
+     * Uses a temp directory to write an intermediate
+     * @param fromUrl
+     * @param toJdbcUrl
+     * @param tempDir
+     * @throws IOException
+     * @throws SQLException
+     */
     public static void transfer(String fromUrl, String toJdbcUrl, File tempDir) throws IOException, SQLException {
         Charset charset = Charsets.UTF_8;
         Dumper.Compression compression = Dumper.Compression.NONE;
-        Dumper dumper =new Dumper(charset, compression);
+        Dumper dumper = new Dumper(charset, compression);
         File scriptFile = File.createTempFile("databasedump", ".h2.sql", tempDir);
-        dumper.dump(fromUrl, null, null, scriptFile);
-        scriptFile.deleteOnExit();
-        CharSource scriptSource = Files.asCharSource(scriptFile, charset);
-        try (Reader reader = scriptSource.openStream();
-             Connection conn = DriverManager.getConnection(toJdbcUrl)) {
-            ResultSet rs = org.h2.tools.RunScript.execute(conn, reader);
-            if (rs != null) {
-                rs.close();
+        try {
+            dumper.dump(fromUrl, null, null, scriptFile);
+            CharSource scriptSource = Files.asCharSource(scriptFile, charset);
+            try (Reader reader = scriptSource.openStream();
+                 Connection conn = DriverManager.getConnection(toJdbcUrl)) {
+                ResultSet rs = org.h2.tools.RunScript.execute(conn, reader);
+                if (rs != null) {
+                    rs.close();
+                }
+            }
+        } finally {
+            if (!scriptFile.delete()) {
+                Logger.getLogger(H2.class.getName()).log(Level.WARNING, "failed to delete temporary script file at {0}", scriptFile);
             }
         }
     }
