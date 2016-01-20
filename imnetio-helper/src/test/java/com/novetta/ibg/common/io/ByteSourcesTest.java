@@ -14,6 +14,8 @@ import java.net.URL;
 import java.util.Arrays;
 import static java.util.Arrays.asList;
 import java.util.Map;
+
+import com.google.common.io.Resources;
 import org.junit.After;
 import static org.junit.Assert.*;
 import org.junit.Before;
@@ -172,5 +174,23 @@ public class ByteSourcesTest {
         ByteSource result = ByteSources.empty();
         assertEquals(0, result.size());
     }
-    
+
+    @Test
+    public void testGunzipping() throws Exception {
+        System.out.println("testGunzipping");
+
+        URL uncompressed = getClass().getResource("/hello.txt");
+        URL compressed = getClass().getResource("/hello.txt.gz");
+
+        ByteSource uncompressedSource = Resources.asByteSource(uncompressed);
+        ByteSource compressedSource = Resources.asByteSource(compressed);
+
+        String uncompressedContent = uncompressedSource.asCharSource(Charsets.US_ASCII).read();
+        System.out.println("uncompressed: " + uncompressedContent);
+
+        ByteSource decompressedSource = ByteSources.gunzipping(compressedSource);
+        String decompressedContent = decompressedSource.asCharSource(Charsets.US_ASCII).read();
+        System.out.println("decompressed: " + decompressedContent);
+        assertEquals(uncompressedContent, decompressedContent);
+    }
 }
