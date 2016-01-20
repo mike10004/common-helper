@@ -25,13 +25,14 @@ public abstract class H2ConnectionSource extends LazyJdbcConnectionSource {
      * @return the protocol, without terminal colon
      */
     protected abstract String getProtocol();
+
     protected abstract String getSchema();
     
     protected String constructJdbcUrl() {
         String protocol = getProtocol();
         checkState(protocol != null, "protocol must be non-null");
         String schema = getSchema();
-        checkState(protocol != null, "schema must be non-null");
+        checkState(schema != null, "schema must be non-null");
         String jdbcUrl = protocol + ':' + schema;
         String urlSuffix = getJdbcUrlSuffix();
         jdbcUrl += urlSuffix;

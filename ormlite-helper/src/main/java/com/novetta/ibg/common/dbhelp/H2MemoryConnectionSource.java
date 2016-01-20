@@ -26,24 +26,36 @@ public class H2MemoryConnectionSource extends H2ConnectionSource {
     private static final CharMatcher allowedSchemaChars = CharMatcher.JAVA_LETTER_OR_DIGIT;
     
     private final String schema;
+    private final boolean keepContentForLifeOfVM;
 
-    /**
-     * Constructs a connection source with a new unique schema name.
-     * @see #createUniqueSchema() 
-     */
-    public H2MemoryConnectionSource() {
-        this(createUniqueSchema());
+    public H2MemoryConnectionSource(boolean keepContentForLifeOfVM) {
+        this(createUniqueSchema(), keepContentForLifeOfVM);
     }
-    
-    /**
-     * Constructs a connection source with the given schema name.
-     * @param schema a non-null, non-empty string to use as the schema name
-     */
-    public H2MemoryConnectionSource(String schema) {
+
+    public H2MemoryConnectionSource(String schema, boolean keepContentForLifeOfVM) {
         this.schema = checkNotNull(schema);
         if (schema.isEmpty()) {
             throw new IllegalArgumentException("schema must be non-empty string");
         }
+        this.keepContentForLifeOfVM = keepContentForLifeOfVM;
+    }
+
+    /**
+     * Constructs a connection source with a new unique schema name. Content
+     * is not retained for the life of VM.
+     * @see #createUniqueSchema() 
+     */
+    public H2MemoryConnectionSource() {
+        this(false);
+    }
+    
+    /**
+     * Constructs a connection source with the given schema name. Content
+     * is not retained for the life of VM.
+     * @param schema a non-null, non-empty string to use as the schema name
+     */
+    public H2MemoryConnectionSource(String schema) {
+        this(schema, false);
     }
     
     @Override
@@ -67,5 +79,13 @@ public class H2MemoryConnectionSource extends H2ConnectionSource {
         String schema = 'u' + uuid;
         return schema;
     }
-    
+
+    @Override
+    protected String getJdbcUrlSuffix() {
+        if (keepContentForLifeOfVM) {
+            return ";DB_CLOSE_DELAY=-1";
+        } else {
+            return "";
+        }
+    }
 }

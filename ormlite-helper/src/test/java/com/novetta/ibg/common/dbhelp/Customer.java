@@ -15,7 +15,15 @@ import java.util.Objects;
  */
 @DatabaseTable
 public class Customer {
-    
+
+    public Customer() {
+    }
+
+    public Customer(String address, String name) {
+        this.address = address;
+        this.name = name;
+    }
+
     @DatabaseField(generatedId = true)
     public Integer id;
     
