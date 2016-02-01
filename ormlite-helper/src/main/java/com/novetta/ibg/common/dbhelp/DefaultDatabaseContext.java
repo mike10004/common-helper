@@ -9,12 +9,12 @@
 package com.novetta.ibg.common.dbhelp;
 
 import com.google.common.base.Function;
-import static com.google.common.base.Preconditions.checkNotNull;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
-import com.novetta.ibg.common.dbhelp.ConnectionSources.UnrecloseableConnectionSource;
+
 import java.sql.SQLException;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -23,7 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class DefaultDatabaseContext implements DatabaseContext {
 
-    private final UnrecloseableConnectionSource connectionSource;
+    private final ConnectionSource connectionSource;
     private final Function<ConnectionSource, ContextTableUtils> tableUtilsFactory;
     private final Function<ConnectionSource, ContextTransactionManager> transactionManagerFactory;
     private ContextTableUtils tableUtils;
@@ -51,8 +51,7 @@ public class DefaultDatabaseContext implements DatabaseContext {
     public DefaultDatabaseContext(ConnectionSource connectionSource, 
             Function<ConnectionSource, ContextTableUtils> tableUtilsFactory, 
             Function<ConnectionSource, ContextTransactionManager> transactionManagerFactory) {
-        checkNotNull(connectionSource, "connectionSource");
-        this.connectionSource = ConnectionSources.unrecloseable(connectionSource);
+        this.connectionSource = checkNotNull(connectionSource, "connectionSource");
         this.tableUtilsFactory = checkNotNull(tableUtilsFactory, "tableUtilsFactory");
         this.transactionManagerFactory = checkNotNull(transactionManagerFactory, "transactionManagerFactory");
     }

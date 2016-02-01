@@ -3,12 +3,13 @@
  */
 package com.novetta.ibg.common.dbhelp;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import com.j256.ormlite.db.DatabaseType;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.support.DatabaseConnection;
+
 import java.sql.SQLException;
-import java.util.logging.Logger;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Static utility methods relating to connection sources.
@@ -210,7 +211,7 @@ public class ConnectionSources {
         }
         
         @Override
-        protected ConnectionSource getDelegate() {
+        public ConnectionSource getDelegate() {
             return delegate;
         }
         
@@ -251,47 +252,4 @@ public class ConnectionSources {
         
     }
     
-    public static class UnrecloseableConnectionSource extends SimpleConnectionSourceDelegator {
-
-        private static final Logger log = Logger.getLogger(UnrecloseableConnectionSource.class.getName());
-        private transient final Object closeLock = new Object();
-        private boolean alreadyClosed;
-        
-        public UnrecloseableConnectionSource(ConnectionSource delegate) {
-            super(delegate);
-        }
-
-        public boolean isAlreadyClosed() {
-            return alreadyClosed;
-        }
-
-        @Override
-        public void closeQuietly() {
-            synchronized (closeLock) {
-                if (!alreadyClosed) {
-                    super.closeQuietly();
-                    alreadyClosed = true;
-                } else {
-                    log.info("already closed connection source");
-                }
-            }
-        }
-
-        @Override
-        public void close() throws SQLException {
-            synchronized (closeLock) {
-                if (!alreadyClosed) {
-                    super.close();
-                    alreadyClosed = true;
-                } else {
-                    throw new SQLException("already closed connection source");
-                }
-            }
-        }
-        
-    }
-    
-    public static UnrecloseableConnectionSource unrecloseable(ConnectionSource connectionSource) {
-        return new UnrecloseableConnectionSource(connectionSource);
-    }
 }
