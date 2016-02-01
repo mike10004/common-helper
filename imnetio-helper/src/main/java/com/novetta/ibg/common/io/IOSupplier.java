@@ -31,7 +31,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- *
+ * Supplier that declares an I/O exception on the supply method.
+ * @param <T> the type of object to be supplied
  * @author mchaberski
  */
 public interface IOSupplier<T> {
@@ -65,7 +66,7 @@ public interface IOSupplier<T> {
         // on volatile read of "initialized".
         private transient T value;
 
-        MemoizingIOSupplier(IOSupplier<T> delegate) {
+        public MemoizingIOSupplier(IOSupplier<T> delegate) {
             this.delegate = checkNotNull(delegate, "delegate");
         }
 
