@@ -3,7 +3,10 @@
  */
 package com.github.mike10004.ormlitehelper.testtools;
 
+import com.google.common.base.Optional;
 import com.novetta.ibg.common.dbhelp.H2MemoryConnectionSource;
+
+import javax.annotation.Nullable;
 
 /**
  *
@@ -11,13 +14,33 @@ import com.novetta.ibg.common.dbhelp.H2MemoryConnectionSource;
  */
 public class H2MemoryDatabaseContextRule extends DatabaseContextRule {
 
-    public H2MemoryDatabaseContextRule(SetupOperation...setupActions) {
-        super(setupActions);
+    private final Optional<Boolean> keepContentForLifeOfVmOption;
+    private final Optional<String> schemaNameOption;
+
+    public H2MemoryDatabaseContextRule(boolean keepContentForLifeOfVm, BookendOperation...bookendOperations) {
+        this(keepContentForLifeOfVm, null, bookendOperations);
+    }
+
+
+    public H2MemoryDatabaseContextRule(BookendOperation...bookendOperations) {
+        this(false, bookendOperations);
+    }
+
+    public H2MemoryDatabaseContextRule(boolean keepContentForLifeOfVm, @Nullable String schemaName, BookendOperation...bookendOperations) {
+        super(bookendOperations);
+        this.keepContentForLifeOfVmOption = Optional.of(keepContentForLifeOfVm);
+        this.schemaNameOption = Optional.fromNullable(schemaName);
     }
 
     @Override
     protected H2MemoryConnectionSource createConnectionSource() {
-        return new H2MemoryConnectionSource();
+        if (keepContentForLifeOfVmOption.isPresent() && schemaNameOption.isPresent()) {
+            return new H2MemoryConnectionSource(schemaNameOption.get(), keepContentForLifeOfVmOption.get());
+        } else if (keepContentForLifeOfVmOption.isPresent()) {
+            return new H2MemoryConnectionSource(keepContentForLifeOfVmOption.get());
+        } else {
+            return new H2MemoryConnectionSource();
+        }
     }
 
 }

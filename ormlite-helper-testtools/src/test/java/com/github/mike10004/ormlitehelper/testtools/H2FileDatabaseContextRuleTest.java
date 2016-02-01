@@ -1,6 +1,7 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.google.common.io.CharSource;
+import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.novetta.ibg.common.dbhelp.H2FileConnectionSource;
 import java.io.File;
 import org.junit.Test;
@@ -17,32 +18,6 @@ public class H2FileDatabaseContextRuleTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private static class ExposedRule extends H2FileDatabaseContextRule {
-
-        public ExposedRule(PathnameProvider pathnameProvider, boolean autoMixedMode, boolean onlyOpenIfExists) {
-            super(pathnameProvider, autoMixedMode, onlyOpenIfExists, CharSource.empty(), CharSource.empty());
-        }
-
-        @Override
-        protected void before() throws Throwable {
-            super.before();
-        }
-
-        @Override
-        protected void after() {
-            super.after();
-        }
-
-        public H2FileConnectionSource connectionSource;
-
-        @Override
-        protected H2FileConnectionSource createConnectionSource() {
-            connectionSource = super.createConnectionSource();
-            return connectionSource;
-        }
-
-    }
-
     @Test
     public void testConsistencyOfJdbcUrl() throws Throwable {
         System.out.println("testConsistencyOfJdbcUrl");
@@ -52,12 +27,12 @@ public class H2FileDatabaseContextRuleTest {
         boolean[] autoMixedModes = { false, true };
         for (boolean autoMixedMode : autoMixedModes) {
             System.out.println("testing autoMixedMode=" + autoMixedMode);
-            ExposedRule rule = new ExposedRule(pp, autoMixedMode, false);
+            DatabaseContextRule rule = new H2FileDatabaseContextRule(pp, autoMixedMode, false, CharSource.empty(), CharSource.empty());
             rule.before();
             try {
-                rule.connectionSource.getReadOnlyConnection().close(); // so that prepare & initialize are called
-                String jdbcUrlConfiguredByRule = rule.connectionSource.getUrl();
-                String jdbcUrlFromUrlBuilder = rule.buildJdbcUrl();
+                rule.getConnectionSource().getReadOnlyConnection().close(); // so that prepare & initialize are called
+                String jdbcUrlConfiguredByRule = ((JdbcConnectionSource)rule.getConnectionSource()).getUrl();
+                String jdbcUrlFromUrlBuilder = ((H2FileDatabaseContextRule)rule).buildJdbcUrl();
                 System.out.println("url from connectionsource configured by rule: " + jdbcUrlConfiguredByRule);
                 System.out.println("url from url builder: " + jdbcUrlFromUrlBuilder);
                 assertEquals(jdbcUrlConfiguredByRule, jdbcUrlFromUrlBuilder);

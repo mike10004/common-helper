@@ -4,6 +4,7 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.j256.ormlite.support.ConnectionSource;
 import com.novetta.ibg.common.dbhelp.DatabaseContext;
 import com.novetta.ibg.common.dbhelp.DefaultDatabaseContext;
@@ -20,7 +21,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
 
     private ConnectionSource connectionSource;
     private DatabaseContext databaseContext;
-    private final Iterable<SetupOperation> setupOperations;
+    private final Iterable<? extends BookendOperation> bookendOperations;
 
     /**
      * Flag that specifies whether an exception thrown when closing
@@ -37,14 +38,26 @@ public abstract class DatabaseContextRule extends ExternalResource {
     /**
      * Constructs an instance of the class and executes actions
      * requiring a database context.
-     * @param setupOperations zero or more actions to take after creating
+     * @param bookendOperations zero or more actions to take after creating
      * the database context instance
      */
-    public DatabaseContextRule(SetupOperation...setupOperations) {
-        this.setupOperations = ImmutableList.copyOf(setupOperations);
+    public DatabaseContextRule(BookendOperation...bookendOperations) {
+        this.bookendOperations = ImmutableList.copyOf(bookendOperations);
         doNotSwallowClosingException = false;
     }
 
+    /**
+     * Gets the connection source created
+     * @return the connection source
+     */
+    public ConnectionSource getConnectionSource() {
+        return connectionSource;
+    }
+
+    /**
+     * Gets the database context instance.
+     * @return the database context instance
+     */
     public DatabaseContext getDatabaseContext() {
         return databaseContext;
     }
@@ -53,6 +66,15 @@ public abstract class DatabaseContextRule extends ExternalResource {
     protected void after() {
         DatabaseContext db = databaseContext;
         if (db != null) {
+            for (TeardownOperation action : Iterables.filter(bookendOperations, TeardownOperation.class)) {
+                try {
+                    action.perform(databaseContext);
+                } catch (Exception e) {
+                    Logger.getLogger(DatabaseContextRule.class.getName())
+                            .log(Level.WARNING, "teardown operation threw exception; skipping remaining teardown operations", e);
+                    break;
+                }
+            }
             try {
                 db.closeConnections(!doNotSwallowClosingException);
             } catch (SQLException ex) {
@@ -69,24 +91,40 @@ public abstract class DatabaseContextRule extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
+    protected void before() throws Exception {
         connectionSource = createConnectionSource();
         databaseContext = createDatabaseContext(connectionSource);
-        for (SetupOperation action : setupOperations) {
-            if (action != null) {
-                action.perform(databaseContext);
-            }
+        for (SetupOperation action : Iterables.filter(bookendOperations, SetupOperation.class)) {
+            action.perform(databaseContext);
         }
+
     }
 
     /**
-     * Interface representing an operation to be performed after
-     * creating the database context instance. These operations
+     * Interface representing an operation to be performed
+     * either before or after the test. These operations are
+     * performed in the {@link ExternalResource#before()} and
+     * {@link ExternalResource#after()} methods.
+     */
+    public static interface BookendOperation {
+        void perform(DatabaseContext db) throws Exception;
+    }
+
+    /**
+     * Interface representing an operation to be performed before the test,
+     * after creating the database context instance. These operations
      * are performed in the {@link ExternalResource#before() }
      * method.
      */
-    public static interface SetupOperation {
-        void perform(DatabaseContext db) throws Exception;
+    public static interface SetupOperation extends BookendOperation {
+    }
+
+    /**
+     * Interface representing an operation to be performed after the test.
+     * These operations are performed in the {@link ExternalResource#after() }
+     * method.
+     */
+    public static interface TeardownOperation extends BookendOperation {
     }
 
 }
