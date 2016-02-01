@@ -225,4 +225,13 @@ public class ByteSources {
     public static ByteSource gunzipping(ByteSource gzippedByteSource) {
         return new GunzippingByteSource(gzippedByteSource);
     }
+
+    /**
+     * Creates and returns a byte source that decompresses a gzipped resource.
+     * @param gzippedResource the gzipped resource
+     * @return a byte source that provides uncompressed data
+     */
+    public static ByteSource gunzipping(URL gzippedResource) {
+        return new GunzippingByteSource(Resources.asByteSource(gzippedResource));
+    }
 }
