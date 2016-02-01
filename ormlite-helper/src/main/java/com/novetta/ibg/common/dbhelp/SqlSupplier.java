@@ -10,9 +10,10 @@ package com.novetta.ibg.common.dbhelp;
 
 import java.sql.SQLException;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
- * Interface for a supplier that may throw an SQL exception when it
- * supplies an instance of a class. 
+ * Supplier that declares an SQL exception on the supply method.
  * @author mchaberski
  * @param <T> the type of object to be supplied
  */
@@ -41,8 +42,8 @@ public interface SqlSupplier<T> {
         // on volatile read of "initialized".
         transient T value;
 
-        MemoizingSqlSupplier(SqlSupplier<T> delegate) {
-            this.delegate = delegate;
+        public MemoizingSqlSupplier(SqlSupplier<T> delegate) {
+            this.delegate = checkNotNull(delegate, "delegate");
         }
 
         @Override
