@@ -33,7 +33,7 @@ public interface DatabaseContext {
      * @return the dao
      * @throws java.sql.SQLException on error getting the dao
      */
-    <T> Dao<T, Integer> getDao(Class<T> clz) throws SQLException;
+    <T> Dao<T, ?> getDao(Class<T> clz) throws SQLException;
     
     /**
      * Gets the data access object for an entity class with a given key type. 

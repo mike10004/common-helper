@@ -112,7 +112,7 @@ public class DefaultDatabaseContext implements DatabaseContext {
      * {@link #getDao(java.lang.Class, java.lang.Class) } throws one
      */
     @Override
-    public <T> Dao<T, Integer> getDao(Class<T> clz) throws SQLException {
+    public <T> Dao<T, ?> getDao(Class<T> clz) throws SQLException {
         return DaoManager.createDao(getConnectionSource(), clz);
     }
 
