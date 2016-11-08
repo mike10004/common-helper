@@ -29,41 +29,28 @@ import com.google.common.collect.*;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
 import com.google.common.primitives.UnsignedBytes;
 import com.novetta.ibg.common.net.HttpRequests.ResponseData;
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.net.MediaType.PLAIN_TEXT_UTF_8;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.easymock.EasyMock;
-
-import static java.time.temporal.WeekFields.ISO;
-import static org.junit.Assert.*;
-
-import org.junit.Assert;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
 
-/**
- *
- * @author mchaberski
- */
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.net.MediaType.PLAIN_TEXT_UTF_8;
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class HttpRequestsTest {
     
     @Test
