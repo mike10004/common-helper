@@ -1,9 +1,5 @@
 language: java
 jdk:
   - oraclejdk8
-  - openjdk7
-addons:
-  apt:
-    packages:
-    - libaio-dev
+  - openjdk8
 script: mvn verify -B
