@@ -44,8 +44,8 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
 
     private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
     
-    protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
-        super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+    protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         this.stdoutFileSupplier = Suppliers.memoize(stdoutFileSupplier);
         this.stderrFileSupplier = Suppliers.memoize(stderrFileSupplier);
     }

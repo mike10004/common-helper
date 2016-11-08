@@ -29,19 +29,21 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
+
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
@@ -52,6 +54,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.tools.ant.types.Environment;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -78,14 +82,16 @@ public abstract class Program<R extends ProgramResult> {
     private final ImmutableList<String> arguments;
     private final @Nullable File workingDirectory;
     private final Supplier<? extends ExposedExecTask> taskFactory;
-    
-    protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+    private final ImmutableMap<String, String> environment;
+
+    protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
         this.executable = checkNotNull(executable);
         this.standardInput = ImmutablePair.<String, File>of(standardInput, standardInputFile);
         checkArgument(standardInput == null || standardInputFile == null, "can't set both standard input string and file");
         this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);
         this.taskFactory = checkNotNull(taskFactory);
+        this.environment = ImmutableMap.copyOf(environment);
     }
 
     /**
@@ -152,7 +158,14 @@ public abstract class Program<R extends ProgramResult> {
         TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
         return future;
     }
-    
+
+    private static Environment.Variable newVariable(String name, String value) {
+        Environment.Variable variable = new Environment.Variable();
+        variable.setKey(name);
+        variable.setValue(value);
+        return variable;
+    }
+
     protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
         task.setDestructible(true);
         task.setFailonerror(false);
@@ -166,6 +179,10 @@ public abstract class Program<R extends ProgramResult> {
             throw new IllegalStateException("stdin misconfiguration");
         }
         task.setDir(workingDirectory);
+        for (String variableName : environment.keySet()) {
+            String variableValue = environment.get(variableName);
+            task.addEnv(newVariable(variableName, variableValue));
+        }
         for (String argument : arguments) {
             task.createArg().setValue(argument);
         }
@@ -175,8 +192,8 @@ public abstract class Program<R extends ProgramResult> {
     
     protected static class SimpleProgram extends Program<ProgramResult> {
         
-        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-            super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+            super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         }
 
         @Override
@@ -212,7 +229,8 @@ public abstract class Program<R extends ProgramResult> {
         protected File workingDirectory;
         protected Supplier<? extends ExposedExecTask> taskFactory;
         protected final List<String> arguments;
-        
+        protected final Map<String, String> environment;
+
         /**
          * Constructs a builder instance.
          * @param executable the executable name or pathname of the executable file
@@ -222,6 +240,7 @@ public abstract class Program<R extends ProgramResult> {
             checkArgument(!executable.isEmpty(), "executable must be non-empty string");
             arguments = new ArrayList<>();
             taskFactory = new DefaultTaskFactory();
+            environment = new LinkedHashMap<>();
         }
         
         /**
@@ -253,7 +272,28 @@ public abstract class Program<R extends ProgramResult> {
             this.workingDirectory = checkNotNull(workingDirectory);
             return this;
         }
-        
+
+        /**
+         * Set variables in the environment of the process to be executed.
+         * @param environment map of variables to set
+         * @return this builder instance
+         */
+        public Builder env(Map<String, String> environment) {
+            this.environment.putAll(environment);
+            return this;
+        }
+
+        /**
+         * Set variable in the environment of the process to be executed.
+         * @param name variable name
+         * @param value variable value
+         * @return this builder instance
+         */
+        public Builder env(String name, String value) {
+            environment.put(name, checkNotNull(value, "value must be non-null"));
+            return this;
+        }
+
         /**
          * Clears the argument list of this builder.
          * @return this builder instance
@@ -286,7 +326,7 @@ public abstract class Program<R extends ProgramResult> {
 
         /**
          * Appends arguments to the argument list of this builder.
-         * @param arguments
+         * @param arguments command line arguments
          * @return this builder instance
          */
         public Builder args(Iterable<String> arguments) {
@@ -306,7 +346,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public Program<ProgramResult> ignoreOutput() {
-            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         }
         
         /**
@@ -316,7 +356,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputFiles outputToFiles(File stdoutFile, File stderrFile) {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
+            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
         }
         
         /**
@@ -326,7 +366,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputFiles outputToTempFiles(Path directory) {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
+            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
         }
         
         /**
@@ -334,7 +374,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputStrings outputToStrings() {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
         }
 
         /**
@@ -346,7 +386,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputStrings outputToStrings(Charset charset) {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory, charset);
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, charset);
         }
     }
     
@@ -415,5 +455,28 @@ public abstract class Program<R extends ProgramResult> {
 
     protected @Nullable File getWorkingDirectory() {
         return workingDirectory;
+    }
+
+    private static String describeStandardInput(Pair<String, File> stdin) {
+        File stdinFile = stdin.getRight();
+        if (stdinFile != null) {
+            return stdinFile.getAbsolutePath();
+        }
+        String stdinStr = stdin.getLeft();
+        if (stdinStr != null) {
+            return "\"" + StringEscapeUtils.escapeJava(StringUtils.abbreviate(stdinStr, 128)) + "\"";
+        }
+        return "<EOF>";
+    }
+
+    @Override
+    public String toString() {
+        return "Program{" +
+                "executable='" + executable + '\'' +
+                ", standardInput=" + describeStandardInput(standardInput) +
+                ", arguments=" + StringUtils.abbreviate(String.valueOf(arguments), 128) +
+                ", workingDirectory=" + workingDirectory +
+                ", environment=" + StringUtils.abbreviate(String.valueOf(environment), 128) +
+                '}';
     }
 }

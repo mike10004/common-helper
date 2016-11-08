@@ -42,8 +42,8 @@ public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutpu
     
     private final Charset charset;
     
-    protected ProgramWithOutputStrings(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Charset charset) {
-        super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+    protected ProgramWithOutputStrings(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Charset charset) {
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         this.charset = checkNotNull(charset);
     }
 

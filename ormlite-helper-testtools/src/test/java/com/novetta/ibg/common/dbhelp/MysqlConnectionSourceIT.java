@@ -164,7 +164,7 @@ public class MysqlConnectionSourceIT {
     
     public static class DbWriter extends DbTask {
 
-        protected Random random = new Random(0x10004);
+        protected Random random = new Random(DbWriter.class.hashCode());
         private final int numToInsert;
         private final Collection<Customer> customers;
         private final AtomicInteger numInsertedCount, taskCount;
