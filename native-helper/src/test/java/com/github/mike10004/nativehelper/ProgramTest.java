@@ -232,7 +232,7 @@ public class ProgramTest {
         String variableName = String.format("X%012x", Math.abs(random.nextLong())).toUpperCase();
         String variableValue = String.format("%012x", Math.abs(random.nextLong()));
         System.out.format("%s=%s%n", variableName, variableValue);
-        ProgramWithOutputStrings program;
+        Program.Builder builder;
         if (platform.isWindows()) {
             Path batFile = tmp.newFile("echofoo.bat").toPath();
             java.nio.file.Files.write(batFile, Arrays.asList(
@@ -241,15 +241,14 @@ public class ProgramTest {
                     ") else (",
                     "  echo %" + variableName + "%",
                     ")"), Charset.defaultCharset(), StandardOpenOption.TRUNCATE_EXISTING);
-            program = Program.running("cmd")
-                    .args("/Q", "/C", batFile.toAbsolutePath().toString())
-                    .outputToStrings();
+            builder = Program.running("cmd")
+                    .args("/Q", "/C", batFile.toAbsolutePath().toString());
         } else {
-            program = Program.running("sh")
-                    .env(variableName, variableValue)
-                    .args("-c", "echo $" + variableName)
-                    .outputToStrings(StandardCharsets.UTF_8);
+            builder = Program.running("sh")
+                    .args("-c", "echo $" + variableName);
         }
+        builder.env(variableName, variableValue);
+        ProgramWithOutputStrings program = builder.outputToStrings();
         ProgramWithOutputStringsResult result = program.execute();
         System.out.format("result: %s%n", result);
         System.out.format("stdout: %s%n", StringEscapeUtils.escapeJava(result.getStdoutString()));
