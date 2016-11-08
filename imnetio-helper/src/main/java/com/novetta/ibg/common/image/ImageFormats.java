@@ -39,6 +39,10 @@ public class ImageFormats {
         switch (imageInfoFormat) {
             case ICO: 
                 return "image/vnd.microsoft.icon";
+            case PGM:
+                return "image/x-portable-graymap";
+            case PPM:
+                return "image/x-portable-pixmap";
             default:
                 return "image/" + imageInfoFormat.name().toLowerCase();
         }
