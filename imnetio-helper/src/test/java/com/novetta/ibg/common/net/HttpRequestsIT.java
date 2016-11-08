@@ -2,7 +2,7 @@
  * (c) 2015 Mike Chaberski
  */
 
-package it.com.novetta.ibg.common.net;
+package com.novetta.ibg.common.net;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;

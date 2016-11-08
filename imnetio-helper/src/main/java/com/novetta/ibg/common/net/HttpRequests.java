@@ -345,17 +345,6 @@ public class HttpRequests {
             this.httpRequestFactory = checkNotNull(httpRequestFactory, "httpRequestFactory");
         }
         
-        /**
-         * Sends a request to download a given URL.
-         * @param url the URL for the HTTP request
-         * @return the response data
-         * @throws IllegalArgumentException if a URISyntaxException is thrown
-         * from {@link URI#create(java.lang.String) }
-         */
-        public ResponseData retrieve(String url) throws IllegalArgumentException {
-            return retrieve(URI.create(url));
-        }
-        
         @Override
         public ResponseData retrieve(URI uri) {
             return retrieve(uri, emptyMultimap);
@@ -405,7 +394,7 @@ public class HttpRequests {
             @Override
             public HttpUriRequest createRequest(URI uri, Multimap<String, String> requestHeaders) {
                 checkNotNull(requestHeaders, "requestHeaders");
-                HttpRequestBase request = new HttpGet(uri);
+                HttpRequestBase request = createRequestBase(uri);
                 for (Map.Entry<String, String> entry : requestHeaders.entries()) {
                     request.addHeader(entry.getKey(), entry.getValue());
                 }
