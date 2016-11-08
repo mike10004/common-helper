@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 mchaberski.
+ * Copyright 2016 Mike Chaberski.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,42 +23,43 @@
  */
 package com.github.mike10004.nativehelper;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import com.novetta.ibg.common.sys.OutputStreamEcho;
 import com.novetta.ibg.common.sys.Platform;
 import com.novetta.ibg.common.sys.Platforms;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.tools.ant.BuildException;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.util.Map;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.taskdefs.ExecTask;
-import org.junit.Test;
 
-import javax.annotation.Nullable;
-
+import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author mchaberski
- */
 public class ProgramTest {
 
-    private static final Random random = new Random(0x10004);
+    private static final Random random = new Random(ProgramTest.class.hashCode());
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
     private transient final Platform platform;
     
     public ProgramTest() {
@@ -118,18 +119,18 @@ public class ProgramTest {
             }
 
             ExecutorService executorService = Executors.newFixedThreadPool(2);
-            Program program = builder.outputToStrings();
+            Program<ProgramWithOutputStringsResult> program = builder.outputToStrings();
             assertNull(program.getStandardInput().getLeft());
             assertNull(program.getStandardInput().getRight());
             long executionStartTime = System.currentTimeMillis();
-            ListenableFuture<ProgramResult> future = program.executeAsync(executorService);
+            ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
             Thread.sleep(killAfter);
             boolean cancellationResult = future.cancel(true);
             System.out.println("cancellationResult: " + cancellationResult);
             try {
                 System.out.println(future.get());
                 fail("should have thrown cancellationexception");
-            } catch (CancellationException expected) {
+            } catch (CancellationException ignored) {
             } catch (ExecutionException unexpected) {
                 fail("should have thrown cancellationexception, not " + unexpected);
             }
@@ -161,7 +162,6 @@ public class ProgramTest {
     @Test(timeout = 1000L)
     public void testProgramWithEchoableRedirector() {
         System.out.println("testProgramWithEchoableRedirector");
-
         EchoingProgramBuilder pb;
         if (Platforms.getPlatform().isWindows()) {
             pb = (EchoingProgramBuilder) new EchoingProgramBuilder("cmd").arg("/C");
@@ -182,6 +182,10 @@ public class ProgramTest {
         assertEquals("stdout (split)", expected, actual);
     }
 
+    /**
+     * Task factory that is constructed with stream callbacks that are notified
+     * when data is printed on stdout or stderr.
+     */
     private static class MyTaskFactory extends Program.DefaultTaskFactory {
 
         private final OutputStreamEcho stdoutEcho;
@@ -202,11 +206,15 @@ public class ProgramTest {
 
     }
 
+    /**
+     * Program builder that has a {@link MyTaskFactory task factory} that
+     * uses stream callbacks that can notify clients when data is printed
+     * on stdout or stderr.
+     */
     private static class EchoingProgramBuilder extends Program.Builder {
 
         /**
          * Constructs a builder instance.
-         *
          * @param executable the executable name or pathname of the executable file
          */
         public EchoingProgramBuilder(String executable) {
@@ -217,4 +225,50 @@ public class ProgramTest {
             return (EchoingProgramBuilder) super.usingTaskFactory(new MyTaskFactory(stdoutEcho, stderrEcho));
         }
     }
+
+    @Test
+    public void programWithEnvironmentVariableSet() throws Exception {
+        Random random = new Random(ProgramTest.class.hashCode());
+        String variableName = String.format("X%012x", Math.abs(random.nextLong())).toUpperCase();
+        String variableValue = String.format("%012x", Math.abs(random.nextLong()));
+        System.out.format("%s=%s%n", variableName, variableValue);
+        ProgramWithOutputStrings program;
+        if (platform.isWindows()) {
+            Path batFile = tmp.newFile("echofoo.bat").toPath();
+            java.nio.file.Files.write(batFile, Arrays.asList(
+                    "if \"%" + variableName + "%\"==\"\" (",
+                    "  echo.",
+                    ") else (",
+                    "  echo %" + variableName + "%",
+                    ")"), Charset.defaultCharset(), StandardOpenOption.TRUNCATE_EXISTING);
+            program = Program.running("cmd")
+                    .args("/Q", "/C", batFile.toAbsolutePath().toString())
+                    .outputToStrings();
+        } else {
+            program = Program.running("sh")
+                    .env(variableName, variableValue)
+                    .args("-c", "echo $" + variableName)
+                    .outputToStrings(StandardCharsets.UTF_8);
+        }
+        ProgramWithOutputStringsResult result = program.execute();
+        System.out.format("result: %s%n", result);
+        System.out.format("stdout: %s%n", StringEscapeUtils.escapeJava(result.getStdoutString()));
+        System.out.format("stderr: %s%n", StringEscapeUtils.escapeJava(result.getStderrString()));
+        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("stdout", variableValue, result.getStdoutString().trim());
+    }
+
+    @Test
+    public void testToString() {
+        String inputFilename = "input.txt";
+        Program program = Program.running("hello")
+                .args("world")
+                .reading(new File(System.getProperty("java.io.tmpdir"), inputFilename))
+                .ignoreOutput();
+        String programStr = program.toString();
+        System.out.format("testToString: %s%n", programStr);
+        assertNotNull("program.toString()", programStr);
+        assertTrue("contains filename", programStr.contains(inputFilename));
+    }
 }
+

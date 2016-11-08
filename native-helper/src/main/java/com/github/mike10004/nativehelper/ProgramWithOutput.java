@@ -26,6 +26,7 @@ package com.github.mike10004.nativehelper;
 import com.google.common.base.Supplier;
 import com.novetta.ibg.common.sys.ExposedExecTask;
 import java.io.File;
+import java.util.Map;
 
 /**
  * Abstract superclass for programs whose output is captured.
@@ -34,8 +35,8 @@ import java.io.File;
  */
 public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
 
-    protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-        super(executable, standardInput, standardInputFile, workingDirectory, arguments, taskFactory);
+    protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
     }
 
 }
