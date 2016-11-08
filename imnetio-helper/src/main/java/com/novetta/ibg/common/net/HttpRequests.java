@@ -14,27 +14,31 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteStreams;
+import com.google.common.net.MediaType;
 import com.novetta.ibg.common.net.HttpRequests.DefaultHttpRequester.HttpGetRequestFactory;
 import com.novetta.ibg.common.net.HttpRequests.DefaultHttpRequester.RequestConfigFactory;
 import com.novetta.ibg.common.net.HttpRequests.DefaultHttpRequester.SystemHttpClientFactory;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+
+import java.io.*;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
+
+import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.HttpClients;
- 
+import org.apache.http.protocol.HTTP;
+import org.apache.http.util.Args;
+import org.apache.http.util.CharArrayBuffer;
+
 /**
  * Class that provides utilities relating to HTTP requests. Primarily 
  * provides a simple HTTP client to make simple requests.
@@ -62,7 +66,8 @@ public class HttpRequests {
             .add(HttpStatus.SC_TEMPORARY_REDIRECT)
             .add(HttpStatus.SC_NOT_MODIFIED)
             .build();
-    
+
+    @Deprecated
     public static ImmutableSortedSet<Integer> getDefaultNonErrorStatusCodes() {
         return DEFAULT_NON_ERROR_STATUS_CODES;
     }
@@ -146,6 +151,96 @@ public class HttpRequests {
             }
             return headerValues;
         }
+
+        public Optional<String> getFirstHeaderValue(String headerName) {
+            checkNotNull(headerName, "headerName");
+            for (String possibleHeaderName : headers.keySet()) {
+                if (headerName.equalsIgnoreCase(possibleHeaderName)) {
+                    String value = headers.get(headerName).iterator().next();
+                    return Optional.of(value);
+                }
+            }
+            return Optional.absent();
+        }
+
+        /*
+         * This method is a modified version of the similar one from EntityUtils.
+         * ====================================================================
+         * Licensed to the Apache Software Foundation (ASF) under one
+         * or more contributor license agreements.  See the NOTICE file
+         * distributed with this work for additional information
+         * regarding copyright ownership.  The ASF licenses this file
+         * to you under the Apache License, Version 2.0 (the
+         * "License"); you may not use this file except in compliance
+         * with the License.  You may obtain a copy of the License at
+         *
+         *   http://www.apache.org/licenses/LICENSE-2.0
+         *
+         * Unless required by applicable law or agreed to in writing,
+         * software distributed under the License is distributed on an
+         * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+         * KIND, either express or implied.  See the License for the
+         * specific language governing permissions and limitations
+         * under the License.
+         * ====================================================================
+         *
+         * This software consists of voluntary contributions made by many
+         * individuals on behalf of the Apache Software Foundation.  For more
+         * information on the Apache Software Foundation, please see
+         * <http://www.apache.org/>.
+         *
+         */
+        /**
+         * Get the entity content as a String, using the provided default character set
+         * if none is found in the entity.
+         * If defaultCharset is null, the default "ISO-8859-1" is used.
+         *
+         * @param bytes must not be null
+         * @param defaultCharset character set to be applied if none found in the entity,
+         * or if the entity provided charset is invalid or not available.
+         * @return the entity content as a String. May be null if
+         *   {@link HttpEntity#getContent()} is null.
+         * @throws ParseException if header elements cannot be parsed
+         * @throws IllegalArgumentException if entity is null or if content length &gt; Integer.MAX_VALUE
+         * @throws IOException if an error occurs reading the input stream
+         * @throws UnsupportedCharsetException Thrown when the named entity's charset is not available in
+         * this instance of the Java virtual machine and no defaultCharset is provided.
+         * @see org.apache.http.util.EntityUtils#toString(HttpEntity, Charset)
+         */
+        private static String toString(byte[] bytes, final @Nullable String contentTypeHeaderValue, final Charset defaultCharset) throws IOException {
+            checkNotNull(bytes, "bytes");
+            checkNotNull(defaultCharset, "defaultCharset");
+            if (bytes.length == 0) {
+                return "";
+            }
+            Charset charset = null;
+            if (!Strings.isNullOrEmpty(contentTypeHeaderValue)) {
+                try {
+                    MediaType contentType = MediaType.parse(contentTypeHeaderValue);
+                    charset = contentType.charset().or(defaultCharset);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            if (charset == null) {
+                charset = defaultCharset;
+            }
+            return new String(bytes, charset);
+        }
+
+        /**
+         * Decodes the response data using the charset specified in the
+         * content type header or a fallback charset if the header value
+         * is absent or invalid.
+         * @param fallbackCharset charset to fall back to in the case of absent
+         *                        or invalid {@code Content-Type} header value
+         * @return the response data as a string; never null, but possibly empty
+         * @throws IOException if something dreadful happens while decoding the byte array
+         */
+        public String getDataAsString(Charset fallbackCharset) throws IOException {
+            checkNotNull(fallbackCharset, "fallbackCharset");
+            @Nullable String contentTypeHeaderValue = getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orNull();
+            return toString(data, contentTypeHeaderValue, fallbackCharset);
+        }
     }
  
     /**
@@ -212,14 +307,14 @@ public class HttpRequests {
     /**
      * Class that represents an actor that makes an HTTP request.
      */
-    public static interface HttpRequester {
+    public interface HttpRequester {
 
         /**
          * Sends a request to download a given URI with no additional request headers.
          * @param uri the URI
          * @return the response data
          */
-        public ResponseData retrieve(URI uri);
+        ResponseData retrieve(URI uri);
         
         /**
          * Sends a request, with headers, to download a given URI with the 
@@ -227,7 +322,7 @@ public class HttpRequests {
          * @param requestHeaders the request headers to send
          * @return the response data
          */
-        public ResponseData retrieve(URI uri, Multimap<String, String> requestHeaders);
+        ResponseData retrieve(URI uri, Multimap<String, String> requestHeaders);
 
     }
     
@@ -282,7 +377,7 @@ public class HttpRequests {
             return responseData;
         }
         
-        public static interface HttpRequestFactory {
+        public interface HttpRequestFactory {
             
             HttpUriRequest createRequest(URI uri, Multimap<String, String> requestHeaders);
             
