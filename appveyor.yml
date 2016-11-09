@@ -9,4 +9,4 @@ build_script:
 
     set PATH=%PATH%;C:\bin\apache-maven-%MAVEN_VERSION%\bin
 
-    mvn install --quiet
+    mvn install --quiet --batch-mode
