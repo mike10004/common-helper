@@ -1,7 +1,7 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.j256.ormlite.support.DatabaseConnection;
-import com.novetta.ibg.common.dbhelp.DatabaseContext;
+import com.github.mike10004.common.dbhelp.DatabaseContext;
 
 import java.io.IOException;
 import java.sql.SQLException;

@@ -1,11 +1,10 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
+import com.github.mike10004.common.dbhelp.H2MemoryConnectionSource;
+import com.github.mike10004.nativehelper.Platforms;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.table.TableUtils;
-import com.novetta.ibg.common.dbhelp.H2MemoryConnectionSource;
-import com.novetta.ibg.common.sys.Platforms;
-import org.apache.commons.io.FilenameUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -14,11 +13,9 @@ import java.io.File;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-/**
- * Created by mchaberski on 1/20/16.
- */
 public class H2Test {
 
     @Rule

@@ -32,14 +32,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.novetta.ibg.common.sys.ExposedExecTask;
-import java.io.File;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.*;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
-
+import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -47,17 +44,23 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.tools.ant.types.Environment;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
+import java.io.File;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Class that represents a program that is to be executed in an external process.
@@ -86,7 +89,7 @@ public abstract class Program<R extends ProgramResult> {
 
     protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
         this.executable = checkNotNull(executable);
-        this.standardInput = ImmutablePair.<String, File>of(standardInput, standardInputFile);
+        this.standardInput = ImmutablePair.of(standardInput, standardInputFile);
         checkArgument(standardInput == null || standardInputFile == null, "can't set both standard input string and file");
         this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);

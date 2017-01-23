@@ -2,7 +2,7 @@ package com.github.mike10004.ormlitehelper.testtools;
 
 import com.google.common.io.CharSource;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
-import com.novetta.ibg.common.dbhelp.H2FileConnectionSource;
+
 import java.io.File;
 import org.junit.Test;
 import static org.junit.Assert.*;

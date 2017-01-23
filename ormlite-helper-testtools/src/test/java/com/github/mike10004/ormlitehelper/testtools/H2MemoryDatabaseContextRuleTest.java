@@ -1,6 +1,6 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
-import com.novetta.ibg.common.dbhelp.DatabaseContext;
+import com.github.mike10004.common.dbhelp.DatabaseContext;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

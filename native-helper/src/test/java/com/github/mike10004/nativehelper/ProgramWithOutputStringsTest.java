@@ -24,12 +24,12 @@
 package com.github.mike10004.nativehelper;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.novetta.ibg.common.sys.Platforms;
-import java.io.IOException;
-import java.util.concurrent.Executors;
 import org.apache.tools.ant.BuildException;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import java.util.concurrent.Executors;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  *

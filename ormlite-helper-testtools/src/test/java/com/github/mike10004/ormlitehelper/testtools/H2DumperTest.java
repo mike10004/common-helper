@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.table.TableUtils;
-import com.novetta.ibg.common.dbhelp.H2MemoryConnectionSource;
+import com.github.mike10004.common.dbhelp.H2MemoryConnectionSource;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

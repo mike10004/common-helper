@@ -12,7 +12,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
-import com.novetta.ibg.common.dbhelp.H2FileConnectionSource;
+import com.github.mike10004.common.dbhelp.H2FileConnectionSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.novetta.ibg.common.io.IOSupplier;
+import com.github.mike10004.common.io.IOSupplier;
 import org.h2.tools.RunScript;
 import org.junit.rules.TemporaryFolder;
 
