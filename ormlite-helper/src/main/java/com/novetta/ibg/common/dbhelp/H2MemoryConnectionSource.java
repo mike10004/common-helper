@@ -9,8 +9,10 @@
 package com.novetta.ibg.common.dbhelp;
 
 import com.google.common.base.CharMatcher;
-import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Implementation of connection source for an H2 memory-only database.
@@ -23,7 +25,7 @@ public class H2MemoryConnectionSource extends H2ConnectionSource {
      * Matcher of characters allowed in a new unique schema. Used by
      * {@link #createUniqueSchema() }.
      */
-    private static final CharMatcher allowedSchemaChars = CharMatcher.JAVA_LETTER_OR_DIGIT;
+    private static final CharMatcher allowedSchemaChars = CharMatcher.javaLetterOrDigit();
     
     private final String schema;
     private final boolean keepContentForLifeOfVM;

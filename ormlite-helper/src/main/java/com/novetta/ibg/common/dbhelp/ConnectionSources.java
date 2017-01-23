@@ -7,6 +7,7 @@ import com.j256.ormlite.db.DatabaseType;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.support.DatabaseConnection;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -37,15 +38,15 @@ public class ConnectionSources {
         }
         
         @Override
-        public DatabaseConnection getReadOnlyConnection() throws SQLException {
+        public DatabaseConnection getReadOnlyConnection(String tableName) throws SQLException {
             ConnectionSource delegate = getCheckedDelegate();
-            return delegate.getReadOnlyConnection();
+            return delegate.getReadOnlyConnection(tableName);
         }
 
         @Override
-        public DatabaseConnection getReadWriteConnection() throws SQLException {
+        public DatabaseConnection getReadWriteConnection(String tableName) throws SQLException {
             ConnectionSource delegate = getCheckedDelegate();
-            return delegate.getReadWriteConnection();
+            return delegate.getReadWriteConnection(tableName);
         }
 
         @Override
@@ -67,13 +68,13 @@ public class ConnectionSources {
         }
 
         @Override
-        public DatabaseConnection getSpecialConnection() {
+        public DatabaseConnection getSpecialConnection(String tableName) {
             ConnectionSource delegate = getCheckedDelegate();
-            return delegate.getSpecialConnection();
+            return delegate.getSpecialConnection(tableName);
         }
 
         @Override
-        public void close() throws SQLException {
+        public void close() throws IOException {
             ConnectionSource delegate = getCheckedDelegate();
             delegate.close();
         }
@@ -91,9 +92,15 @@ public class ConnectionSources {
         }
 
         @Override
-        public boolean isOpen() {
+        public boolean isOpen(String tableName) {
             ConnectionSource delegate = getCheckedDelegate();
-            return delegate.isOpen();
+            return delegate.isOpen(tableName);
+        }
+
+        @Override
+        public boolean isSingleConnection(String tableName) {
+            ConnectionSource delegate = getCheckedDelegate();
+            return delegate.isSingleConnection(tableName);
         }
     }
     
@@ -147,12 +154,12 @@ public class ConnectionSources {
     static class IntentionallyBrokenConnectionSource implements ConnectionSource {
 
         @Override
-        public DatabaseConnection getReadOnlyConnection() throws SQLException {
+        public DatabaseConnection getReadOnlyConnection(String tableName) throws SQLException {
             throw new SQLException("connection source is intentionally broken");
         }
 
         @Override
-        public DatabaseConnection getReadWriteConnection() throws SQLException {
+        public DatabaseConnection getReadWriteConnection(String tableName) throws SQLException {
             throw new SQLException("connection source is intentionally broken");
         }
 
@@ -172,12 +179,12 @@ public class ConnectionSources {
         }
 
         @Override
-        public DatabaseConnection getSpecialConnection() {
+        public DatabaseConnection getSpecialConnection(String tableName) {
             throw new IntentionallyBrokenConnectionSourceException();
         }
 
         @Override
-        public void close() throws SQLException {
+        public void close() throws IOException {
             throw new IntentionallyBrokenConnectionSourceException();
         }
 
@@ -192,10 +199,15 @@ public class ConnectionSources {
         }
 
         @Override
-        public boolean isOpen() {
+        public boolean isOpen(String s) {
             throw new IntentionallyBrokenConnectionSourceException();
         }
-        
+
+        @Override
+        public boolean isSingleConnection(String s) {
+            throw new IntentionallyBrokenConnectionSourceException();
+        }
+
     }
     
     public static ConnectionSource broken() {
@@ -230,22 +242,22 @@ public class ConnectionSources {
         }
         
         @Override
-        public DatabaseConnection getSpecialConnection() {
-            DatabaseConnection connection = super.getSpecialConnection();
+        public DatabaseConnection getSpecialConnection(String tableName) {
+            DatabaseConnection connection = super.getSpecialConnection(tableName);
             connectionCreated = true;
             return connection;
         }
 
         @Override
-        public DatabaseConnection getReadWriteConnection() throws SQLException {
-            DatabaseConnection connection = super.getSpecialConnection();
+        public DatabaseConnection getReadWriteConnection(String tableName) throws SQLException {
+            DatabaseConnection connection = super.getSpecialConnection(tableName);
             connectionCreated = true;
             return connection;
         }
 
         @Override
-        public DatabaseConnection getReadOnlyConnection() throws SQLException {
-            DatabaseConnection connection = super.getSpecialConnection();
+        public DatabaseConnection getReadOnlyConnection(String tableName) throws SQLException {
+            DatabaseConnection connection = super.getSpecialConnection(tableName);
             connectionCreated = true;
             return connection;
         }

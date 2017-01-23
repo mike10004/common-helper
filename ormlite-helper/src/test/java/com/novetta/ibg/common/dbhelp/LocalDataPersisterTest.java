@@ -261,7 +261,12 @@ public class LocalDataPersisterTest {
         public static PersisterPlaceholder getSingleton() {
             throw new UnsupportedOperationException("Not implemented");
         }
-        
+
+        @Override
+        public String getSqlOtherType() {
+            throw new UnsupportedOperationException("not implemented");
+        }
+
         @Override
         public Class<?>[] getAssociatedClasses() {
             throw new UnsupportedOperationException("Not implemented");

@@ -66,7 +66,7 @@ public class MysqlConnectionSourceRule extends ExternalResource {
     }
     
     protected static String newUniqueSchemaName() {
-        return "u" + CharMatcher.JAVA_LETTER_OR_DIGIT.retainFrom(UUID.randomUUID().toString());
+        return "u" + CharMatcher.javaLetterOrDigit().retainFrom(UUID.randomUUID().toString());
     }
 
     protected void createSchema(ConnectionParams cp) throws SQLException {

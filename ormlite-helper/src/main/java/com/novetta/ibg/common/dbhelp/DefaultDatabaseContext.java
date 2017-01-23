@@ -13,6 +13,7 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -96,6 +97,10 @@ public class DefaultDatabaseContext implements DatabaseContext {
         } catch (SQLException ex) {
             if (!swallowClosingException) {
                 throw ex;
+            }
+        } catch (IOException ex) {
+            if (!swallowClosingException) {
+                throw new SQLException(ex);
             }
         }
     }    

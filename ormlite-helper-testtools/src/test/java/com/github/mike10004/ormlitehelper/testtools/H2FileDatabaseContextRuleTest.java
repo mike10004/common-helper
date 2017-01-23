@@ -30,7 +30,7 @@ public class H2FileDatabaseContextRuleTest {
             DatabaseContextRule rule = new H2FileDatabaseContextRule(pp, autoMixedMode, false, CharSource.empty(), CharSource.empty());
             rule.before();
             try {
-                rule.getConnectionSource().getReadOnlyConnection().close(); // so that prepare & initialize are called
+                rule.getConnectionSource().getReadOnlyConnection("blah").close(); // so that prepare & initialize are called
                 String jdbcUrlConfiguredByRule = ((JdbcConnectionSource)rule.getConnectionSource()).getUrl();
                 String jdbcUrlFromUrlBuilder = ((H2FileDatabaseContextRule)rule).buildJdbcUrl();
                 System.out.println("url from connectionsource configured by rule: " + jdbcUrlConfiguredByRule);

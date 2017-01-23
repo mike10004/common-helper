@@ -174,7 +174,7 @@ public class ProgramTest {
         ProgramResult result = program.execute();
         assertEquals("exitCode", 0, result.getExitCode());
         Set<String> expected = ImmutableSet.of("1", "2", "3");
-        Splitter splitter = Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings().trimResults();
+        Splitter splitter = Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().trimResults();
         String stdout = new String(stdoutBucket.toByteArray());
         System.out.println("actual output: " + stdout);
         Set<String> actual = ImmutableSet.copyOf(splitter.split(stdout));

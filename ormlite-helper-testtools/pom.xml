@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>5.2.0-SNAPSHOT</version>
+        <version>6.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ormlite-helper-testtools</artifactId>
     <name>ormlite-helper-testtools</name>
@@ -13,7 +13,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <mysql-dist.version>5.5.34</mysql-dist.version><!-- see http://mvnrepository.com/artifact/com.jcabi/mysql-dist for other versions -->
         <jcabi-mysql-maven-plugin.version>0.8.1</jcabi-mysql-maven-plugin.version>
         <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
         <mysql-dist.artifactId>mariadb-dist</mysql-dist.artifactId>
@@ -43,7 +42,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.18.1</version>
                 <configuration>
                     <systemPropertyVariables>
                         <mysql.port>${mysql.port}</mysql.port>
@@ -130,7 +128,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.sarasvati.thirdparty.netbeans</groupId>
@@ -158,7 +155,6 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.190</version>
         </dependency>
     </dependencies>
 </project>

@@ -12,6 +12,8 @@ import com.j256.ormlite.db.DatabaseType;
 import com.j256.ormlite.db.DatabaseTypeUtils;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.DatabaseConnection;
+
+import java.io.IOException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -86,21 +88,25 @@ public abstract class LazyJdbcConnectionSource extends JdbcConnectionSource {
 	}
 
     @Override
-    public void close() throws SQLException {
-        maybePrepareAndInitialize();
+    public void close() throws IOException {
+        try {
+            maybePrepareAndInitialize();
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
         super.close();
     }
-    
+
     @Override
-    public DatabaseConnection getReadOnlyConnection() throws SQLException {
+    public DatabaseConnection getReadOnlyConnection(String tableName) throws SQLException {
         maybePrepareAndInitialize();
-        return super.getReadOnlyConnection();
+        return super.getReadOnlyConnection(tableName);
     }
-    
+
     @Override
-    public DatabaseConnection getReadWriteConnection() throws SQLException {
+    public DatabaseConnection getReadWriteConnection(String tableName) throws SQLException {
         maybePrepareAndInitialize();
-        return super.getReadWriteConnection();
+        return super.getReadWriteConnection(tableName);
     }
     
     @Override

@@ -106,7 +106,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
      * performed in the {@link ExternalResource#before()} and
      * {@link ExternalResource#after()} methods.
      */
-    public static interface BookendOperation {
+    public interface BookendOperation {
         void perform(DatabaseContext db) throws Exception;
     }
 
@@ -116,7 +116,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
      * are performed in the {@link ExternalResource#before() }
      * method.
      */
-    public static interface SetupOperation extends BookendOperation {
+    public interface SetupOperation extends BookendOperation {
     }
 
     /**
@@ -124,7 +124,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
      * These operations are performed in the {@link ExternalResource#after() }
      * method.
      */
-    public static interface TeardownOperation extends BookendOperation {
+    public interface TeardownOperation extends BookendOperation {
     }
 
 }
