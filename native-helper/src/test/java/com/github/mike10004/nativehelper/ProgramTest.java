@@ -26,6 +26,8 @@ package com.github.mike10004.nativehelper;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.tools.ant.BuildException;
@@ -33,6 +35,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.Charset;
@@ -45,6 +48,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertEquals;
@@ -92,9 +98,49 @@ public class ProgramTest {
     private static final int testAbortProgram_commandedProcessDuration_seconds = 3;
     private static final int testAbortProgram_trials = 5;
     private static final long testAbortProgram_timeout = (testAbortProgram_commandedProcessDuration_seconds * testAbortProgram_trials * 2) * 1000;
-    
+
+    private Program.Builder buildSleepProgram(int sleepDurationSeconds) {
+        Program.Builder builder;
+        if (platform.isWindows()) { // no 'sleep' command on Windows, but 'ping' pings every second, so we use that instead
+            String command = String.format("ping 127.0.0.1 -n %d > nul", sleepDurationSeconds);
+            System.out.println("windows command: " + command);
+            builder = Program.running("cmd").arg("/C").arg(command);
+        } else {
+            builder = Program.running("sleep").arg(String.valueOf(sleepDurationSeconds));
+        }
+        return builder;
+    }
+
+    @Test
+    public void executeAsync() throws Exception {
+        int durationSeconds = 1;
+        ProgramWithOutputStrings program = buildSleepProgram(durationSeconds).outputToStrings();
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        ListenableFuture<ProgramWithOutputStringsResult> resultFuture = program.executeAsync(executorService);
+        final AtomicReference<Boolean> success = new AtomicReference<>(null);
+        Futures.addCallback(resultFuture, new FutureCallback<Object>(){
+            @Override
+            public void onSuccess(@Nullable Object result) {
+                success.set(true);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                success.set(false);
+            }
+        });
+        ProgramWithOutputStringsResult result = resultFuture.get(durationSeconds * 2, TimeUnit.SECONDS);
+        System.out.println("executeAsync: Future.get() result: " + result);
+        if (result.getExitCode() != 0) {
+            result.getStderr().copyTo(System.err);
+            result.getStdout().copyTo(System.out);
+        }
+        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("success tracker", Boolean.TRUE, success.get());
+    }
+
     @Test(timeout = testAbortProgram_timeout)
-    public void testAbortProgram() throws InterruptedException {
+    public void executeAsync_abort() throws InterruptedException {
         System.out.println("\ntestAbortProgram");
         for (int trial = 0; trial < testAbortProgram_trials; trial++) {
             System.out.println("testAbortProgram trial " + trial);
@@ -108,15 +154,7 @@ public class ProgramTest {
              */
             checkState(killAfter < (commandedProcessDuration * 1000 / 2));
 
-            Program.Builder builder;
-            if (platform.isWindows()) {
-                String command = String.format("ping 127.0.0.1 -n %d > nul", commandedProcessDuration);
-                System.out.println("windows command: " + command);
-                builder = Program.running("cmd").arg("/C").arg(command);
-            } else {
-                builder = Program.running("sleep").arg(String.valueOf(commandedProcessDuration));
-            }
-
+            Program.Builder builder = buildSleepProgram(commandedProcessDuration);
             ExecutorService executorService = Executors.newFixedThreadPool(2);
             Program<ProgramWithOutputStringsResult> program = builder.outputToStrings();
             assertNull(program.getStandardInput().getLeft());

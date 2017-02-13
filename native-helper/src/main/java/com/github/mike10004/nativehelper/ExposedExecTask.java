@@ -3,8 +3,14 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.google.common.math.LongMath;
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.taskdefs.*;
+import org.apache.tools.ant.taskdefs.ExecTask;
+import org.apache.tools.ant.taskdefs.ExecuteWatchdog;
+import org.apache.tools.ant.taskdefs.Redirector;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Task that runs a program in an external process and echos output. Provides 
@@ -24,7 +30,6 @@ import org.apache.tools.ant.taskdefs.*;
 public class ExposedExecTask extends ExecTask {
 
     private ExecuteWatchdog watchdog;
-    private Execute execute;
     private Long timeout;
     private boolean destructible; 
     
@@ -46,17 +51,64 @@ public class ExposedExecTask extends ExecTask {
      * @throws BuildException under unknown circumstances.
      */
     @Override
-    protected ExecuteWatchdog createWatchdog() throws BuildException {
+    protected NotifyingWatchdog createWatchdog() throws BuildException {
         if (timeout != null && destructible) {
             throw new IllegalStateException("setting timeout non-null and destructible=true is not yet supported");
         }
-        if (timeout != null) {
-            return watchdog = new ExecuteWatchdog(timeout.longValue());
-        }
+        final NotifyingWatchdog notifyingWatchdog;
         if (destructible) {
-            return watchdog = new LethalWatchdog(Long.MAX_VALUE);
+            notifyingWatchdog = new LethalWatchdog(Long.MAX_VALUE);
+        } else {
+            Long timeout_ = timeout;
+            notifyingWatchdog = new NotifyingWatchdog(timeout_ == null ? Long.MAX_VALUE : timeout_.longValue());
         }
-        return null;
+        notifyingWatchdog.setProcessListener(processWatcher);
+        watchdog = notifyingWatchdog;
+        return notifyingWatchdog;
+    }
+
+    private transient final Object startedLock = new Object();
+    private transient final ProcessWatcher processWatcher = new ProcessWatcher();
+
+    private class ProcessWatcher implements NotifyingWatchdog.ProcessListener {
+
+        private transient final AtomicBoolean started = new AtomicBoolean();
+
+        @Override
+        public void started(Process process) {
+            synchronized (startedLock) {
+                started.set(true);
+                startedLock.notifyAll();
+            }
+        }
+
+        public boolean isAlreadyStarted() {
+            return started.get();
+        }
+    }
+
+    /**
+     * Waits until the process instance has been started. This utililzes a listener that is notified
+     * after the process has been constructed (via a call, say, to {@link java.lang.ProcessBuilder#start}
+     * or {@link Runtime#exec(String)}, but before {@link Process#waitFor()} has been invoked.
+     * @param timeout the timeout amount
+     * @param timeUnit the unit of time for the timeout
+     * @throws InterruptedException if interrupted while waiting
+     * @return true if process has started after waiting has concluded (roughly, this means that the process
+     * started before the timeout period elapsed)
+     */
+    public boolean waitUntilProcessStarts(int timeout, TimeUnit timeUnit) throws InterruptedException {
+        synchronized (startedLock) {
+            long timeWaited = 0L;
+            long timeToWait = timeUnit.toMillis(timeout);
+            while (!processWatcher.isAlreadyStarted() && timeWaited < timeToWait) {
+                long waitStart = System.currentTimeMillis();
+                startedLock.wait(timeToWait - timeWaited);
+                long waitFinish = System.currentTimeMillis();
+                timeWaited = LongMath.checkedAdd(timeWaited,  waitFinish - waitStart);
+            }
+        }
+        return processWatcher.isAlreadyStarted();
     }
 
     /**
@@ -86,16 +138,6 @@ public class ExposedExecTask extends ExecTask {
         return watchdog;
     }
 
-    @Override
-    protected Execute prepareExec() throws BuildException {
-        execute = super.prepareExec();
-        return execute;
-    }
-
-    public Execute getExecute() {
-        return execute;
-    }
-    
     public EchoableRedirector getRedirector() {
         return (EchoableRedirector) redirector;
     }

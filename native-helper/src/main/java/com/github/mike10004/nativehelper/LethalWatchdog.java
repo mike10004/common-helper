@@ -5,6 +5,9 @@ package com.github.mike10004.nativehelper;
 
 import org.apache.tools.ant.taskdefs.ExecuteWatchdog;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -14,7 +17,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * method.
  * @author mchaberski
  */
-public class LethalWatchdog extends ExecuteWatchdog {
+public class LethalWatchdog extends NotifyingWatchdog {
+
+    private static final Logger log = Logger.getLogger(LethalWatchdog.class.getName());
 
     protected Process process;
     protected Exception destroyException;
@@ -51,7 +56,7 @@ public class LethalWatchdog extends ExecuteWatchdog {
             throw e;
         } catch (Exception e) {
             destroyException = e;
-            e.printStackTrace(System.err);
+            log.log(Level.SEVERE, "failed to destroy process", System.err);
         } finally {
             cleanUp();
         }        

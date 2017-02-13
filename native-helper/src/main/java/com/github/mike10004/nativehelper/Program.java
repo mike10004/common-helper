@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -105,22 +106,25 @@ public abstract class Program<R extends ProgramResult> {
      */
     public R execute() throws BuildException {
         ExposedExecTask task = taskFactory.get();
-        return execute(task);
+        return configureAndExecute(task);
     }
     
-    protected R execute(ExposedExecTask task) throws BuildException {
+    protected R configureAndExecute(ExposedExecTask task) throws BuildException {
         Map<String, Object> localContext = new HashMap<>();
         configureTask(task, localContext);
         task.execute();
         R result = produceResultFromExecutedTask(task, localContext);
         return result;
     }
-    
-    protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
+
+    protected Callable<R> configureAndCreateCallable(final ExposedExecTask task) {
+        final Map<String, Object> localContext = new HashMap<>();
+        configureTask(task, localContext);
         return new Callable<R>(){
             @Override
             public R call() throws BuildException {
-                return execute(task);
+                task.execute();
+                return produceResultFromExecutedTask(task, localContext);
             }
         };
     }
@@ -157,8 +161,13 @@ public abstract class Program<R extends ProgramResult> {
     public ListenableFuture<R> executeAsync(ExecutorService executorService) {
         ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
         ExposedExecTask task = taskFactory.get();
-        ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task));
+        ListenableFuture<R> innerFuture = listeningService.submit(configureAndCreateCallable(task));
         TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
+        try {
+            task.waitUntilProcessStarts(0, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException("interrupted while waiting for process to start");
+        }
         return future;
     }
 
