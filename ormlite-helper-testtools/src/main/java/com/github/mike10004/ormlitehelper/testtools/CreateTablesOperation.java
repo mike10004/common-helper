@@ -6,7 +6,7 @@ package com.github.mike10004.ormlitehelper.testtools;
 import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.novetta.ibg.common.dbhelp.DatabaseContext;
+import com.github.mike10004.common.dbhelp.DatabaseContext;
 
 /**
  * Database setup operation that creates

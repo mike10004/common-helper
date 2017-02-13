@@ -1,8 +1,9 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.j256.ormlite.support.DatabaseConnection;
-import com.novetta.ibg.common.dbhelp.DatabaseContext;
+import com.github.mike10004.common.dbhelp.DatabaseContext;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -13,8 +14,8 @@ public class DropAllObjectsOperation implements DatabaseContextRule.TeardownOper
 
 
     @Override
-    public void perform(DatabaseContext db) throws SQLException {
-        DatabaseConnection conn = db.getConnectionSource().getReadWriteConnection();
+    public void perform(DatabaseContext db) throws SQLException, IOException {
+        DatabaseConnection conn = db.getConnectionSource().getReadWriteConnection("");
         try {
             conn.executeStatement("DROP ALL OBJECTS", DatabaseConnection.DEFAULT_RESULT_FLAGS);
         } finally {

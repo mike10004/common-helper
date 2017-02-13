@@ -6,8 +6,8 @@ package com.github.mike10004.ormlitehelper.testtools;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.j256.ormlite.support.ConnectionSource;
-import com.novetta.ibg.common.dbhelp.DatabaseContext;
-import com.novetta.ibg.common.dbhelp.DefaultDatabaseContext;
+import com.github.mike10004.common.dbhelp.DatabaseContext;
+import com.github.mike10004.common.dbhelp.DefaultDatabaseContext;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -106,7 +106,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
      * performed in the {@link ExternalResource#before()} and
      * {@link ExternalResource#after()} methods.
      */
-    public static interface BookendOperation {
+    public interface BookendOperation {
         void perform(DatabaseContext db) throws Exception;
     }
 
@@ -116,7 +116,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
      * are performed in the {@link ExternalResource#before() }
      * method.
      */
-    public static interface SetupOperation extends BookendOperation {
+    public interface SetupOperation extends BookendOperation {
     }
 
     /**
@@ -124,7 +124,7 @@ public abstract class DatabaseContextRule extends ExternalResource {
      * These operations are performed in the {@link ExternalResource#after() }
      * method.
      */
-    public static interface TeardownOperation extends BookendOperation {
+    public interface TeardownOperation extends BookendOperation {
     }
 
 }

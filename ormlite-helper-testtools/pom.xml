@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>5.1.0</version>
+        <version>6.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ormlite-helper-testtools</artifactId>
     <name>ormlite-helper-testtools</name>
@@ -13,35 +13,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <mysql-dist.version>5.5.34</mysql-dist.version><!-- see http://mvnrepository.com/artifact/com.jcabi/mysql-dist for other versions -->
         <jcabi-mysql-maven-plugin.version>0.8.1</jcabi-mysql-maven-plugin.version>
-        <mysql-dist.groupId>com.jcabi</mysql-dist.groupId>
+        <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
+        <mysql-dist.artifactId>mariadb-dist</mysql-dist.artifactId>
+        <mysql-dist.version>10.0.27</mysql-dist.version>
     </properties>
-    <profiles>
-        <profile>
-            <id>os-freebsd</id>
-            <activation>
-                <os>
-                    <name>FreeBSD</name>
-                </os>
-            </activation>
-            <properties>
-                <mysql-dist.version>5.6.28</mysql-dist.version>
-                <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
-            </properties>
-        </profile>
-        <profile>
-            <id>os-windows</id>
-            <activation>
-                <os>
-                    <family>Windows</family>
-                </os>
-            </activation>
-            <properties> <!-- https://github.com/jcabi/jcabi-mysql-maven-plugin/issues/39 -->
-                <jcabi-mysql-maven-plugin.version>0.7</jcabi-mysql-maven-plugin.version>
-            </properties>
-        </profile>
-    </profiles>
     <build>
         <plugins>
             <plugin>
@@ -66,7 +42,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.18.1</version>
                 <configuration>
                     <systemPropertyVariables>
                         <mysql.port>${mysql.port}</mysql.port>
@@ -99,7 +74,7 @@
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>${mysql-dist.groupId}</groupId>
-                                    <artifactId>mysql-dist</artifactId>
+                                    <artifactId>${mysql-dist.artifactId}</artifactId>
                                     <version>${mysql-dist.version}</version> 
                                     <classifier>${mysql.classifier}</classifier>
                                     <type>zip</type>
@@ -153,7 +128,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.sarasvati.thirdparty.netbeans</groupId>
@@ -181,7 +155,6 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.190</version>
         </dependency>
     </dependencies>
 </project>

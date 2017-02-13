@@ -23,9 +23,6 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.novetta.ibg.common.sys.Platform;
-import com.novetta.ibg.common.sys.Platforms;
-
 /**
  * Static utility methods.
  * @author mchaberski

@@ -24,7 +24,7 @@
 package com.github.mike10004.nativehelper;
 
 import com.google.common.base.Supplier;
-import com.novetta.ibg.common.sys.ExposedExecTask;
+
 import java.io.File;
 import java.util.Map;
 

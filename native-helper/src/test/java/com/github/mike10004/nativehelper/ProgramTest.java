@@ -27,10 +27,6 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.novetta.ibg.common.sys.ExposedExecTask;
-import com.novetta.ibg.common.sys.OutputStreamEcho;
-import com.novetta.ibg.common.sys.Platform;
-import com.novetta.ibg.common.sys.Platforms;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.tools.ant.BuildException;
 import org.junit.Rule;
@@ -40,7 +36,6 @@ import org.junit.rules.TemporaryFolder;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
@@ -52,7 +47,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ProgramTest {
 
@@ -174,7 +173,7 @@ public class ProgramTest {
         ProgramResult result = program.execute();
         assertEquals("exitCode", 0, result.getExitCode());
         Set<String> expected = ImmutableSet.of("1", "2", "3");
-        Splitter splitter = Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings().trimResults();
+        Splitter splitter = Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().trimResults();
         String stdout = new String(stdoutBucket.toByteArray());
         System.out.println("actual output: " + stdout);
         Set<String> actual = ImmutableSet.copyOf(splitter.split(stdout));
@@ -228,7 +227,6 @@ public class ProgramTest {
 
     @Test
     public void programWithEnvironmentVariableSet() throws Exception {
-        Random random = new Random(ProgramTest.class.hashCode());
         String variableName = String.format("X%012x", Math.abs(random.nextLong())).toUpperCase();
         String variableValue = String.format("%012x", Math.abs(random.nextLong()));
         System.out.format("%s=%s%n", variableName, variableValue);
@@ -269,5 +267,6 @@ public class ProgramTest {
         assertNotNull("program.toString()", programStr);
         assertTrue("contains filename", programStr.contains(inputFilename));
     }
+
 }
 

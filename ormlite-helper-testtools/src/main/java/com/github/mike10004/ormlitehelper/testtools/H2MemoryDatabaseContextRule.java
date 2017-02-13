@@ -4,7 +4,7 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.google.common.base.Optional;
-import com.novetta.ibg.common.dbhelp.H2MemoryConnectionSource;
+import com.github.mike10004.common.dbhelp.H2MemoryConnectionSource;
 
 import javax.annotation.Nullable;
 
