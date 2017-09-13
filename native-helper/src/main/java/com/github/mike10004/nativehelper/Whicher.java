@@ -2,11 +2,7 @@ package com.github.mike10004.nativehelper;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -15,6 +11,9 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 /**
@@ -41,26 +40,6 @@ public class Whicher {
         this.transform = checkNotNull(transform);
     }
 
-    @VisibleForTesting
-    static Predicate<File> newIsExecutablePredicate() {
-        return new Predicate<File>() {
-            @Override
-            public boolean apply(File input) {
-                return input.canExecute();
-            }
-        };
-    }
-    
-    @VisibleForTesting
-    static Predicate<File> newIsFilePredicate() {
-        return new Predicate<File>() {
-            @Override
-            public boolean apply(File input) {
-                return input.isFile();
-            }
-        };
-    }
-    
     /**
      * Returns the which'd value for a single filename.
      * @param filename the filename to search for
@@ -91,7 +70,7 @@ public class Whicher {
                 }
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
     
     static final class IdentityTransform implements Function<String, Iterable<String>> {
@@ -147,7 +126,7 @@ public class Whicher {
      * @return true if and only if this instance's predicate returns true
      */
     protected boolean isValidResult(File file) {
-        return validPredicate.apply(file);
+        return validPredicate.test(file);
     }
     
     @VisibleForTesting
@@ -159,9 +138,9 @@ public class Whicher {
         /**
          * Splits a string on the system path separator. Use 
          * {@link Iterables#transform(java.lang.Iterable, com.google.common.base.Function) 
-         * Iterables.transform} and the {@link #STRING_TO_FILE} function to 
+         * Iterables.transform} and the string-to-file function to
          * get an iterable over {@code File} objects.
-         * @param pathsList
+         * @param pathsList list of paths, delimited by path separator character
          * @return the constituent paths
          * @see File#pathSeparator
          * 
@@ -175,8 +154,9 @@ public class Whicher {
          * environment variable.
          * @return the iterable of file objects
          */
+        @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
         static Iterable<File> getSystemPathDirs() {
-            return Iterables.transform(splitPaths(System.getenv("PATH")), newFileFunction());
+            return Iterables.transform(splitPaths(System.getenv("PATH")), File::new);
         }
 
         /**
@@ -186,19 +166,6 @@ public class Whicher {
          */
         static List<File> getSystemPathDirList() {
             return ImmutableList.copyOf(getSystemPathDirs());
-        }
-
-        /**
-         * Function that constructs files from strings, using the single argument
-         * {@code File} constructor.
-         */
-        static Function<String, File> newFileFunction() {
-            return new Function<String, File> () {
-                @Override
-                public File apply(String input) {
-                    return new File(input);
-                }
-            };
         }
 
         static boolean hasAnyExtension(@Nullable String pathname) {
@@ -251,7 +218,7 @@ public class Whicher {
         
         private Builder() {
             parents = new ArrayList<>();
-            validPredicate = newIsFilePredicate();
+            validPredicate = File::isFile;
         }
         
         /**
@@ -281,7 +248,7 @@ public class Whicher {
          * @return this instance
          */
         public Builder check(Predicate<File> validPredicate) {
-            this.validPredicate = Predicates.and(this.validPredicate, validPredicate);
+            this.validPredicate = this.validPredicate.and(validPredicate);
             return this;
         }
         
@@ -298,7 +265,7 @@ public class Whicher {
          * @return this instance
          */
         public Builder executable() {
-            return check(newIsExecutablePredicate());
+            return check(File::canExecute);
         }
         
         /**

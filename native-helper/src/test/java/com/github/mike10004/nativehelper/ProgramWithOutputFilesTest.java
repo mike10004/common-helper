@@ -23,20 +23,25 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Function;
+//import java.util.function.Function;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Set;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import java.util.function.Function;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -65,12 +70,7 @@ public class ProgramWithOutputFilesTest {
         final File stdoutFile = temporaryFolder.newFile();
         final File stderrFile = temporaryFolder.newFile();
         System.out.format("output files: %s, %s%n", stdoutFile, stderrFile);
-        ProgramWithOutputFilesResult result = testExecute(command, expectedExitCode, expectedStdout, expectedStderr, new Function<Program.Builder, ProgramWithOutputFiles>() {
-            @Override
-            public ProgramWithOutputFiles apply(Program.Builder builder) {
-                return builder.outputToFiles(stdoutFile, stderrFile);
-            }
-        });
+        ProgramWithOutputFilesResult result = testExecute(command, expectedExitCode, expectedStdout, expectedStderr, builder -> builder.outputToFiles(stdoutFile, stderrFile));
         assertEquals(stdoutFile, result.getStdoutFile());
         assertEquals(stderrFile, result.getStderrFile());
     }
@@ -122,12 +122,7 @@ public class ProgramWithOutputFilesTest {
     
     private void testExecute_tempDirSpecified(final File tempDir, String command, int expectedExitCode, byte[] expectedStdout, byte[] expectedStderr) throws IOException {
         
-        ProgramWithOutputFilesResult result = testExecute(command, expectedExitCode, expectedStdout, expectedStderr, new Function<Program.Builder, ProgramWithOutputFiles>() {
-            @Override
-            public ProgramWithOutputFiles apply(Program.Builder input) {
-                return input.outputToTempFiles(tempDir.toPath());
-            }
-        });
+        ProgramWithOutputFilesResult result = testExecute(command, expectedExitCode, expectedStdout, expectedStderr, input -> input.outputToTempFiles(tempDir.toPath()));
         
         // check that they're the only two files in the temp dir
         Set<File> filesInTempDir = ImmutableSet.copyOf(FileUtils.listFiles(tempDir, null, true));

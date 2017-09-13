@@ -1,6 +1,8 @@
 package com.github.mike10004.ormlitehelper.testtools;
 
-import com.google.common.base.*;
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -15,11 +17,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -56,12 +60,7 @@ public class H2 {
                 return name();
             }
 
-            private static final Function<DumpOption, String> toClauseFunction = new Function<DumpOption, String>() {
-                @Override
-                public String apply(DumpOption input) {
-                    return input.toClause();
-                }
-            };
+            private static final Function<DumpOption, String> toClauseFunction = DumpOption::toClause;
 
             public static Function<DumpOption, String> toClauseFunction() {
                 return toClauseFunction;
@@ -148,7 +147,7 @@ public class H2 {
                     "output path must not contain quotation characters");
             StringBuilder statementBuilder = new StringBuilder("SCRIPT ");
             Iterable<DumpOption> sortedDumpOptions = Ordering.<DumpOption>natural().immutableSortedCopy(dumpOptions);
-            Joiner.on(' ').appendTo(statementBuilder, Iterables.transform(sortedDumpOptions, DumpOption.toClauseFunction()));
+            Joiner.on(' ').appendTo(statementBuilder, Iterables.transform(sortedDumpOptions, DumpOption.toClauseFunction()::apply));
             statementBuilder.append(" TO '").append(outputPathname).append("' ");
             if (compression != Compression.NONE) {
                 statementBuilder.append(" COMPRESSION ")
@@ -174,14 +173,9 @@ public class H2 {
     /**
      * Exports the contents of a database at a given JDBC URL to another JDBC URL.
      * Uses a temp directory to write an intermediate
-     * @param fromUrl
-     * @param toJdbcUrl
-     * @param tempDir
-     * @throws IOException
-     * @throws SQLException
      */
     public static void transfer(String fromUrl, String toJdbcUrl, File tempDir) throws IOException, SQLException {
-        Charset charset = Charsets.UTF_8;
+        Charset charset = StandardCharsets.UTF_8;
         Dumper.Compression compression = Dumper.Compression.NONE;
         Dumper dumper = new Dumper(charset, compression);
         File scriptFile = File.createTempFile("databasedump", ".h2.sql", tempDir);

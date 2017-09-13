@@ -1,9 +1,8 @@
-/**
+/*
  * (c) 2016 Mike Chaberski
  */
 package com.github.mike10004.common.image;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import com.github.mike10004.common.image.ImageInfo.Format;
@@ -11,6 +10,7 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.*;
 
@@ -26,20 +26,20 @@ public class ImageFormatsTest {
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.pgm")), Optional.of(Format.PGM))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ppm")), Optional.of(Format.PPM))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ras")), Optional.of(Format.RAS))
-                .put(new byte[]{1, 2, 3, 4}, Optional.<Format>absent())
-                .put(new byte[0], Optional.<Format>absent())
-                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.<Format>absent())
+                .put(new byte[]{1, 2, 3, 4}, Optional.<Format>empty())
+                .put(new byte[0], Optional.<Format>empty())
+                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.<Format>empty())
                 .build();
         for (byte[] input : testCases.keySet()) {
             Optional<Format> expected = testCases.get(input);
-            assertEquals("byte array of length " + input.length, expected, ImageFormats.guessFormat(input));
+            assertEquals("byte array of length " + input.length, expected.orElse(null), ImageFormats.guessFormat(input));
         }
     }
 
     @org.junit.Ignore // TODO fix tiff format detection
     @Test
     public void guessFormat_tiff() throws Exception {
-        assertEquals("tiff", Format.TIFF, ImageFormats.guessFormat(Resources.toByteArray(getClass().getResource("/images/logo.tiff"))).orNull());
+        assertEquals("tiff", Format.TIFF, ImageFormats.guessFormat(Resources.toByteArray(getClass().getResource("/images/logo.tiff"))));
     }
 
     @Test
@@ -52,13 +52,13 @@ public class ImageFormatsTest {
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.pgm")), Optional.of(Format.PGM.getMimeType()))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ppm")), Optional.of(Format.PPM.getMimeType()))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ras")), Optional.of(Format.RAS.getMimeType()))
-                .put(new byte[]{1, 2, 3, 4}, Optional.<String>absent())
-                .put(new byte[0], Optional.<String>absent())
-                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.<String>absent())
+                .put(new byte[]{1, 2, 3, 4}, Optional.<String>empty())
+                .put(new byte[0], Optional.<String>empty())
+                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.<String>empty())
                 .build();
         for (byte[] input : testCases.keySet()) {
             Optional<String> expected = testCases.get(input);
-            assertEquals("byte array of length " + input.length, expected, ImageFormats.guessMimeType(input));
+            assertEquals("byte array of length " + input.length, expected.orElse(null), ImageFormats.guessMimeType(input));
         }
     }
 

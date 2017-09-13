@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.mike10004</groupId>
     <artifactId>common-helper</artifactId>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>7.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>common-helper</name>
     <description>Helper library for common computing tasks</description>
@@ -14,8 +14,8 @@
         <module>ormlite-helper-testtools</module>
     </modules>
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <skip.surefire.tests>false</skip.surefire.tests>
@@ -233,7 +233,7 @@
             <dependency>
                 <groupId>org.apache.ant</groupId>
                 <artifactId>ant</artifactId>
-                <version>1.9.7</version>
+                <version>1.10.1</version>
             </dependency>
             <dependency>
                 <groupId>com.j256.ormlite</groupId>
@@ -243,12 +243,12 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>20.0</version>
+                <version>22.0</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>1.4.190</version>
+                <version>1.4.190</version> <!-- do not raise to 1.4.196; weird errors occur -->
             </dependency>
         </dependencies>
     </dependencyManagement>

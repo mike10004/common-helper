@@ -23,14 +23,15 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.tools.ant.taskdefs.ExecTask;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -46,9 +47,9 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
     private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
     
     protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
-        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
-        this.stdoutFileSupplier = Suppliers.memoize(stdoutFileSupplier);
-        this.stderrFileSupplier = Suppliers.memoize(stderrFileSupplier);
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory::get);
+        this.stdoutFileSupplier = Suppliers.memoize(stdoutFileSupplier::get);
+        this.stderrFileSupplier = Suppliers.memoize(stderrFileSupplier::get);
     }
 
     @Override
@@ -123,7 +124,7 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
         @Override
         public Path get() {
             try {
-                return java.nio.file.Files.createTempDirectory(parent, "TempDirSupplier");
+                return Files.createTempDirectory(parent, "TempDirSupplier");
             } catch (IOException ex) {
                 throw new TempDirCreationException(ex);
             }

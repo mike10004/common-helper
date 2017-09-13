@@ -1,6 +1,5 @@
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +28,7 @@ public class WhicherLinuxTest {
         System.out.println("gnu");
         
         Whicher w = Whicher.gnu();
-        Optional<File> result;
+        java.util.Optional<File> result;
         String searchString = "grep";
         result = w.which(searchString);
         System.out.format("which '%s' = %s%n", searchString, result);

@@ -86,7 +86,7 @@ public class HttpRequests_WireMock_Test {
         assertEquals(httpStatus, responseData.code);
         assertEquals("response data length", responseBody.length, responseData.data.length);
         assertEquals(ImmutableList.copyOf(responseHeaders.get(HttpHeaders.CONTENT_TYPE)), ImmutableList.copyOf(responseData.getHeaderValues(HttpHeaders.CONTENT_TYPE)));
-        assertFalse("expect no error", responseData.exception.isPresent());
+        assertFalse("expect no error", responseData.exception != null);
         return responseData;
     }
     

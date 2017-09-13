@@ -3,7 +3,7 @@
  */
 package com.github.mike10004.common.image;
 
-import com.google.common.base.Optional;
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 
 /**
@@ -13,28 +13,30 @@ import java.io.ByteArrayInputStream;
  */
 public class ImageFormats {
 
-    public static Optional<ImageInfo.Format> guessFormat(byte[] imageData) {
+    @Nullable
+    public static ImageInfo.Format guessFormat(byte[] imageData) {
         ImageInfo ii = new ImageInfo();
         ii.setInput(new ByteArrayInputStream(imageData));
         if (!ii.check()) {
-            return Optional.absent();
+            return null;
         }
-        return Optional.of(ii.getFormat());
+        return ii.getFormat();
     }
-    
-    public static Optional<String> guessMimeType(byte[] imageData) {
-        Optional<ImageInfo.Format> format = guessFormat(imageData);
-        if (format.isPresent()) {
-            return getMimeTypeFromFormat(format.get());
+
+    @Nullable
+    public static String guessMimeType(byte[] imageData) {
+        @Nullable ImageInfo.Format format = guessFormat(imageData);
+        if (format != null) {
+            return getMimeTypeFromFormat(format);
         } else {
-            return Optional.absent();
+            return null;
         }
     }
-    
-    public static Optional<String> getMimeTypeFromFormat(ImageInfo.Format imageInfoFormat) {
-        return Optional.fromNullable(getMimeTypeOrNull(imageInfoFormat));
+
+    public static String getMimeTypeFromFormat(ImageInfo.Format imageInfoFormat) {
+        return getMimeTypeOrNull(imageInfoFormat);
     }
-    
+
     private static String getMimeTypeOrNull(ImageInfo.Format imageInfoFormat) {
         switch (imageInfoFormat) {
             case ICO: 

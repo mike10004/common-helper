@@ -8,7 +8,7 @@
  */
 package com.github.mike10004.common.dbhelp;
 
-import com.google.common.base.Function;
+import java.util.function.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import java.io.File;

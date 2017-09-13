@@ -1,10 +1,11 @@
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Optional;
-import static com.google.common.base.Preconditions.checkState;
 import java.io.File;
 import java.io.IOException;
-import static org.junit.Assert.*;
+
+import static com.google.common.base.Preconditions.checkState;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -18,7 +19,7 @@ public class WhicherTests {
         Whicher w = Whicher.builder(temporaryDir).build();
         
         File file = File.createTempFile("helloworld", ".tmp", temporaryDir);
-        Optional<File> result = w.which(file.getName());
+        java.util.Optional<File> result = w.which(file.getName());
         System.out.format("%s -> %s%n", file.getName(), result);
         assertTrue("expect result present", result.isPresent());
         assertTrue("expect result isFile true", result.get().isFile());
@@ -30,7 +31,7 @@ public class WhicherTests {
         File pathname = new File(temporaryDir, absent);
         checkState(!pathname.exists(), "trying to confirm nonexistence, but exists: %s", pathname);
         Whicher w = Whicher.builder(temporaryDir).build();
-        Optional<File> result = w.which(absent);
+        java.util.Optional<File> result = w.which(absent);
         System.out.format("%s -> %s%n", absent, result);
         assertFalse("expect absent result", result.isPresent());
     }

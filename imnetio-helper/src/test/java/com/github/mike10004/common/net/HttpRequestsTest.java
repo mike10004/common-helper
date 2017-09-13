@@ -24,9 +24,12 @@
 package com.github.mike10004.common.net;
 
 import com.github.mike10004.common.net.HttpRequests.ResponseData;
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.google.common.primitives.Bytes;
@@ -64,7 +67,7 @@ public class HttpRequestsTest {
         ResponseData responseData = unknownHostThrowingRequester.retrieve(URI.create("http://localhost:12522/some/file.txt"));
         System.out.println("response: " + responseData);
         assertEquals("responseData.data", 0, responseData.data.length);
-        assertTrue("exception present", responseData.exception.isPresent());
+        assertTrue("exception present", responseData.exception != null);
     }
     
     @Test
@@ -91,12 +94,7 @@ public class HttpRequestsTest {
     }
 
     private static List<String> toHexStrings(byte[] bytes) {
-        return Lists.transform(Bytes.asList(bytes), new Function<Byte, String>(){
-            @Override
-            public String apply(Byte input) {
-                return UnsignedBytes.toString(input.byteValue(), 16);
-            }
-        });
+        return Lists.transform(Bytes.asList(bytes), input -> UnsignedBytes.toString(input.byteValue(), 16));
     }
 
     private static Multimap<String, String> headers(String header1Name, String header1Value, String...others) {

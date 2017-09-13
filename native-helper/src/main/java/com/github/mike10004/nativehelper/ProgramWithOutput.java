@@ -23,10 +23,9 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Supplier;
-
 import java.io.File;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Abstract superclass for programs whose output is captured.

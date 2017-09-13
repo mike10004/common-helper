@@ -7,6 +7,9 @@ import java.io.File;
 
 import com.github.mike10004.nativehelper.Whicher;
 import org.junit.Test;
+
+import javax.annotation.Nullable;
+
 import static org.junit.Assert.*;
 
 /**
@@ -26,7 +29,7 @@ public class PerlOnSystemPathTest {
     public void confirmPerlExectuableIsOnSystemPath() {
         System.out.println("confirmPerlExectuableIsOnSystemPath");
         Whicher whicher = Whicher.gnu();
-        File perlExecutable = whicher.which("perl").orNull();
+        @Nullable File perlExecutable = whicher.which("perl").orElse(null);
         if (perlExecutable == null || !perlExecutable.isFile()) {
             printErrorMessage();
             fail("perl executable not found in any of these directories: " + System.getenv("PATH"));

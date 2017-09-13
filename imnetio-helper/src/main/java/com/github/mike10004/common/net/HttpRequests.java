@@ -3,30 +3,36 @@
  */
 package com.github.mike10004.common.net;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteStreams;
+import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.HttpGetRequestFactory;
 import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.RequestConfigFactory;
 import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.SystemHttpClientFactory;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
-import org.apache.http.*;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.ParseException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
@@ -97,10 +103,10 @@ public class HttpRequests {
         public final byte[] data;
         
         /**
-         * Exception thrown in making HTTP request. This is never null, 
-         * but it may not be {@link Optional#isPresent() present}.
+         * Exception thrown in making HTTP request. May be null.
          */
-        public final Optional<Exception> exception;
+        @Nullable
+        public final Exception exception;
  
         public ResponseData(URI requestUri, int code, byte[] data, Multimap<String, String> headers) {
             this(requestUri, code, data, headers, null);
@@ -109,7 +115,7 @@ public class HttpRequests {
         private ResponseData(URI requestUri, int code, byte[] data, Multimap<String, String> headers, @Nullable Exception exception) {
             this.code = code;
             this.data = checkNotNull(data);
-            this.exception = Optional.fromNullable(exception);
+            this.exception = exception;
             this.headers = ImmutableMultimap.copyOf(headers);
             this.requestUri = checkNotNull(requestUri);
         }
@@ -127,7 +133,7 @@ public class HttpRequests {
             return "ResponseData{" 
                     + "code=" + code 
                     + ", data.length=" + data.length 
-                    + ", hasException=" + exception.isPresent() + '}';
+                    + ", hasException=" + (exception != null) + '}';
         }
         
         /**
@@ -148,15 +154,15 @@ public class HttpRequests {
             return headerValues;
         }
 
-        public Optional<String> getFirstHeaderValue(String headerName) {
+        public java.util.Optional<String> getFirstHeaderValue(String headerName) {
             checkNotNull(headerName, "headerName");
             for (String possibleHeaderName : headers.keySet()) {
                 if (headerName.equalsIgnoreCase(possibleHeaderName)) {
                     String value = headers.get(headerName).iterator().next();
-                    return Optional.of(value);
+                    return java.util.Optional.of(value);
                 }
             }
-            return Optional.absent();
+            return java.util.Optional.empty();
         }
 
         /*
@@ -234,7 +240,7 @@ public class HttpRequests {
          */
         public String getDataAsString(Charset fallbackCharset) throws IOException {
             checkNotNull(fallbackCharset, "fallbackCharset");
-            @Nullable String contentTypeHeaderValue = getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orNull();
+            @Nullable String contentTypeHeaderValue = getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
             return toString(data, contentTypeHeaderValue, fallbackCharset);
         }
     }

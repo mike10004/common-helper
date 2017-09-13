@@ -8,7 +8,7 @@
  */
 package com.github.mike10004.common.dbhelp;
 
-import com.google.common.base.Function;
+import java.util.function.Function;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;

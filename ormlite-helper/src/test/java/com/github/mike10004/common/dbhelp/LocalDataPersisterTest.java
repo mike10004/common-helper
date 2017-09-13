@@ -23,11 +23,6 @@
  */
 package com.github.mike10004.common.dbhelp;
 
-import com.google.common.base.Function;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.j256.ormlite.dao.Dao;
@@ -44,17 +39,26 @@ import com.j256.ormlite.support.DatabaseResults;
 import com.j256.ormlite.table.DatabaseTable;
 import com.j256.ormlite.table.DatabaseTableConfig;
 import com.j256.ormlite.table.TableUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Test;
+
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import static org.junit.Assert.*;
-import org.junit.Test;
+import java.util.Objects;
+import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -157,29 +161,21 @@ public class LocalDataPersisterTest {
             return false;
         }
         
-        private static final Predicate<Field> localPersisterRequiredPredicate = new Predicate<Field>() {
-            @Override
-            public boolean apply(Field field) {
-                return isLocalPersisterRequired(field);
-            }
-        };
+        private static final Predicate<Field> localPersisterRequiredPredicate = LocalDatabaseContext::isLocalPersisterRequired;
         
         private boolean isLocalPersisterRequired(Class<?> clazz) {
-            return Iterables.any(Arrays.asList(clazz.getFields()), localPersisterRequiredPredicate);
+            return Iterables.any(Arrays.asList(clazz.getFields()), localPersisterRequiredPredicate::test);
         }
 
         private <T> List<DatabaseFieldConfig> buildFieldConfigs(Class<T> clazz, String tableName) throws SQLException {
-            Iterable<Pair<Field, DatabaseField>> fields = Iterables.transform(Arrays.asList(clazz.getFields()), new Function<Field, Pair<Field, DatabaseField>>(){
-                @Override
-                public Pair<Field, DatabaseField> apply(Field input) {
-                    DatabaseField df = input.getAnnotation(DatabaseField.class);
-                    if (df != null) {
-                        return Pair.of(input, df);
-                    }
-                    return null;
+            Iterable<Pair<Field, DatabaseField>> fields = Iterables.transform(Arrays.asList(clazz.getFields()), input -> {
+                DatabaseField df = input.getAnnotation(DatabaseField.class);
+                if (df != null) {
+                    return Pair.of(input, df);
                 }
+                return null;
             });
-            fields = Iterables.filter(fields, Predicates.notNull());
+            fields = Iterables.filter(fields, Objects::nonNull);
             ImmutableList.Builder<DatabaseFieldConfig> configs = ImmutableList.builder();
             for (Pair<Field, DatabaseField> p : fields) {
                 Field field = p.getLeft();

@@ -1,12 +1,12 @@
-/**
+/*
  * (c) 2016 Mike Chaberski. Distributed under terms of the MIT License.
  */
 package com.github.mike10004.ormlitehelper.testtools;
 
-import com.google.common.base.Optional;
 import com.github.mike10004.common.dbhelp.H2MemoryConnectionSource;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  *
@@ -29,7 +29,7 @@ public class H2MemoryDatabaseContextRule extends DatabaseContextRule {
     public H2MemoryDatabaseContextRule(boolean keepContentForLifeOfVm, @Nullable String schemaName, BookendOperation...bookendOperations) {
         super(bookendOperations);
         this.keepContentForLifeOfVmOption = Optional.of(keepContentForLifeOfVm);
-        this.schemaNameOption = Optional.fromNullable(schemaName);
+        this.schemaNameOption = Optional.ofNullable(schemaName);
     }
 
     @Override

@@ -17,7 +17,6 @@ import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -31,10 +30,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-/**
- *
- * @author mchaberski
- */
 public class ExposedExecTaskTest {
     
     @Rule
@@ -91,46 +86,37 @@ public class ExposedExecTaskTest {
         final AtomicLong taskDuration = new AtomicLong(-1L);
         final AtomicBoolean taskExecutionFailure= new AtomicBoolean(false);
         
-        Thread runner = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    long startTime = System.currentTimeMillis();
-                    System.out.println("executing task");
-                    task.execute();
-                    taskEnded.set(true);
-                    long endTime = System.currentTimeMillis();
-                    String exitCode = project.getProperty("exitCode");
-                    System.out.println("exit code " + exitCode);
-                    taskDuration.set(endTime - startTime);
-                    System.out.format("task execution completed in %d milliseconds%n", taskDuration.longValue());
-                } catch (Exception e) {
-                    System.out.println("exception while executing task");
-                    taskExecutionFailure.set(true);
-                    e.printStackTrace(System.out);
-                }
+        Thread runner = new Thread(() -> {
+            try {
+                long startTime = System.currentTimeMillis();
+                System.out.println("executing task");
+                task.execute();
+                taskEnded.set(true);
+                long endTime = System.currentTimeMillis();
+                String exitCode = project.getProperty("exitCode");
+                System.out.println("exit code " + exitCode);
+                taskDuration.set(endTime - startTime);
+                System.out.format("task execution completed in %d milliseconds%n", taskDuration.longValue());
+            } catch (Exception e) {
+                System.out.println("exception while executing task");
+                taskExecutionFailure.set(true);
+                e.printStackTrace(System.out);
             }
         });
         runner.start();
         
-        Thread killer = new Thread(new Runnable(){
-
-            @Override
-            public void run() {
-                try {
-                    System.out.println("killing in " + killAfter + " milliseconds");
-                    Thread.sleep(killAfter);
-                    System.out.format("slept for %d milliseconds; killing now%n", killAfter);
-                    boolean aborted = task.abort();
-                    System.out.println("aborted: " + aborted);
-                    killTaskSucceeded.set(aborted);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace(System.out);
-                    throw new IllegalStateException(ex);
-                }
+        Thread killer = new Thread(() -> {
+            try {
+                System.out.println("killing in " + killAfter + " milliseconds");
+                Thread.sleep(killAfter);
+                System.out.format("slept for %d milliseconds; killing now%n", killAfter);
+                boolean aborted = task.abort();
+                System.out.println("aborted: " + aborted);
+                killTaskSucceeded.set(aborted);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace(System.out);
+                throw new IllegalStateException(ex);
             }
-            
         });
         killer.start();
         runner.join();
@@ -196,8 +182,7 @@ public class ExposedExecTaskTest {
         random.nextBytes(randomBytes);
         String inputString = new Base64().encodeAsString(randomBytes);
         final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
-        
-        Files.write(inputString, inputFile, Charsets.US_ASCII);
+        Files.asCharSink(inputFile, Charsets.US_ASCII).write(inputString);
         printAbbreviated(System.out, "input", inputString);
         ExposedExecTask task = new OutputEchoTester() {
 
@@ -230,7 +215,7 @@ public class ExposedExecTaskTest {
         
         final File inputFile = File.createTempFile("random", ".txt", temporaryFolder.newFolder());
         String inputString = generateRandomString();
-        Files.write(inputString, inputFile, Charsets.US_ASCII);
+        Files.asCharSink(inputFile, Charsets.US_ASCII).write(inputString);
         printAbbreviated(System.out, "input", inputString);
         ExposedExecTask task = new OutputEchoTester() {
 
@@ -296,8 +281,6 @@ public class ExposedExecTaskTest {
          * 
          * @return the task, after execution, with exitCode, stdout, and stderr
          * properties set
-         * @throws FileNotFoundException
-         * @throws BuildException 
          */
         public ExposedExecTask testOutputEcho() throws IOException, BuildException {
             

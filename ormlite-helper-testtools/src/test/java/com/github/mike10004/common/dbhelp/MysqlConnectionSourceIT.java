@@ -1,6 +1,6 @@
 package com.github.mike10004.common.dbhelp;
 
-import com.google.common.base.Function;
+import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import java.sql.SQLException;

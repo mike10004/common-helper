@@ -3,7 +3,7 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,7 +35,8 @@ public class EchoingPumpStreamHandler extends PumpStreamHandler {
         this.in = input;
     }
 
-    public @Nullable OutputStreamEcho getStderrEcho() {
+    @Nullable
+    public OutputStreamEcho getStderrEcho() {
         return stderrEcho;
     }
 
@@ -43,7 +44,8 @@ public class EchoingPumpStreamHandler extends PumpStreamHandler {
         this.stderrEcho = stderrEcho;
     }
 
-    public @Nullable OutputStreamEcho getStdoutEcho() {
+    @Nullable
+    public OutputStreamEcho getStdoutEcho() {
         return stdoutEcho;
     }
 
@@ -71,13 +73,13 @@ public class EchoingPumpStreamHandler extends PumpStreamHandler {
                 closeWhenExhausted, nonBlockingIO);
         final OutputStreamEcho echo;
         final String streamName;
-        if (Objects.equal(os, err)) {
+        if (Objects.equals(os, err)) {
             echo = stderrEcho;
             streamName = "stderr";
-        } else if (Objects.equal(os, this.out)) {
+        } else if (Objects.equals(os, this.out)) {
             echo = stdoutEcho;
             streamName = "stdout";
-        } else if (Objects.equal(is, this.in)) {
+        } else if (Objects.equals(is, this.in)) {
             // we don't handle this case right now, but maybe in the future we 
             // can add an input echo
             streamName = "stdin";

@@ -4,7 +4,7 @@
 package com.github.mike10004.common.dbhelp;
 
 import com.github.mike10004.common.dbhelp.AbstractH2FileConnectionSource.DefaultSchemaTransform;
-import com.google.common.base.Function;
+import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 
@@ -231,12 +231,7 @@ public class H2FileConnectionSourceTest {
             }
         }
         Iterable<File> systemPathDirs = Iterables.transform(Splitter.on(File.pathSeparatorChar)
-                .split(System.getenv("PATH")), new Function<String, File>(){
-            @Override
-            public File apply(String input) {
-                return new File(input);
-            }
-        });
+                .split(System.getenv("PATH")), File::new);
         Iterables.addAll(parents, systemPathDirs);
         File mavenExecutable = null;
         for (File parent : parents) {

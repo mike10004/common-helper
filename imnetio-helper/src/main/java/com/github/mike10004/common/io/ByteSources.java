@@ -3,7 +3,7 @@
  */
 package com.github.mike10004.common.io;
 
-import com.google.common.base.Function;
+import java.util.function.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
@@ -47,16 +47,13 @@ public class ByteSources {
      * @return the concatenated source
      */
     public static ByteSource concatOpenable(Iterable<ByteSource> possibleBrokenSources) {
-        return ByteSource.concat(Iterables.transform(possibleBrokenSources, newOrEmptyFunction()));
+        //noinspection StaticPseudoFunctionalStyleMethod
+        return ByteSource.concat(Iterables.transform(possibleBrokenSources, ByteSources::orEmpty));
     }
-    
+
+    @Deprecated
     public static Function<ByteSource, ByteSource> newOrEmptyFunction() {
-        return new Function<ByteSource, ByteSource>() {
-            @Override
-            public ByteSource apply(ByteSource input) {
-                return orEmpty(input);
-            }
-        };
+        return ByteSources::orEmpty;
     }
     
     public static ByteSource orEmpty(URL resource) {

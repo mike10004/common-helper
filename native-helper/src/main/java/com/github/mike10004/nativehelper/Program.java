@@ -25,14 +25,13 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
 import com.google.common.base.Charsets;
-import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -56,8 +55,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -66,7 +69,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Class that represents a program that is to be executed in an external process.
  * Instances of this class are immutable, so it is safe to execute the same 
  * program in a multithreaded context. All configuration is performed with a 
- * {@link Builder} instance. Use {@link #running(java.lang.String) } to create
+ * {@link Builder} instance. Use {@link #running(String) } to create
  * a builder instance.
  * 
  * <p>The interface is designed to be somewhat fluent, so you can write
@@ -145,11 +148,11 @@ public abstract class Program<R extends ProgramResult> {
     /**
      * Executes the program asynchronously with a given executor service. Use
      * {@link Futures#addCallback(ListenableFuture, 
-     * com.google.common.util.concurrent.FutureCallback, java.util.concurrent.Executor) }
+     * FutureCallback, Executor) }
      * to add a callback to the future. (Using the overloaded version of that method that 
      * provides a {@code directExecutor} as the executor argument is probably okay; see the
-     * discussion in {@link ListenableFuture#addListener(java.lang.Runnable, java.util.concurrent.Executor) }.
-     * Calling {@link java.util.concurrent.Future#cancel(boolean) } will invoke 
+     * discussion in {@link ListenableFuture#addListener(Runnable, Executor) }.
+     * Calling {@link Future#cancel(boolean) } will invoke
      * {@link Process#destroy() } on the process instance.
      * @param executorService the executor service
      * @return a future representing the computation
@@ -218,7 +221,7 @@ public abstract class Program<R extends ProgramResult> {
     
     /**
      * Class that represents a builder of program instances. Create a builder
-     * instance with {@link Program#running(java.lang.String) }.
+     * instance with {@link Program#running(String) }.
      * @see Program 
      */
     @NotThreadSafe
@@ -321,7 +324,7 @@ public abstract class Program<R extends ProgramResult> {
          * @param firstArgument the first argument to append
          * @param otherArguments the other arguments to append
          * @return this builder instance
-         * @see #args(java.lang.Iterable) 
+         * @see #args(Iterable)
          */        
         public Builder args(String firstArgument, String...otherArguments) {
             return args(Lists.asList(checkNotNull(firstArgument), otherArguments));
@@ -333,7 +336,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return this builder instance
          */
         public Builder args(Iterable<String> arguments) {
-            checkArgument(Iterables.all(arguments, Predicates.notNull()), "all arguments must be non-null");
+            checkArgument(Iterables.all(arguments, Objects::nonNull), "all arguments must be non-null");
             Iterables.addAll(this.arguments, arguments);
             return this;
         }

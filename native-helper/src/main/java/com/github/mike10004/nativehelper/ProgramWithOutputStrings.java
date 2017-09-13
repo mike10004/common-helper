@@ -23,12 +23,12 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.google.common.base.Supplier;
 import org.apache.tools.ant.taskdefs.ExecTask;
 
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
