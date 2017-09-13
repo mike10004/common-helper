@@ -1,7 +1,7 @@
 version: 1.0.{build}
 build_script:
 - cmd: >-
-    set MAVEN_VERSION=3.2.5
+    set MAVEN_VERSION=3.5.0
 
     choco install maven -version %MAVEN_VERSION%
 
