@@ -84,6 +84,7 @@ public class ExecTask extends Task {
      * Needs to be configured by binding to a project.
      */
     public ExecTask() {
+        setProject(new Project());
     }
 
     /**
@@ -94,6 +95,7 @@ public class ExecTask extends Task {
      */
     public ExecTask(Task owner) {
         bindToOwner(owner);
+        setProject(new Project());
     }
 
     /**
