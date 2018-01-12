@@ -119,8 +119,7 @@ public class ProgramTest {
 
             ExecutorService executorService = Executors.newFixedThreadPool(2);
             Program<ProgramWithOutputStringsResult> program = builder.outputToStrings();
-            assertNull(program.getStandardInput().getLeft());
-            assertNull(program.getStandardInput().getRight());
+            assertTrue(program.getStandardInput().isEmpty());
             long executionStartTime = System.currentTimeMillis();
             ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
             Thread.sleep(killAfter);
@@ -268,5 +267,9 @@ public class ProgramTest {
         assertTrue("contains filename", programStr.contains(inputFilename));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void Builder_args_npe() {
+        Program.running("ls").args(Arrays.asList("hello", null, "world"));
+    }
 }
 

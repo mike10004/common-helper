@@ -38,8 +38,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.ExecTask;
@@ -64,6 +62,7 @@ import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Class that represents a program that is to be executed in an external process.
@@ -84,20 +83,62 @@ public abstract class Program<R extends ProgramResult> {
     public static final String RESULT_PROPERTY_NAME = Program.class.getName() + ".exitCode";
     
     private final String executable;
-    private final ImmutablePair<String, File> standardInput;
+    private final StandardInputSource standardInputSource;
     private final ImmutableList<String> arguments;
-    private final @Nullable File workingDirectory;
+    @Nullable
+    private final File workingDirectory;
     private final Supplier<? extends ExposedExecTask> taskFactory;
     private final ImmutableMap<String, String> environment;
 
+    @Deprecated
     protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-        this.executable = checkNotNull(executable);
-        this.standardInput = ImmutablePair.of(standardInput, standardInputFile);
-        checkArgument(standardInput == null || standardInputFile == null, "can't set both standard input string and file");
+        this(executable, new StandardInputSource(standardInput, standardInputFile), workingDirectory, environment, arguments, taskFactory);
+    }
+
+    protected Program(String executable, StandardInputSource standardInputSource, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+        this.executable = requireNonNull(executable, "executable");
+        this.standardInputSource = requireNonNull(standardInputSource, "standardInputSource");
         this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);
         this.taskFactory = checkNotNull(taskFactory);
         this.environment = ImmutableMap.copyOf(environment);
+    }
+
+    protected static final class StandardInputSource {
+
+        @Nullable
+        private final String memory;
+        @Nullable
+        private final File disk;
+
+        private StandardInputSource(@Nullable String memory, @Nullable File disk) {
+            this.memory = memory;
+            this.disk = disk;
+            checkArgument(memory == null || disk == null, "must specify memory or file source, but not both; both can be null");
+        }
+
+        public void apply(ExecTask task) {
+            if (memory != null) {
+                task.setInputString(memory);
+            }
+            if (disk != null) {
+                task.setInput(disk);
+            }
+        }
+
+        public String toString() {
+            if (disk != null) {
+                return disk.getAbsolutePath();
+            }
+            if (memory != null) {
+                return String.format("\"%s\"[%d]", StringEscapeUtils.escapeJava(StringUtils.abbreviate(memory, 128)), memory.length());
+            }
+            return "<EOF>";
+        }
+
+        public boolean isEmpty() {
+            return disk == null && memory == null;
+        }
     }
 
     /**
@@ -118,7 +159,7 @@ public abstract class Program<R extends ProgramResult> {
         R result = produceResultFromExecutedTask(task, localContext);
         return result;
     }
-    
+
     protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
         return new Callable<R>(){
             @Override
@@ -177,13 +218,7 @@ public abstract class Program<R extends ProgramResult> {
         task.setFailonerror(false);
         task.setResultProperty(RESULT_PROPERTY_NAME);
         task.setExecutable(executable);
-        if (standardInput.getLeft() != null) {
-            task.setInputString(standardInput.getLeft());
-        } else if (standardInput.getRight() != null) {
-            task.setInput(standardInput.getRight());
-        } else if (standardInput.getLeft() != null && standardInput.getRight() != null) {
-            throw new IllegalStateException("stdin misconfiguration");
-        }
+        standardInputSource.apply(task);
         task.setDir(workingDirectory);
         for (String variableName : environment.keySet()) {
             String variableValue = environment.get(variableName);
@@ -225,6 +260,7 @@ public abstract class Program<R extends ProgramResult> {
      * @see Program 
      */
     @NotThreadSafe
+    @SuppressWarnings("UnusedReturnValue")
     public static class Builder {
         
         public static final Charset DEFAULT_STRING_OUTPUT_CHARSET = Charsets.UTF_8;
@@ -336,6 +372,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return this builder instance
          */
         public Builder args(Iterable<String> arguments) {
+            //noinspection ConstantConditions // inspector thinks Objects::nonNull will always return true
             checkArgument(Iterables.all(arguments, Objects::nonNull), "all arguments must be non-null");
             Iterables.addAll(this.arguments, arguments);
             return this;
@@ -447,39 +484,35 @@ public abstract class Program<R extends ProgramResult> {
         
     }
 
-    protected String getExecutable() {
+    @SuppressWarnings("unused")
+    public String getExecutable() {
         return executable;
     }
 
-    protected ImmutablePair<String, File> getStandardInput() {
-        return standardInput;
+    protected StandardInputSource getStandardInput() {
+        return standardInputSource;
     }
 
-    protected ImmutableList<String> getArguments() {
+    @SuppressWarnings("unused")
+    public ImmutableList<String> getArguments() {
         return arguments;
     }
 
-    protected @Nullable File getWorkingDirectory() {
+    @Nullable
+    protected File getWorkingDirectory() {
         return workingDirectory;
     }
 
-    private static String describeStandardInput(Pair<String, File> stdin) {
-        File stdinFile = stdin.getRight();
-        if (stdinFile != null) {
-            return stdinFile.getAbsolutePath();
-        }
-        String stdinStr = stdin.getLeft();
-        if (stdinStr != null) {
-            return "\"" + StringEscapeUtils.escapeJava(StringUtils.abbreviate(stdinStr, 128)) + "\"";
-        }
-        return "<EOF>";
+    @SuppressWarnings("unused")
+    public ImmutableMap<String, String> getEnvironment() {
+        return environment;
     }
 
     @Override
     public String toString() {
         return "Program{" +
                 "executable='" + executable + '\'' +
-                ", standardInput=" + describeStandardInput(standardInput) +
+                ", standardInput=" + standardInputSource +
                 ", arguments=" + StringUtils.abbreviate(String.valueOf(arguments), 128) +
                 ", workingDirectory=" + workingDirectory +
                 ", environment=" + StringUtils.abbreviate(String.valueOf(environment), 128) +
