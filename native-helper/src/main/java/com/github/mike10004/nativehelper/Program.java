@@ -40,7 +40,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
-import org.apache.tools.ant.taskdefs.ExecTask;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
 import org.apache.tools.ant.types.Environment;
 
 import javax.annotation.Nullable;

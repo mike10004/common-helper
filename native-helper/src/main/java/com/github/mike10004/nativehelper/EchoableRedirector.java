@@ -3,10 +3,11 @@
  */
 package com.github.mike10004.nativehelper;
 
-import java.io.*;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.Redirector;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecuteStreamHandler;
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.Task;
-import org.apache.tools.ant.taskdefs.*;
+
+import java.io.File;
 
 /**
  * Class that implements a redirector that can be configured to echo the data
@@ -18,7 +19,7 @@ public class EchoableRedirector extends Redirector {
     private OutputStreamEcho stdoutEcho, stderrEcho;
     private boolean hasInputFile, hasInputString;
 
-    public EchoableRedirector(Task managingTask) {
+    public EchoableRedirector(org.apache.tools.ant.Task managingTask) {
         super(managingTask);
     }
 
