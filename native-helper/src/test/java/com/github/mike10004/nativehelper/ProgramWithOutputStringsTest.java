@@ -25,18 +25,32 @@ package com.github.mike10004.nativehelper;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.tools.ant.BuildException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- *
- * @author mchaberski
- */
+@RunWith(Parameterized.class)
 public class ProgramWithOutputStringsTest {
-    
+
+    private static final int NUM_TRIALS = 10;
+
+    @Rule
+    public Timeout timeout = new Timeout(5, TimeUnit.SECONDS);
+
+    @Parameterized.Parameters
+    public static List<Object[]> trials() {
+        return Arrays.asList(new Object[NUM_TRIALS][0]);
+    }
+
     @Test
     public void testExecute_stdoutToString() {
         System.out.println("testExecute_stdoutToString");
@@ -50,6 +64,7 @@ public class ProgramWithOutputStringsTest {
         testExecute("echo goodbye>&2", 0, "", expectedStderr);
     }
     
+    @SuppressWarnings("SameParameterValue")
     private void testExecute(String shellCommand, int expectedExitCode, String expectedStdout, String expectedStderr) throws BuildException {
         Program.Builder builder = ProgramBuilders.shell();
         System.out.println("executing command: " + shellCommand);

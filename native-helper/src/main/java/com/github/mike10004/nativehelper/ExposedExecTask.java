@@ -6,6 +6,9 @@ package com.github.mike10004.nativehelper;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.taskdefs.*;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * Task that runs a program in an external process and echos output. Provides 
  * hooks to read output as it arrives on the process's standard output and 
@@ -23,48 +26,34 @@ import org.apache.tools.ant.taskdefs.*;
  */
 public class ExposedExecTask extends ExecTask {
 
-    private ExecuteWatchdog watchdog;
+    private final LethalWatchdog watchdog;
     private Execute execute;
-    private Long timeout;
-    private boolean destructible; 
-    
+
     public ExposedExecTask() {
         redirector = new EchoableRedirector(this);
+        watchdog = new LethalWatchdog();
     }
 
     @Override
     public void setTimeout(Long value) {
-        super.setTimeout(value);
-        timeout = value;
+        throw new UnsupportedOperationException("no longer supported: use Program.executeAsync() and java.util.concurrent API");
     }
     
     /**
-     * Create the Watchdog to kill a runaway process.
-     *
-     * @return instance of ExecuteWatchdog.
-     *
-     * @throws BuildException under unknown circumstances.
+     * Returns the watchdog created in the constructor.
      */
     @Override
-    protected ExecuteWatchdog createWatchdog() throws BuildException {
-        if (timeout != null && destructible) {
-            throw new IllegalStateException("setting timeout non-null and destructible=true is not yet supported");
-        }
-        if (timeout != null) {
-            return watchdog = new ExecuteWatchdog(timeout.longValue());
-        }
-        if (destructible) {
-            return watchdog = new LethalWatchdog(Long.MAX_VALUE);
-        }
-        return null;
+    protected LethalWatchdog createWatchdog() throws BuildException {
+        return watchdog;
     }
 
     /**
      * Checks whether the task is destructible.
-     * @return 
+     * @return true, always
      */
+    @Deprecated
     public boolean isDestructible() {
-        return destructible;
+        return true;
     }
 
     /**
@@ -72,17 +61,16 @@ public class ExposedExecTask extends ExecTask {
      * can succeed.
      * @param destructible  true if task should be destructible
      */
+    @Deprecated
     public void setDestructible(boolean destructible) {
-        this.destructible = destructible;
+        checkArgument(destructible, "all ExposedExecTask instances are destructible");
     }
     
     /**
-     * Returns the watchdog. This will be a {@link LethalWatchdog} instance if 
-     * {@code destructible} was set to true and {@code createWatchdog()} has been
-     * invoked. Invoking {@code execute()} invokes {@code createWatchdog()}.
+     * Returns the watchdog created in the constructor.
      * @return  the watchdog
      */
-    public ExecuteWatchdog getWatchdog() {
+    public LethalWatchdog getWatchdog() {
         return watchdog;
     }
 
@@ -103,20 +91,11 @@ public class ExposedExecTask extends ExecTask {
     /**
      * Attempts to destroy the process. Calls {@link LethalWatchdog#destroy() }.
      * If this task's watchdog has not been set, then this method does nothing.
-     * @return true if abort succeeded
+     * @return true always; the value at one time meant something, but now it does not
      */
     public boolean abort() {
-        ExecuteWatchdog dog = getWatchdog();
-        if (dog != null) {
-            if (dog instanceof LethalWatchdog) {
-                ((LethalWatchdog)dog).destroy();
-                return true;
-            } else {
-                throw new IllegalStateException("watchdog is not a LethalWatchdog; this task was incorrectly set up");
-            }
-        }
-        return false;
+        watchdog.destroy();
+        return true;
     }
-    
-    
+
 }

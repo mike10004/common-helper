@@ -45,6 +45,7 @@ public class ExposedExecTaskTest {
         printAbbreviated(out, tag, content, 64);
     }
     
+    @SuppressWarnings("SameParameterValue")
     private static void printAbbreviated(PrintStream out, String tag, String content, int maxLength) {
         out.println(tag + ": " + StringUtils.abbreviateMiddle(content, "...", maxLength));
     }
@@ -130,49 +131,12 @@ public class ExposedExecTaskTest {
         assertTrue(taskDuration.get() < (processDurationMs / 2));
     }
     
-    @Test
-    public void testOriginalAntTimeoutWorks() throws Exception {
-        System.out.println("\n\ntestOriginalAntTimeoutWorks");
-        demonstrateExecTaskTimeout();
-        testOriginalAntTimeoutWorks(new ExposedExecTask());
+    @Test(expected = UnsupportedOperationException.class)
+    public void testOriginalAntTimeoutFails() throws Exception {
+        System.out.println("\n\ntestOriginalAntTimeoutFails");
+        new ExposedExecTask().setTimeout(123);
     }
-    
-    private void demonstrateExecTaskTimeout() throws Exception {
-        System.out.println("demonstrateExecTaskTimeout");
-        testOriginalAntTimeoutWorks(new ExecTask());
-    }
-    
-    private void testOriginalAntTimeoutWorks(ExecTask task) throws Exception {        
-        
-        int commandedDuration = 1; // seconds
-        final long killAfter = 50; // ms
-        
-        /*
-         * we're gonna check later that the process didn't last longer than
-         * half the specified duration, so here we make sure that our 
-         * time-to-kill is low enough
-         */
-        checkState(killAfter < (commandedDuration * 1000 / 2));
-        
-        final Project project = new Project();
-        project.init();
-        task.setProject(project);
-        task.setResultProperty("exitCode");
-        configureTaskToExecuteProcessThatSleeps(task, commandedDuration);
-        task.setTimeout(killAfter);
-        long taskStartTime = System.currentTimeMillis();
-        task.execute();
-        long taskDuration = System.currentTimeMillis() - taskStartTime;
-        System.out.format("actual duration (seconds) %.1f (commanded duration %d)%n", taskDuration / 1000f, commandedDuration);
-        String actualExitCode = project.getProperty("exitCode");
-        System.out.println("exit code from timed-out process: " + actualExitCode);
-        
-        
-        long processDurationMs = commandedDuration * 1000;
-        assertTrue("expect actual task duration to be less than half of commanded duration", taskDuration < (processDurationMs / 2));
-        assertFalse("expected nonzero exit code", "0".equals(actualExitCode));
-    }
-    
+
     @Test
     public void testOutputEcho_fromFile() throws Exception {
         System.out.println("\n\ntestOutputEcho_fromFile");
@@ -288,7 +252,6 @@ public class ExposedExecTaskTest {
             final Project project = new Project();
             project.init();
             task.setProject(project);
-            task.setTimeout(3000);
             task.setResultProperty("exitCode");
             configureTaskToCatStdin(task);
             task.setOutputproperty("stdout");
