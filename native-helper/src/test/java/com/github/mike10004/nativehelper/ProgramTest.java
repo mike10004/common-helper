@@ -23,6 +23,8 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.Program.TaskListener;
+import com.github.mike10004.nativehelper.Program.TaskStage;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
@@ -38,7 +40,10 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -270,6 +275,25 @@ public class ProgramTest {
     @Test(expected = IllegalArgumentException.class)
     public void Builder_args_npe() {
         Program.running("ls").args(Arrays.asList("hello", null, "world"));
+    }
+
+    @Test
+    public void asyncListener() throws Exception {
+        Program<ProgramResult> program = Program.running("true")
+                .ignoreOutput();
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        List<TaskStage> stages = Collections.synchronizedList(new ArrayList<>());
+        try {
+            ListenableFuture<ProgramResult> future = program.executeAsync(executorService, stages::add);
+            assertEquals("first stage = submitted", stages.indexOf(TaskStage.SUBMITTED), 0);
+            ProgramResult result = future.get();
+            checkState(result.getExitCode() == 0, "program exited dirty: %s", result);
+            assertEquals("stages", Arrays.asList(TaskStage.SUBMITTED, TaskStage.CALLED, TaskStage.EXECUTED), stages);
+        } finally {
+            List<?> remaining = executorService.shutdownNow();
+            assertEquals("num remaining", 0, remaining.size());
+        }
+
     }
 }
 

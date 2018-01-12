@@ -160,13 +160,25 @@ public abstract class Program<R extends ProgramResult> {
         return result;
     }
 
-    protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
-        return new Callable<R>(){
-            @Override
-            public R call() throws BuildException {
-                return execute(task);
-            }
-        };
+    protected class TaskCallable implements Callable<R> {
+
+        private final ExposedExecTask task;
+        private final TaskListener taskListener;
+
+        public TaskCallable(ExposedExecTask task, TaskListener taskListener) {
+            this.task = requireNonNull(task);
+            this.taskListener = requireNonNull(taskListener);
+        }
+
+        @Override
+        public R call() {
+            taskListener.reached(TaskStage.CALLED);
+            return execute(task);
+        }
+    }
+
+    protected Callable<R> newExecutingCallable(final ExposedExecTask task, TaskListener taskListener) {
+        return new TaskCallable(task, taskListener);
     }
     
     private static class TaskAbortingFuture<R> extends SimpleForwardingListenableFuture<R> {
@@ -199,9 +211,54 @@ public abstract class Program<R extends ProgramResult> {
      * @return a future representing the computation
      */
     public ListenableFuture<R> executeAsync(ExecutorService executorService) {
+        return executeAsync(executorService, INACTIVE_TASK_LISTENER);
+    }
+
+    public enum TaskStage {
+        /**
+         * Invoked when the task is submitted to an executor service. Depending on the
+         * executor service's execution constraints, it may not be called immediately.
+         * For example, an executor with a limited thread pool whose threads are all
+         * currently occupied will wait before invoking {@link Callable#call()}.
+         * @see ExecutorService#submit(Callable)
+         */
+        SUBMITTED,
+
+        /**
+         * Invoked after the callable wrapping the task has been called. This means
+         * that {@link Callable#call()} has been invoked and a {@link Future}
+         * returned.
+         */
+        CALLED,
+
+        /**
+         * Invoked after the task process has been created. This is invoked after
+         * the equivalent of {@link Runtime#exec(String)} is invoked and a {@link Process}
+         * object has been created. If this method has been invoked, the process has for
+         * sure been visible on the system, but it may have already exited by the time
+         * this is invoked.
+         */
+        EXECUTED
+    }
+
+    /**
+     * Listener whose methods are invoked at various stages of asynchronous execution.
+     * The order in which a task is processed is (1) submitted, (2) called, (3) executed.
+     */
+    public interface TaskListener {
+        void reached(TaskStage stage);
+    }
+
+    private static final TaskListener INACTIVE_TASK_LISTENER = stage -> {};
+
+    public ListenableFuture<R> executeAsync(ExecutorService executorService, TaskListener taskListener) {
         ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
         ExposedExecTask task = taskFactory.get();
-        ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task));
+        task.getWatchdog().addProcessStartListener(process -> {
+            taskListener.reached(TaskStage.EXECUTED);
+        });
+        ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task, taskListener));
+        taskListener.reached(TaskStage.SUBMITTED);
         TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
         return future;
     }

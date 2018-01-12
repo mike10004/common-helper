@@ -32,25 +32,37 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-/**
- *
- * @author mchaberski
- */
+@RunWith(Parameterized.class)
 public class ProgramWithOutputFilesTest {
-    
+
+    private static final int NUM_TRIALS = 10;
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Rule
+    public Timeout timeout = new Timeout(5, TimeUnit.SECONDS);
+
+    @Parameterized.Parameters
+    public static List<Object[]> trials() {
+        return Arrays.asList(new Object[NUM_TRIALS][0]);
+    }
 
     @Test
     public void testExecute_outputToFiles_stdout() throws IOException {

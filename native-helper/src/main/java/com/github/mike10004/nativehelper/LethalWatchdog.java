@@ -5,6 +5,10 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecuteWatchdog;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -18,21 +22,36 @@ public class LethalWatchdog extends ExecuteWatchdog {
 
     protected Process process;
     protected Exception destroyException;
+    private final List<ProcessStartListener> processStartListeners;
     
-    public LethalWatchdog(long timeout) {
-        super(timeout);
+    public LethalWatchdog() {
+        super(Long.MAX_VALUE);
+        processStartListeners = Collections.synchronizedList(new ArrayList<>());
+    }
+
+    public interface ProcessStartListener {
+        void started(Process process);
+    }
+
+    public void removeProcessStartListener(ProcessStartListener processStartListener) {
+        processStartListeners.remove(processStartListener);
+    }
+
+    public void addProcessStartListener(ProcessStartListener processStartListener) {
+        processStartListeners.add(processStartListener);
     }
 
     @Override
-    public synchronized void start(Process process) {
+    public synchronized final void start(Process process) {
         this.process = checkNotNull(process);
+        this.processStartListeners.forEach(listener -> listener.started(process));
     }
 
     @Override
     protected synchronized void cleanUp() {
         process = null;
     }
-    
+
     public synchronized void destroy() {
         Process process_ = process;
         if (process_ == null) {
