@@ -68,7 +68,7 @@ public class ExecTask extends Task {
     private File output;
     private File error;
 
-    protected Redirector redirector = new Redirector(this);
+    protected Redirector redirector = new AntRedirector(this);
 //    protected RedirectorElement redirectorElement;
     // CheckStyle:VisibilityModifier ON
 

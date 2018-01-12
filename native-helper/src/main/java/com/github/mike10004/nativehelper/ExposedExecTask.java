@@ -61,7 +61,7 @@ public class ExposedExecTask extends ExecTask {
 
     /**
      * Checks whether the task is destructible.
-     * @return 
+     * @return true iff the task is destructible
      */
     public boolean isDestructible() {
         return destructible;

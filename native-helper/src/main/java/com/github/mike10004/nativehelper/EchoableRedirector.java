@@ -3,6 +3,7 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.AntRedirector;
 import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.Redirector;
 import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecuteStreamHandler;
 import org.apache.tools.ant.BuildException;
@@ -14,7 +15,7 @@ import java.io.File;
  * being redirected.
  *  @author mchaberski
  */
-public class EchoableRedirector extends Redirector {
+public class EchoableRedirector extends AntRedirector {
 
     private OutputStreamEcho stdoutEcho, stderrEcho;
     private boolean hasInputFile, hasInputString;
