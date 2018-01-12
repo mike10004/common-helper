@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.mike10004</groupId>
     <artifactId>common-helper</artifactId>
-    <version>7.0.0</version>
+    <version>7.0.1</version>
     <packaging>pom</packaging>
     <name>common-helper</name>
     <description>Helper library for common computing tasks</description>
@@ -21,6 +21,7 @@
         <skip.surefire.tests>false</skip.surefire.tests>
         <skip.failsafe.tests>false</skip.failsafe.tests>
         <ormlite.version>5.0</ormlite.version>
+        <slf4j.version>1.7.25</slf4j.version>
     </properties>
     <profiles>
         <profile>
@@ -205,12 +206,12 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.21</version>
+                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-jdk14</artifactId>
-                <version>1.7.21</version>
+                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.j256.ormlite</groupId>
@@ -225,7 +226,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.5</version>
+                <version>2.6</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.ant</groupId>
@@ -240,7 +241,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>22.0</version>
+                <version>23.6-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
