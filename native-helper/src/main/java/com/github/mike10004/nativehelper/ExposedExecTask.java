@@ -4,7 +4,7 @@
 package com.github.mike10004.nativehelper;
 
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.taskdefs.*;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.*;
 
 /**
  * Task that runs a program in an external process and echos output. Provides 
@@ -61,7 +61,7 @@ public class ExposedExecTask extends ExecTask {
 
     /**
      * Checks whether the task is destructible.
-     * @return 
+     * @return true iff the task is destructible
      */
     public boolean isDestructible() {
         return destructible;
@@ -117,6 +117,5 @@ public class ExposedExecTask extends ExecTask {
         }
         return false;
     }
-    
-    
+
 }

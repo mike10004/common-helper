@@ -3,7 +3,7 @@
  */
 package com.github.mike10004.nativehelper;
 
-import org.apache.tools.ant.taskdefs.ExecuteWatchdog;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecuteWatchdog;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
