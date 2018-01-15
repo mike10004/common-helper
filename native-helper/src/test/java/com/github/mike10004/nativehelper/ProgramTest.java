@@ -23,7 +23,6 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Program.TaskListener;
 import com.github.mike10004.nativehelper.Program.TaskStage;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
@@ -40,12 +39,12 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -54,7 +53,6 @@ import java.util.concurrent.Executors;
 import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -124,7 +122,7 @@ public class ProgramTest {
 
             ExecutorService executorService = Executors.newFixedThreadPool(2);
             Program<ProgramWithOutputStringsResult> program = builder.outputToStrings();
-            assertTrue(program.getStandardInput().isEmpty());
+            assertTrue(program.getStandardInput().isNone());
             long executionStartTime = System.currentTimeMillis();
             ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
             Thread.sleep(killAfter);
@@ -277,18 +275,21 @@ public class ProgramTest {
         Program.running("ls").args(Arrays.asList("hello", null, "world"));
     }
 
-    @Test
+    @Test(timeout = 10000L)
     public void asyncListener() throws Exception {
         Program<ProgramResult> program = Program.running("true")
                 .ignoreOutput();
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        List<TaskStage> stages = Collections.synchronizedList(new ArrayList<>());
+        BlockingQueue<TaskStage> stages = new ArrayBlockingQueue<>(TaskStage.values().length);
         try {
-            ListenableFuture<ProgramResult> future = program.executeAsync(executorService, stages::add);
-            assertEquals("first stage = submitted", stages.indexOf(TaskStage.SUBMITTED), 0);
+            ListenableFuture<ProgramResult> future = program.executeAsync(executorService, stages::add); // add throws exception if queue is full
+            TaskStage firstStage = stages.take();
+            assertEquals("first stage = submitted", TaskStage.CALLED, firstStage);
+            TaskStage secondStage = stages.take();
+            assertEquals("second stage = executed", TaskStage.EXECUTED, secondStage);
             ProgramResult result = future.get();
             checkState(result.getExitCode() == 0, "program exited dirty: %s", result);
-            assertEquals("stages", Arrays.asList(TaskStage.SUBMITTED, TaskStage.CALLED, TaskStage.EXECUTED), stages);
+            assertTrue("stages empty after taking all", stages.isEmpty());
         } finally {
             List<?> remaining = executorService.shutdownNow();
             assertEquals("num remaining", 0, remaining.size());

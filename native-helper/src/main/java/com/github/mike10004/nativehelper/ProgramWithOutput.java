@@ -34,8 +34,8 @@ import java.util.function.Supplier;
  */
 public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
 
-    protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
+    protected ProgramWithOutput(String executable, StandardInputSource stdinSource, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+        super(executable, stdinSource, workingDirectory, environment, arguments, taskFactory);
     }
 
 }

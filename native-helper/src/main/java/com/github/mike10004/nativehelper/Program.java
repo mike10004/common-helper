@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -111,10 +112,16 @@ public abstract class Program<R extends ProgramResult> {
         @Nullable
         private final File disk;
 
+        private static final StandardInputSource NONE = new StandardInputSource(null, null);
+
         private StandardInputSource(@Nullable String memory, @Nullable File disk) {
             this.memory = memory;
             this.disk = disk;
             checkArgument(memory == null || disk == null, "must specify memory or file source, but not both; both can be null");
+        }
+
+        public static StandardInputSource none() {
+            return NONE;
         }
 
         public void apply(ExecTask task) {
@@ -136,7 +143,7 @@ public abstract class Program<R extends ProgramResult> {
             return "<EOF>";
         }
 
-        public boolean isEmpty() {
+        public boolean isNone() {
             return disk == null && memory == null;
         }
     }
@@ -214,15 +221,18 @@ public abstract class Program<R extends ProgramResult> {
         return executeAsync(executorService, INACTIVE_TASK_LISTENER);
     }
 
-    public enum TaskStage {
-        /**
-         * Invoked when the task is submitted to an executor service. Depending on the
-         * executor service's execution constraints, it may not be called immediately.
-         * For example, an executor with a limited thread pool whose threads are all
-         * currently occupied will wait before invoking {@link Callable#call()}.
-         * @see ExecutorService#submit(Callable)
-         */
-        SUBMITTED,
+    /**
+     * Enumeration of constants that represent stages in the execution lifecycle
+     * when a program is executed asynchonously. If you invoke
+     * {@link #executeAsync(ExecutorService) executeAsync}, there may be some time
+     * before your {@link ExecutorService} actually begins a task (e.g. if it must
+     * wait for a thread to become available), and once the task has begun (meaning
+     * {@link Callable#call()} is invoked), there are some steps to be performed
+     * before the equivalent of {@link Runtime#exec(String)} is invoked to create
+     * a {@link Process} object that represents an actual process running outside
+     * the JVM. These constants represent those stages.
+     */
+    public enum TaskStage implements Comparable<TaskStage> {
 
         /**
          * Invoked after the callable wrapping the task has been called. This means
@@ -238,7 +248,14 @@ public abstract class Program<R extends ProgramResult> {
          * sure been visible on the system, but it may have already exited by the time
          * this is invoked.
          */
-        EXECUTED
+        EXECUTED;
+
+        private static final ImmutableList<TaskStage> EXPECTED_ORDER = ImmutableList.of(CALLED, EXECUTED);
+
+        public static ImmutableList<TaskStage> expectedOrder() {
+            return EXPECTED_ORDER;
+        }
+
     }
 
     /**
@@ -258,7 +275,6 @@ public abstract class Program<R extends ProgramResult> {
             taskListener.reached(TaskStage.EXECUTED);
         });
         ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task, taskListener));
-        taskListener.reached(TaskStage.SUBMITTED);
         TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
         return future;
     }
@@ -271,7 +287,6 @@ public abstract class Program<R extends ProgramResult> {
     }
 
     protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
-        task.setDestructible(true);
         task.setFailonerror(false);
         task.setResultProperty(RESULT_PROPERTY_NAME);
         task.setExecutable(executable);
@@ -290,8 +305,8 @@ public abstract class Program<R extends ProgramResult> {
     
     protected static class SimpleProgram extends Program<ProgramResult> {
         
-        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
-            super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
+        public SimpleProgram(String executable, StandardInputSource stdin, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+            super(executable, stdin, workingDirectory, environment, arguments, taskFactory);
         }
 
         @Override
@@ -323,8 +338,7 @@ public abstract class Program<R extends ProgramResult> {
         public static final Charset DEFAULT_STRING_OUTPUT_CHARSET = Charsets.UTF_8;
         
         protected final String executable;
-        protected String standardInput;
-        protected File standardInputFile;
+        protected StandardInputSource stdin;
         protected File workingDirectory;
         protected Supplier<? extends ExposedExecTask> taskFactory;
         protected final List<String> arguments;
@@ -340,6 +354,7 @@ public abstract class Program<R extends ProgramResult> {
             arguments = new ArrayList<>();
             taskFactory = new DefaultTaskFactory();
             environment = new LinkedHashMap<>();
+            stdin = StandardInputSource.none();
         }
         
         /**
@@ -348,7 +363,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return this builder instance
          */
         public Builder reading(String standardInputString) {
-            this.standardInput = checkNotNull(standardInputString);
+            this.stdin = new StandardInputSource(checkNotNull(standardInputString), null);
             return this;
         }
         
@@ -358,7 +373,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return this builder instance
          */
         public Builder reading(File standardInputFile) {
-            this.standardInputFile = checkNotNull(standardInputFile);
+            this.stdin = new StandardInputSource(null, checkNotNull(standardInputFile));
             return this;
         }
         
@@ -446,7 +461,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public Program<ProgramResult> ignoreOutput() {
-            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
+            return new SimpleProgram(executable, stdin, workingDirectory, environment, arguments, taskFactory);
         }
         
         /**
@@ -456,7 +471,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputFiles outputToFiles(File stdoutFile, File stderrFile) {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
+            return new ProgramWithOutputFiles(executable, stdin, workingDirectory, environment, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
         }
         
         /**
@@ -466,7 +481,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputFiles outputToTempFiles(Path directory) {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
+            return new ProgramWithOutputFiles(executable, stdin, workingDirectory, environment, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
         }
         
         /**
@@ -474,7 +489,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputStrings outputToStrings() {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
+            return new ProgramWithOutputStrings(executable, stdin, workingDirectory, environment, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
         }
 
         /**
@@ -486,7 +501,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputStrings outputToStrings(Charset charset) {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, charset);
+            return new ProgramWithOutputStrings(executable, stdin, workingDirectory, environment, arguments, taskFactory, charset);
         }
     }
     
