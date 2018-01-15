@@ -27,6 +27,7 @@ import com.github.mike10004.nativehelper.Program.TaskStage;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.tools.ant.BuildException;
@@ -36,7 +37,9 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
@@ -288,7 +291,7 @@ public class ProgramTest {
                 .ignoreOutput();
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            ProgramFuture<ProgramResult> future = program.executeAsync(executorService); // add throws exception if queue is full
+            ProgramFuture<ProgramResult> future = program.executeAsync(executorService);
             for (TaskStage stage : TaskStage.expectedOrder()) {
                 future.awaitStage(stage);
             }
@@ -303,6 +306,63 @@ public class ProgramTest {
             assertEquals("num remaining", 0, remaining.size());
         }
 
+    }
+
+    @Test
+    public void kill_awaitCalled() throws Exception {
+        kill(TaskStage.CALLED);
+    }
+
+    @Test
+    public void kill_awaitExecuted() throws Exception {
+        kill(TaskStage.EXECUTED);
+    }
+
+    private File pythonScriptFile(String text) throws IOException {
+        File scriptFile = File.createTempFile("python_cat", ".py", tmp.getRoot());
+        Files.asCharSink(scriptFile, StandardCharsets.UTF_8).write(text);
+        return scriptFile;
+    }
+
+    private static final String PY_MUST_BE_KILLED = "from __future__ import print_function\n" +
+            "import signal\n" +
+            "import sys\n" +
+            "\n" +
+            "def signal_handler(signalnum, frame):\n" +
+            "  print(\"signal\", signalnum)\n" +
+            "\n" +
+            "if __name__ == '__main__':\n" +
+            "  signal.signal(signal.SIGINT, signal_handler)\n" +
+            "  signal.signal(signal.SIGTERM, signal_handler)\n" +
+            "  while True:\n" +
+            "    signal.pause()\n";
+
+    private File pythonScript_mustBeKilled() throws IOException {
+        return pythonScriptFile(PY_MUST_BE_KILLED);
+    }
+
+    private void kill(TaskStage stageToAwait) throws Exception {
+        Program<ProgramWithOutputStringsResult> program = Program.running("python")
+            .arg(pythonScript_mustBeKilled().getAbsolutePath())
+            .outputToStrings();
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            ProgramFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
+            future.awaitStage(stageToAwait);
+            boolean cancelled = future.cancel(true);
+            assertTrue("cancel returned true", cancelled);
+            assertTrue("isDone()", future.isDone());
+            assertTrue("isCancelled()", future.isCancelled());
+            try {
+                ProgramWithOutputStringsResult result = future.get();
+                System.out.println(result);
+                fail("should not be able to get result from cancelled future");
+            } catch (CancellationException ignore) {
+            }
+        } finally {
+            List<?> remaining = executorService.shutdownNow();
+            assertEquals("num remaining", 0, remaining.size());
+        }
     }
 }
 

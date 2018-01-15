@@ -4,11 +4,10 @@ import com.github.mike10004.nativehelper.Program.TaskStage;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.ForwardingListenableFuture;
+import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -22,15 +21,16 @@ import static java.util.Objects.requireNonNull;
  * Future that represents aynchronous execution of a program.
  * @param <T>
  */
-public class ProgramFuture<T> extends ForwardingListenableFuture<T> {
+public class ProgramFuture<T> extends SimpleForwardingListenableFuture<T> {
 
-    private static final ImmutableSet<TaskStage> ALL_TASK_STAGES = ImmutableSet.copyOf(TaskStage.expectedOrder());
+    private static final ImmutableSet<TaskStage> ALL_TASK_STAGES = ImmutableSet.copyOf(TaskStage.values());
 
     private final ExposedExecTask execTask;
     private final ListenableFuture<T> wrappedFuture;
     private final CountdownLatchSet<TaskStage> countdownLatchSet;
 
     ProgramFuture(ExposedExecTask execTask, ListenableFuture<T> wrappedFuture, CountdownLatchSet<TaskStage> countdownLatchSet) {
+        super(wrappedFuture);
         this.execTask = requireNonNull(execTask);
         this.wrappedFuture = requireNonNull(wrappedFuture);
         this.countdownLatchSet = requireNonNull(countdownLatchSet);
@@ -68,28 +68,31 @@ public class ProgramFuture<T> extends ForwardingListenableFuture<T> {
     }
 
     @Override
-    protected ListenableFuture<? extends T> delegate() {
-        return wrappedFuture;
-    }
-
-    @Override
     public String toString() {
-        return "ProcessFuture{wrapped=" + wrappedFuture + ", stage=" + countdownLatchSet.current() + "}";
+        return "ProgramFuture{wrapped=" + wrappedFuture +
+                ", stage=" + countdownLatchSet.current() +
+                ", task=" + execTask +
+                "}";
     }
 
     static class CountdownLatchSet<T> {
+
         private final AtomicReference<T> reference;
         private final ImmutableMap<T, CountDownLatch> latches;
+
         public CountdownLatchSet(Set<T> keys, int count) {
             latches = ImmutableMap.copyOf(Maps.asMap(keys, key -> new CountDownLatch(count)));
             reference = new AtomicReference<>();
         }
+
         public T current() {
             return reference.get();
         }
+
         public ImmutableSet<T> keySet() {
             return latches.keySet();
         }
+
         @SuppressWarnings("UnusedReturnValue")
         @Nullable
         public T tick(T key) {
@@ -99,9 +102,11 @@ public class ProgramFuture<T> extends ForwardingListenableFuture<T> {
             latch.countDown();
             return previous;
         }
+
         @Nullable
         public CountDownLatch getLatch(T key) {
             return latches.get(key);
         }
+
     }
 }
