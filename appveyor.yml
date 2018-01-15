@@ -5,8 +5,6 @@ build_script:
 
     choco install maven -version %MAVEN_VERSION%
 
-    set JAVA_HOME=C:\Program Files\Java\jdk1.8.0
-
     set PATH=%PATH%;C:\bin\apache-maven-%MAVEN_VERSION%\bin
 
     mvn install --quiet --batch-mode
