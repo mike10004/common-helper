@@ -49,6 +49,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertEquals;
@@ -275,21 +276,28 @@ public class ProgramTest {
         Program.running("ls").args(Arrays.asList("hello", null, "world"));
     }
 
+    @Test
+    public void taskStageDefinition() {
+        assertEquals(ImmutableSet.copyOf(TaskStage.values()), ImmutableSet.copyOf(TaskStage.expectedOrder()));
+    }
+
     @Test(timeout = 10000L)
     public void asyncListener() throws Exception {
-        Program<ProgramResult> program = Program.running("true")
+        Program<ProgramResult> program = Program.running("sleep")
+                .arg("1.0")
                 .ignoreOutput();
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        BlockingQueue<TaskStage> stages = new ArrayBlockingQueue<>(TaskStage.values().length);
         try {
-            ListenableFuture<ProgramResult> future = program.executeAsync(executorService, stages::add); // add throws exception if queue is full
-            TaskStage firstStage = stages.take();
-            assertEquals("first stage = submitted", TaskStage.CALLED, firstStage);
-            TaskStage secondStage = stages.take();
-            assertEquals("second stage = executed", TaskStage.EXECUTED, secondStage);
+            ProgramFuture<ProgramResult> future = program.executeAsync(executorService); // add throws exception if queue is full
+            for (TaskStage stage : TaskStage.expectedOrder()) {
+                future.awaitStage(stage);
+            }
             ProgramResult result = future.get();
             checkState(result.getExitCode() == 0, "program exited dirty: %s", result);
-            assertTrue("stages empty after taking all", stages.isEmpty());
+            for (TaskStage stage : TaskStage.expectedOrder()) {
+                future.awaitStage(stage, 0, TimeUnit.MILLISECONDS);
+            }
+            assertEquals("current stage after execution", TaskStage.EXECUTED, future.getStage());
         } finally {
             List<?> remaining = executorService.shutdownNow();
             assertEquals("num remaining", 0, remaining.size());

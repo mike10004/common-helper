@@ -23,6 +23,7 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.ProgramFuture.CountdownLatchSet;
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
 import com.google.common.base.Charsets;
 import com.google.common.base.Suppliers;
@@ -30,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -37,6 +39,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import jdk.nashorn.internal.codegen.CompilerConstants.Call;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
@@ -50,15 +53,19 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -167,60 +174,15 @@ public abstract class Program<R extends ProgramResult> {
         return result;
     }
 
-    protected class TaskCallable implements Callable<R> {
-
-        private final ExposedExecTask task;
-        private final TaskListener taskListener;
-
-        public TaskCallable(ExposedExecTask task, TaskListener taskListener) {
-            this.task = requireNonNull(task);
-            this.taskListener = requireNonNull(taskListener);
-        }
-
-        @Override
-        public R call() {
-            taskListener.reached(TaskStage.CALLED);
-            return execute(task);
-        }
-    }
-
-    protected Callable<R> newExecutingCallable(final ExposedExecTask task, TaskListener taskListener) {
-        return new TaskCallable(task, taskListener);
+    protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
+        return new Callable<R>() {
+            @Override
+            public R call() {
+                return execute(task);
+            }
+        };
     }
     
-    private static class TaskAbortingFuture<R> extends SimpleForwardingListenableFuture<R> {
-        
-        private final ExposedExecTask task;
-
-        public TaskAbortingFuture(ExposedExecTask task, ListenableFuture<R> wrapped) {
-            super(wrapped);
-            this.task = task;
-        }
-
-        @Override
-        public boolean cancel(boolean mayInterruptIfRunning) {
-            task.abort();
-            return super.cancel(mayInterruptIfRunning);
-        }
-
-    }
-    
-    /**
-     * Executes the program asynchronously with a given executor service. Use
-     * {@link Futures#addCallback(ListenableFuture, 
-     * FutureCallback, Executor) }
-     * to add a callback to the future. (Using the overloaded version of that method that 
-     * provides a {@code directExecutor} as the executor argument is probably okay; see the
-     * discussion in {@link ListenableFuture#addListener(Runnable, Executor) }.
-     * Calling {@link Future#cancel(boolean) } will invoke
-     * {@link Process#destroy() } on the process instance.
-     * @param executorService the executor service
-     * @return a future representing the computation
-     */
-    public ListenableFuture<R> executeAsync(ExecutorService executorService) {
-        return executeAsync(executorService, INACTIVE_TASK_LISTENER);
-    }
-
     /**
      * Enumeration of constants that represent stages in the execution lifecycle
      * when a program is executed asynchonously. If you invoke
@@ -233,6 +195,11 @@ public abstract class Program<R extends ProgramResult> {
      * the JVM. These constants represent those stages.
      */
     public enum TaskStage implements Comparable<TaskStage> {
+
+        /**
+         * Initial stage that means the task has been submitted to the executor service.
+         */
+        SUBMITTED,
 
         /**
          * Invoked after the callable wrapping the task has been called. This means
@@ -250,7 +217,7 @@ public abstract class Program<R extends ProgramResult> {
          */
         EXECUTED;
 
-        private static final ImmutableList<TaskStage> EXPECTED_ORDER = ImmutableList.of(CALLED, EXECUTED);
+        private static final ImmutableList<TaskStage> EXPECTED_ORDER = ImmutableList.of(SUBMITTED, CALLED, EXECUTED);
 
         public static ImmutableList<TaskStage> expectedOrder() {
             return EXPECTED_ORDER;
@@ -259,23 +226,32 @@ public abstract class Program<R extends ProgramResult> {
     }
 
     /**
-     * Listener whose methods are invoked at various stages of asynchronous execution.
-     * The order in which a task is processed is (1) submitted, (2) called, (3) executed.
+     * Executes the program asynchronously with a given executor service. Use
+     * {@link Futures#addCallback(ListenableFuture, FutureCallback, Executor) }
+     * to add a callback to the future. (Using the overloaded version of that method that
+     * provides a {@code directExecutor} as the executor argument is probably okay; see the
+     * discussion in {@link ListenableFuture#addListener(Runnable, Executor) }.
+     * @param executorService the executor service
+     * @return a future representing the computation
      */
-    public interface TaskListener {
-        void reached(TaskStage stage);
-    }
-
-    private static final TaskListener INACTIVE_TASK_LISTENER = stage -> {};
-
-    public ListenableFuture<R> executeAsync(ExecutorService executorService, TaskListener taskListener) {
+    public ProgramFuture<R> executeAsync(ExecutorService executorService) {
         ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
         ExposedExecTask task = taskFactory.get();
+        CountdownLatchSet<TaskStage> latches = new CountdownLatchSet<>(EnumSet.allOf(TaskStage.class), 1);
         task.getWatchdog().addProcessStartListener(process -> {
-            taskListener.reached(TaskStage.EXECUTED);
+            latches.tick(TaskStage.EXECUTED);
         });
-        ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task, taskListener));
-        TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
+        Callable<R> innerCallable = newExecutingCallable(task);
+        Callable<R> callable = new Callable<R>() {
+            @Override
+            public R call() throws Exception {
+                latches.tick(TaskStage.CALLED);
+                return innerCallable.call();
+            }
+        };
+        ListenableFuture<R> innerFuture = listeningService.submit(callable);
+        latches.tick(TaskStage.SUBMITTED);
+        ProgramFuture<R> future = new ProgramFuture<>(task, innerFuture, latches);
         return future;
     }
 
