@@ -61,9 +61,7 @@ public class ByteSourcesTest {
     /**
      * Test of concatOpenable method, of class ByteSources.
      */
-    /**
-     * Test of concatOpenable method, of class ByteSources.
-     */
+    @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
     @Test
     public void testConcatOpenable() throws Exception {
         System.out.println("concatOpenable");
