@@ -24,12 +24,16 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.Program.TaskStage;
+import com.github.mike10004.nativehelper.ProgramFuture.KillResult;
+import com.github.mike10004.nativehelper.ProgramKillTest.TestProcessState;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tools.ant.BuildException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,17 +41,13 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -287,7 +288,7 @@ public class ProgramTest {
     @Test(timeout = 10000L)
     public void asyncListener() throws Exception {
         Program<ProgramResult> program = Program.running("sleep")
-                .arg("1.0")
+                .arg("1")
                 .ignoreOutput();
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
@@ -308,61 +309,5 @@ public class ProgramTest {
 
     }
 
-    @Test
-    public void kill_awaitCalled() throws Exception {
-        kill(TaskStage.CALLED);
-    }
-
-    @Test
-    public void kill_awaitExecuted() throws Exception {
-        kill(TaskStage.EXECUTED);
-    }
-
-    private File pythonScriptFile(String text) throws IOException {
-        File scriptFile = File.createTempFile("python_cat", ".py", tmp.getRoot());
-        Files.asCharSink(scriptFile, StandardCharsets.UTF_8).write(text);
-        return scriptFile;
-    }
-
-    private static final String PY_MUST_BE_KILLED = "from __future__ import print_function\n" +
-            "import signal\n" +
-            "import sys\n" +
-            "\n" +
-            "def signal_handler(signalnum, frame):\n" +
-            "  print(\"signal\", signalnum)\n" +
-            "\n" +
-            "if __name__ == '__main__':\n" +
-            "  signal.signal(signal.SIGINT, signal_handler)\n" +
-            "  signal.signal(signal.SIGTERM, signal_handler)\n" +
-            "  while True:\n" +
-            "    signal.pause()\n";
-
-    private File pythonScript_mustBeKilled() throws IOException {
-        return pythonScriptFile(PY_MUST_BE_KILLED);
-    }
-
-    private void kill(TaskStage stageToAwait) throws Exception {
-        Program<ProgramWithOutputStringsResult> program = Program.running("python")
-            .arg(pythonScript_mustBeKilled().getAbsolutePath())
-            .outputToStrings();
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        try {
-            ProgramFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
-            future.awaitStage(stageToAwait);
-            boolean cancelled = future.cancel(true);
-            assertTrue("cancel returned true", cancelled);
-            assertTrue("isDone()", future.isDone());
-            assertTrue("isCancelled()", future.isCancelled());
-            try {
-                ProgramWithOutputStringsResult result = future.get();
-                System.out.println(result);
-                fail("should not be able to get result from cancelled future");
-            } catch (CancellationException ignore) {
-            }
-        } finally {
-            List<?> remaining = executorService.shutdownNow();
-            assertEquals("num remaining", 0, remaining.size());
-        }
-    }
 }
 

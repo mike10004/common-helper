@@ -25,26 +25,22 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProgramFuture.CountdownLatchSet;
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
 import com.google.common.base.Charsets;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
-import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import jdk.nashorn.internal.codegen.CompilerConstants.Call;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
 import org.apache.tools.ant.types.Environment;
 
 import javax.annotation.Nullable;
@@ -59,13 +55,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -174,13 +167,23 @@ public abstract class Program<R extends ProgramResult> {
         return result;
     }
 
-    protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
-        return new Callable<R>() {
-            @Override
-            public R call() {
-                return execute(task);
-            }
-        };
+    protected class ExecTaskCallable implements Callable<R> {
+
+        private final ExposedExecTask task;
+
+        ExecTaskCallable(ExposedExecTask task) {
+            this.task = task;
+        }
+
+        @Override
+        public R call() {
+            return execute(task);
+        }
+
+    }
+
+    protected ExecTaskCallable newExecutingCallable(final ExposedExecTask task) {
+        return new ExecTaskCallable(task);
     }
     
     /**

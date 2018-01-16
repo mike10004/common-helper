@@ -3,8 +3,17 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.LethalWatchdog.DestroyStatus;
+import com.github.mike10004.nativehelper.LethalWatchdog.ProcessStartListener;
 import org.apache.tools.ant.BuildException;
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.*;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
+import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.Execute;
+
+import javax.annotation.Nullable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -18,7 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
  * prematurely, if the {@code destructible} flag is true.
  * 
  * <p>The better way to do this would be to override the {@code Redirector}'s 
- * {@link Redirector#createStreams() createStreams()} method, but there are 
+ * {@code Redirector#createStreams()} method, but there are
  * many private members used in that method, so it would take a lot of code
  * to override the class's setter methods to obtain visible references to 
  * them. 
@@ -26,8 +35,13 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class ExposedExecTask extends ExecTask {
 
+    private static final Logger log = Logger.getLogger(ExposedExecTask.class.getName());
+
     private final LethalWatchdog watchdog;
     private Execute execute;
+    private final transient Object executeLock = new Object();
+    private transient volatile boolean killed;
+    private transient volatile Process process;
 
     public ExposedExecTask() {
         redirector = new EchoableRedirector(this);
@@ -56,8 +70,8 @@ public class ExposedExecTask extends ExecTask {
     }
 
     /**
-     * Sets the task's destructibilty. True means that {@link #abort() }
-     * can succeed.
+     * Do not call this; it will throw an exception if the argument is false, and otherwise
+     * it will do nothing. All instances of this class are destructible.
      * @param destructible  true if task should be destructible
      */
     @Deprecated
@@ -88,13 +102,58 @@ public class ExposedExecTask extends ExecTask {
     }
 
     /**
-     * Attempts to destroy the process. Calls {@link LethalWatchdog#destroy() }.
-     * If this task's watchdog has not been set, then this method does nothing.
-     * @return true always; the value at one time meant something, but now it does not
+     * Attempts to destroy the process. Calls {@link LethalWatchdog#destroy(Process, long, TimeUnit)}.
+     * If this task's process has not been set, then this method does nothing. The process is set
+     * some time after {@link #execute()} is invoked. Therefore, this method's result is not very
+     * predictable, so you should prefer to capture the process yourself using {@link #executeProcess(Consumer)}
+     * and destroy it directly. At some point in the future, this method will be removed.
+     * <p>This calls {@link LethalWatchdog#destroy(Process, long, TimeUnit)} with a timeout of one second.
+     * @return true if this task was never executed or it was successfully killed
+     * @deprecated prefer using {@link #executeProcess(Consumer)} and doing what you want with that
+     * process object
      */
+    @Deprecated
     public boolean abort() {
-        watchdog.destroy();
-        return true;
+        killed = true;
+        DestroyStatus status = null;
+        if (process != null) {
+            status = LethalWatchdog.destroy(process, DEFAULT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        }
+        return status != null && status.isDefinitelyDead();
     }
 
+    private final static int DEFAULT_TIMEOUT_MILLIS = 1000;
+
+    @Override
+    public void execute() {
+        synchronized (executeLock) {
+            if (killed) {
+                throw new IllegalStateException("kill() already called on this instance");
+            }
+            executeProcess(process -> {});
+        }
+    }
+
+    /**
+     * Executes the process, providing the process object in a callback that executes on a
+     * different thread.
+     */
+    public void executeProcess(Consumer<? super Process> processCallback) {
+        ProcessStartListener listener = process -> {
+            processCallback.accept(process);
+            this.process = process;
+        };
+        watchdog.addProcessStartListener(listener);
+        try {
+            super.execute();
+            checkState(this.process != null, "process was never set");
+        } finally {
+            watchdog.removeProcessStartListener(listener);
+        }
+    }
+
+    @Nullable
+    Process getProcess() {
+        return process;
+    }
 }
