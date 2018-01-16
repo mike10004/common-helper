@@ -103,6 +103,9 @@
                     <configuration>
                         <argLine>-Djava.awt.headless=true</argLine>
                         <skipTests>${skip.surefire.tests}</skipTests>
+                        <systemPropertyVariables>
+                            <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -111,6 +114,9 @@
                     <configuration>
                         <argLine>-Djava.awt.headless=true</argLine>
                         <skipTests>${skip.failsafe.tests}</skipTests>
+                        <systemPropertyVariables>
+                            <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>
