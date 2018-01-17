@@ -15,7 +15,7 @@
  *  limitations under the License.
  *
  */
-package com.github.mike10004.subprocess;
+package com.github.mike10004.nativehelper.subprocess;
 
 import java.io.IOException;
 import java.io.InputStream;

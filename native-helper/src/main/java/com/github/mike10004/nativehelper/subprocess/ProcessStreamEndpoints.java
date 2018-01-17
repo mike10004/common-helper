@@ -1,4 +1,4 @@
-package com.github.mike10004.subprocess;
+package com.github.mike10004.nativehelper.subprocess;
 
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.github.mike10004.subprocess;
+package com.github.mike10004.nativehelper.subprocess;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

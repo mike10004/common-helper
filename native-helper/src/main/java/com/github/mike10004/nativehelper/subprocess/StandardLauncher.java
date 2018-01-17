@@ -1,7 +1,7 @@
 /*
  * A lot of code taken from Execute class in apache-ant and (c) Apache Software Foundation
  */
-package com.github.mike10004.subprocess;
+package com.github.mike10004.nativehelper.subprocess;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteSource;

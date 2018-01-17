@@ -1,8 +1,8 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.Program.TaskStage;
-import com.github.mike10004.subprocess.Processes;
-import com.github.mike10004.subprocess.Processes.DestroyStatus;
+import com.github.mike10004.nativehelper.subprocess.Processes;
+import com.github.mike10004.nativehelper.subprocess.Processes.DestroyStatus;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;

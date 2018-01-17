@@ -1,8 +1,8 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled;
-import com.github.mike10004.subprocess.Processes;
-import com.github.mike10004.subprocess.Processes.DestroyStatus;
+import com.github.mike10004.nativehelper.subprocess.Processes;
+import com.github.mike10004.nativehelper.subprocess.Processes.DestroyStatus;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
