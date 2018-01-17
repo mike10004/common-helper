@@ -1,7 +1,8 @@
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.LethalWatchdog.DestroyStatus;
 import com.github.mike10004.nativehelper.Program.TaskStage;
+import com.github.mike10004.subprocess.Processes;
+import com.github.mike10004.subprocess.Processes.DestroyStatus;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -127,7 +128,7 @@ public class ProgramFuture<T> extends SimpleForwardingListenableFuture<T> {
      */
     public KillResult killProcess(long timeout, TimeUnit unit) {
         if (getStage() == TaskStage.EXECUTED) {
-            DestroyStatus status = LethalWatchdog.destroy(execTask.getProcess(), timeout, unit);
+            DestroyStatus status = Processes.destroy(execTask.getProcess(), timeout, unit);
             checkState(status != null, "status null even though process known to be started");
             return new KillResult(KillAction.PERFORMED, status);
         } else {

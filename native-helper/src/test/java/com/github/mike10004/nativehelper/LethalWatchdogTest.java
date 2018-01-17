@@ -1,7 +1,8 @@
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.LethalWatchdog.DestroyStatus;
-import com.github.mike10004.nativehelper.Processes.ProcessToBeKilled;
+import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled;
+import com.github.mike10004.subprocess.Processes;
+import com.github.mike10004.subprocess.Processes.DestroyStatus;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -10,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,7 +30,7 @@ public class LethalWatchdogTest {
 
     private void testDestroy(DestroyStatus expected, String...extraArgs) throws Exception {
         File pidFile = File.createTempFile("LethalWatchdogTest", ".pid");
-        File scriptFile = Processes.pythonScript_mustBeKilled();
+        File scriptFile = ProcessUtils.pythonScript_mustBeKilled();
         List<String> cmd = new ArrayList<>(Arrays.asList(
                 "python",
                 scriptFile.getAbsolutePath(),
@@ -43,9 +43,9 @@ public class LethalWatchdogTest {
                 .inheritIO()
                 .start();
         try (ProcessToBeKilled ignored = new ProcessToBeKilled(pidFile)) {
-            String pidFileContents = Processes.readWhenNonempty(pidFile);
+            String pidFileContents = ProcessUtils.readWhenNonempty(pidFile);
             System.out.format("pidfile contents %s%n", pidFileContents.trim());
-            DestroyStatus status = LethalWatchdog.destroy(process, 500, TimeUnit.MILLISECONDS);
+            DestroyStatus status = Processes.destroy(process, 500, TimeUnit.MILLISECONDS);
             assertEquals("status", expected, status);
         }
         int exitcode = process.exitValue();

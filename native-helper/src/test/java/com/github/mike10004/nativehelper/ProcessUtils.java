@@ -16,13 +16,13 @@ import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class Processes {
+class ProcessUtils {
 
-    private Processes() {}
+    private ProcessUtils() {}
 
     public static File pythonScript_mustBeKilled() {
         try {
-            return new File(Processes.class.getResource("/signal_listener.py").toURI());
+            return new File(ProcessUtils.class.getResource("/signal_listener.py").toURI());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

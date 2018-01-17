@@ -3,15 +3,15 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.LethalWatchdog.DestroyStatus;
 import com.github.mike10004.nativehelper.LethalWatchdog.ProcessStartListener;
-import org.apache.tools.ant.BuildException;
 import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
 import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.Execute;
+import com.github.mike10004.subprocess.Processes;
+import com.github.mike10004.subprocess.Processes.DestroyStatus;
+import org.apache.tools.ant.BuildException;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -102,12 +102,12 @@ public class ExposedExecTask extends ExecTask {
     }
 
     /**
-     * Attempts to destroy the process. Calls {@link LethalWatchdog#destroy(Process, long, TimeUnit)}.
+     * Attempts to destroy the process.
      * If this task's process has not been set, then this method does nothing. The process is set
      * some time after {@link #execute()} is invoked. Therefore, this method's result is not very
      * predictable, so you should prefer to capture the process yourself using {@link #executeProcess(Consumer)}
      * and destroy it directly. At some point in the future, this method will be removed.
-     * <p>This calls {@link LethalWatchdog#destroy(Process, long, TimeUnit)} with a timeout of one second.
+     * <p>This calls {@link Processes#destroy(Process, long, TimeUnit)} with a timeout of one second.
      * @return true if this task was never executed or it was successfully killed
      * @deprecated prefer using {@link #executeProcess(Consumer)} and doing what you want with that
      * process object
@@ -117,7 +117,7 @@ public class ExposedExecTask extends ExecTask {
         killed = true;
         DestroyStatus status = null;
         if (process != null) {
-            status = LethalWatchdog.destroy(process, DEFAULT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+            status = Processes.destroy(process, DEFAULT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         }
         return status != null && status.isDefinitelyDead();
     }

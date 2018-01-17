@@ -1,12 +1,10 @@
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Processes.ProcessToBeKilled;
-import com.github.mike10004.nativehelper.Processes.ProcessToBeKilled.PidFailureReaction;
+import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled;
+import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled.PidFailureReaction;
 import com.github.mike10004.nativehelper.Program.TaskStage;
-import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -14,9 +12,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -55,7 +50,7 @@ public class ProgramKillTest {
     private void testDeprecatedCancel(TaskStage stageToAwait, boolean waitForPidfile, PidFailureReaction pidFailureReaction) throws Exception {
         File pidFile = tmp.newFile();
         Program<ProgramWithOutputStringsResult> program = Program.running("python")
-                .arg(Processes.pythonScript_mustBeKilled().getAbsolutePath())
+                .arg(ProcessUtils.pythonScript_mustBeKilled().getAbsolutePath())
                 .args("--pidfile", pidFile.getAbsolutePath())
                 .outputToStrings();
         ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
@@ -64,7 +59,7 @@ public class ProgramKillTest {
             ProgramFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
             future.awaitStage(stageToAwait);
             if (waitForPidfile) {
-                System.out.format("pidfile contents: %s%n", Processes.readWhenNonempty(pidFile).trim());
+                System.out.format("pidfile contents: %s%n", ProcessUtils.readWhenNonempty(pidFile).trim());
             }
             @SuppressWarnings("deprecation")
             boolean cancelResult = future.cancel(true);
