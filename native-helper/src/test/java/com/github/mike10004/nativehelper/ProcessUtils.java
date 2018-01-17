@@ -3,6 +3,7 @@ package com.github.mike10004.nativehelper;
 import com.github.mike10004.nativehelper.Poller.PollOutcome;
 import com.github.mike10004.nativehelper.Poller.StopReason;
 import com.github.mike10004.nativehelper.ProgramKillTest.TestProcessState;
+import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.Files;
 
 import javax.annotation.Nullable;
@@ -21,11 +22,7 @@ class ProcessUtils {
     private ProcessUtils() {}
 
     public static File pythonScript_mustBeKilled() {
-        try {
-            return new File(ProcessUtils.class.getResource("/signal_listener.py").toURI());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        return Tests.getPythonFile("signal_listener.py");
     }
 
     public static String readWhenNonempty(File file) throws InterruptedException {
