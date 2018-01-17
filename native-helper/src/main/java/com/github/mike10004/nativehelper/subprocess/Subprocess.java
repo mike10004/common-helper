@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.io.ByteSource;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -50,20 +50,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Class that represents a program that is to be executed in an external process.
- * Instances of this class are immutable, so it is safe to execute the same 
- * program in a multithreaded context. All configuration is performed with a 
- * {@link Builder} instance. Use {@link #running(String) } to create
- * a builder instance.
- * 
- * <p>The interface is designed to be somewhat fluent, so you can write
- * <pre>    Program program = Program.running("echo").arg("hello").outputToStrings();
- *    String output = program.execute().getStdoutString();
- *    System.out.println(output); // "hello"
- * </pre>
- * @author mchaberski
+ * Class that represents a subprocess to be executed.
  */
-public abstract class Subprocess {
+public class Subprocess {
     
     private final String executable;
     private final ImmutableList<String> arguments;
@@ -81,20 +70,21 @@ public abstract class Subprocess {
     /**
      * @return a future representing the computation
      */
-    public <T extends ProcessOutput> ProcessFuture<T> launch(ProcessOutputControl<T> outputControl, ProcessContext processContext) throws ProcessException {
+    public <SO, SE> ProcessFuture<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
         ListeningExecutorService waitingExecutor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
-        StandardLauncher.Execution execution;
+        Executor.Execution execution;
         try {
-            execution = new StandardLauncher(this, processContext).launch(outputControl.produceEndpoints());
+            execution = new Executor(this, processContext).launch(outputControl.produceEndpoints());
         } catch (IOException e) {
             throw new ProcessLaunchException("failed to produce stream endpoints", e);
         }
-        AsyncFunction<Integer, ProcessResult<T>> transform = outputControl.getTransform();
-        ListenableFuture<ProcessResult<T>> fullResultFuture = execution.getFuture().transformAsync(transform, waitingExecutor);
-        ProcessFuture<T> processFuture = new ProcessFuture<>(execution.getProcess(), fullResultFuture);
+        Function<Integer, ProcessResult<SO, SE>> transform = outputControl.getTransform();
+        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture().transformAsync(transform, waitingExecutor);
+        ProcessFuture<SO, SE> processFuture = new ProcessFuture<>(execution.getProcess(), fullResultFuture);
         return processFuture;
     }
 
+    @SuppressWarnings("unused")
     public static class ProcessExecutionException extends ProcessException {
         public ProcessExecutionException(String message) {
             super(message);
@@ -121,7 +111,7 @@ public abstract class Subprocess {
         }
     }
 
-    public <T extends ProcessOutput> ProcessResult<T> execute(ProcessOutputControl<T> outputControl, ProcessContext processContext) throws ProcessException {
+    public <SO, SE> ProcessResult<SO, SE> execute(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
         try {
             return launch(outputControl, processContext).get();
         } catch (InterruptedException e) {
@@ -229,6 +219,51 @@ public abstract class Subprocess {
             return this;
         }
 
+        public Subprocess build() {
+            return new Subprocess(executable, workingDirectory, environment, arguments);
+        }
+
+    }
+
+    public Launcher<Void, Void> launcher(ProcessContext context) {
+        return toSinkhole(context);
+    }
+    private Launcher<Void, Void> toSinkhole(ProcessContext processContext) {
+        return new Launcher<Void, Void>(processContext, ProcessOutputControls.sinkhole()){};
+    }
+
+    public abstract class Launcher<SO, SE> {
+        private final ProcessContext processContext;
+        private final ProcessOutputControl outputControl;
+
+        private Launcher(ProcessContext processContext, ProcessOutputControl outputControl) {
+            this.processContext = requireNonNull(processContext);
+            this.outputControl = requireNonNull(outputControl);
+        }
+
+        public <SO2, SE2> Launcher<SO2, SE2> output(ProcessOutputControl<SO2, SE2> outputControl) {
+            return new Launcher<SO2, SE2>(processContext, outputControl) {};
+        }
+
+        public ProcessFuture<SO, SE> launch() throws ProcessException {
+            return Subprocess.this.launch(outputControl(), processContext);
+        }
+
+        private ProcessOutputControl<SO, SE> outputControl() {
+            @SuppressWarnings("unchecked")
+            ProcessOutputControl<SO, SE> typedOutputControl = outputControl;
+            return typedOutputControl;
+        }
+
+        public ProcessResult<SO, SE> execute() throws ProcessException {
+            return Subprocess.this.execute(outputControl(), processContext);
+        }
+
+        public Launcher<ByteSource, ByteSource> outputInMemory() {
+            ProcessOutputControl<ByteSource, ByteSource> m = ProcessOutputControls.memory();
+            Launcher<ByteSource, ByteSource> l = output(m);
+            return l;
+        }
     }
     
     /**
@@ -275,11 +310,12 @@ public abstract class Subprocess {
 
     @Override
     public String toString() {
-        return "Program{" +
+        return "Subprocess{" +
                 "executable='" + executable + '\'' +
                 ", arguments=" + StringUtils.abbreviateMiddle(String.valueOf(arguments), "...", 64) +
                 ", workingDirectory=" + workingDirectory +
                 ", environment=" + StringUtils.abbreviateMiddle(String.valueOf(environment), "...", 64) +
                 '}';
     }
+
 }

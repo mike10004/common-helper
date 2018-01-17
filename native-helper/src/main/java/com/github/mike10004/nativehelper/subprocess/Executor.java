@@ -3,6 +3,7 @@
  */
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteSource;
 import com.google.common.util.concurrent.FluentFuture;
@@ -25,16 +26,16 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 
-class StandardLauncher {
+class Executor {
 
-    private static final Logger log = LoggerFactory.getLogger(StandardLauncher.class);
+    private static final Logger log = LoggerFactory.getLogger(Executor.class);
 
     private final ListeningExecutorService terminationWaitingService;
 
     private final Subprocess program;
     private final ProcessContext processDestroyer;
 
-    public StandardLauncher(Subprocess program, ProcessContext processDestroyer) {
+    public Executor(Subprocess program, ProcessContext processDestroyer) {
         this.program = requireNonNull(program);
         this.processDestroyer = requireNonNull(processDestroyer);
         terminationWaitingService = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
@@ -101,7 +102,8 @@ class StandardLauncher {
      * @exception ProcessException The exception is thrown, if launching
      *            of the subprocess failed.
      */
-    private Process execute() {
+    @VisibleForTesting
+    Process execute() {
         File workingDirectory = program.getWorkingDirectory();
         if (!InvalidWorkingDirectoryException.check(workingDirectory)) {
             throw new InvalidWorkingDirectoryException(workingDirectory);
@@ -144,8 +146,9 @@ class StandardLauncher {
         }
     }
 
+    @VisibleForTesting
     @Nullable
-    private Integer follow(Process process, ProcessStreamEndpoints endpoints) throws IOException {
+    Integer follow(Process process, ProcessStreamEndpoints endpoints) throws IOException {
         processDestroyer.add(process);
         boolean terminated = false;
         @Nullable Integer exitVal;

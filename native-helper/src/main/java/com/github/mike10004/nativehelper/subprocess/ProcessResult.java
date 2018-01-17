@@ -1,8 +1,8 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-public interface ProcessResult<T extends ProcessOutput> {
+public interface ProcessResult<SO, SE> {
 
-    Integer getExitCode();
-    T getOutput();
+    int getExitCode();
+    ProcessOutput<SO, SE> getOutput();
 
 }

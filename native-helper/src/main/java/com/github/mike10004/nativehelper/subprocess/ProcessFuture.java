@@ -3,13 +3,18 @@ package com.github.mike10004.nativehelper.subprocess;
 import com.google.common.util.concurrent.ForwardingListenableFuture.SimpleForwardingListenableFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 
-public class ProcessFuture<T extends ProcessOutput> extends SimpleForwardingListenableFuture<ProcessResult<T>> {
+import static java.util.Objects.requireNonNull;
 
-    public final Process process;
+public class ProcessFuture<SO, SE> extends SimpleForwardingListenableFuture<ProcessResult<SO, SE>> {
 
-    ProcessFuture(Process process, ListenableFuture<ProcessResult<T>> delegate) {
+    private final Process process;
+
+    ProcessFuture(Process process, ListenableFuture<ProcessResult<SO, SE>> delegate) {
         super(delegate);
-        this.process = process;
+        this.process = requireNonNull(process);
     }
 
+    public Process getProcess() {
+        return process;
+    }
 }

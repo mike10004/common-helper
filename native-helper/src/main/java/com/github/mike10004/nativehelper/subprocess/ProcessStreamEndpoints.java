@@ -64,6 +64,14 @@ public class ProcessStreamEndpoints {
         }
     };
 
+    public static ProcessStreamEndpoints nullWithNullInput() {
+        return NULL_WITH_NULL_INPUT;
+    }
+
+    public static ProcessStreamEndpoints nullWithEmptyInput() {
+        return NULL_WITH_EMPTY_INPUT;
+    }
+
     private static final ProcessStreamEndpoints NULL_WITH_NULL_INPUT = builder().build();
     private static final ProcessStreamEndpoints NULL_WITH_EMPTY_INPUT = builder().stdin(ByteSource.empty()).build();
 
@@ -71,9 +79,25 @@ public class ProcessStreamEndpoints {
         private ByteSink stdout = NULL_SINK;
         private ByteSink stderr = NULL_SINK;
         @Nullable
-        private ByteSource stdin;
+        private ByteSource stdin = null;
 
         private Builder() {
+        }
+
+        public Builder noStdin() {
+            return stdin(null);
+        }
+
+        public Builder emptyStdin() {
+            return stdin(ByteSource.empty());
+        }
+
+        public Builder stderrToDevNull() {
+            return stderr(NULL_SINK);
+        }
+
+        public Builder stdoutToDevNull() {
+            return stdout(NULL_SINK);
         }
 
         public Builder stdout(ByteSink val) {
