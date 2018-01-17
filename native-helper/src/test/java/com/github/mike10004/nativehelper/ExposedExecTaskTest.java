@@ -7,7 +7,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
+import org.apache.tools.ant.taskdefs.ExecTask;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;

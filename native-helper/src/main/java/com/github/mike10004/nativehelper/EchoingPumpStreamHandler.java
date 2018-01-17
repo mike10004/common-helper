@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.PumpStreamHandler;
+import org.apache.tools.ant.taskdefs.PumpStreamHandler;
 
 /**
  * Stream handler that provides a method to echo output from the standard

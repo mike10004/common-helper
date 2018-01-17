@@ -25,7 +25,7 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProgramFuture.CountdownLatchSet;
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecTask;
+import org.apache.tools.ant.taskdefs.ExecTask;
 import com.google.common.base.Charsets;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;

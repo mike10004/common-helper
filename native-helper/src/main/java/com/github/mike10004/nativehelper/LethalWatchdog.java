@@ -3,7 +3,7 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.ExecuteWatchdog;
+import org.apache.tools.ant.taskdefs.ExecuteWatchdog;
 
 import java.util.ArrayList;
 import java.util.Collections;

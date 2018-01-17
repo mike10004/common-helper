@@ -5,7 +5,7 @@ package com.github.mike10004.nativehelper;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import com.github.mike10004.nativehelper.repackaged.org.apache.tools.ant.taskdefs.StreamPumper;
+import org.apache.tools.ant.taskdefs.StreamPumper;
 
 /**
  * Class that 
