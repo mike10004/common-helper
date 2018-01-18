@@ -3,16 +3,32 @@ package com.github.mike10004.nativehelper.subprocess;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 public class SubprocessTest {
@@ -134,5 +150,57 @@ public class SubprocessTest {
         System.out.println(result);
         assertEquals("output", expected, result.getOutput().getStdout());
         assertEquals("exit code", 0, result.getExitCode());
+    }
+
+    @Test
+    public void launch_readInput_piped() throws Exception {
+        PipedInputStream pipeIn = new PipedInputStream();
+        PipedOutputStream pipeOut = new PipedOutputStream(pipeIn);
+        Charset charset = UTF_8;
+        ByteSource stdin = new ByteSource() {
+            @Override
+            public InputStream openStream() {
+                return pipeIn;
+            }
+        };
+        ListenableFuture<ProcessResult<String, String>> resultFuture = Subprocess.running(Tests.getPythonFile("read_input.py"))
+                .build()
+                .launcher(CONTEXT)
+                .outputStrings(charset, stdin)
+                .launch();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Futures.addCallback(resultFuture, new AlwaysCallback<Object>() {
+            @Override
+            protected void always(@Nullable Object result, @Nullable Throwable t) {
+                System.out.println("program ended: " + result);
+            }
+        }, executor);
+        List<String> lines = Arrays.asList("foo", "bar", "baz", "");
+        PrintWriter printer = new PrintWriter(new OutputStreamWriter(pipeOut, charset));
+        for (String line : lines) {
+            printer.println(line);
+            printer.flush();
+        }
+        ProcessResult<String, String> result = resultFuture.get();
+        assertEquals("exit code", 0, result.getExitCode());
+        String expected = joinPlus(System.lineSeparator(), lines.subList(0, 3));
+        assertEquals("output", expected, result.getOutput().getStdout());
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+        executor.shutdown();
+    }
+
+    private abstract static class AlwaysCallback<T> implements FutureCallback<T> {
+
+        @Override
+        public void onSuccess(T result) {
+            always(result, null);
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            always(null, t);
+        }
+
+        protected abstract void always(@Nullable T result, @Nullable Throwable t);
     }
 }
