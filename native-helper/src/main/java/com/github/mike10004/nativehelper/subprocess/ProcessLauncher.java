@@ -26,16 +26,16 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 
-class Executor {
+class ProcessLauncher {
 
-    private static final Logger log = LoggerFactory.getLogger(Executor.class);
+    private static final Logger log = LoggerFactory.getLogger(ProcessLauncher.class);
 
     private final ListeningExecutorService terminationWaitingService;
 
     private final Subprocess program;
     private final ProcessContext processDestroyer;
 
-    public Executor(Subprocess program, ProcessContext processDestroyer) {
+    public ProcessLauncher(Subprocess program, ProcessContext processDestroyer) {
         this.program = requireNonNull(program);
         this.processDestroyer = requireNonNull(processDestroyer);
         terminationWaitingService = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());

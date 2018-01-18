@@ -3,7 +3,6 @@ package com.github.mike10004.nativehelper.subprocess;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -11,7 +10,6 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
@@ -24,7 +22,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -189,18 +186,6 @@ public class SubprocessTest {
         executor.shutdown();
     }
 
-    private abstract static class AlwaysCallback<T> implements FutureCallback<T> {
+    
 
-        @Override
-        public void onSuccess(T result) {
-            always(result, null);
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-            always(null, t);
-        }
-
-        protected abstract void always(@Nullable T result, @Nullable Throwable t);
-    }
 }

@@ -75,9 +75,9 @@ public class Subprocess {
      */
     public <SO, SE> ProcessFuture<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
         ListeningExecutorService waitingExecutor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
-        Executor.Execution execution;
+        ProcessLauncher.Execution execution;
         try {
-            execution = new Executor(this, processContext).launch(outputControl.produceEndpoints());
+            execution = new ProcessLauncher(this, processContext).launch(outputControl.produceEndpoints());
         } catch (IOException e) {
             throw new ProcessLaunchException("failed to produce stream endpoints", e);
         }

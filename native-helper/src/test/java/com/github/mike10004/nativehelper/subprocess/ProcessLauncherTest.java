@@ -1,18 +1,17 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.Executor.Execution;
+import com.github.mike10004.nativehelper.subprocess.ProcessLauncher.Execution;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.ByteSource;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.*;
 
-public class ExecutorTest {
+public class ProcessLauncherTest {
 
     private static final ProcessContext CONTEXT = ProcessContext.create();
 
@@ -22,7 +21,7 @@ public class ExecutorTest {
         Subprocess subprocess = Subprocess.running("echo")
                 .args(expected)
                 .build();
-        Executor executor = new Executor(subprocess, CONTEXT);
+        ProcessLauncher executor = new ProcessLauncher(subprocess, CONTEXT);
         ByteBucket stdout = ByteBucket.create(), stderr = ByteBucket.create();
         ProcessStreamEndpoints endpoints = new ProcessStreamEndpoints(stdout, stderr, null);
         Execution execution = executor.launch(endpoints);
@@ -38,7 +37,7 @@ public class ExecutorTest {
         Subprocess subprocess = Subprocess.running("echo")
                 .args(expected)
                 .build();
-        Executor executor = new Executor(subprocess, CONTEXT);
+        ProcessLauncher executor = new ProcessLauncher(subprocess, CONTEXT);
         ProcessOutputControl<ByteSource, ByteSource> ctrl = ProcessOutputControls.memoryByteSources();
         ProcessStreamEndpoints endpoints = ctrl.produceEndpoints();
         Execution execution = executor.launch(endpoints);
@@ -54,7 +53,7 @@ public class ExecutorTest {
         byte[] input = { 1, 2, 3, 4 };
         Subprocess subprocess = Subprocess.running(Tests.getPythonFile("length.py"))
                 .build();
-        Executor executor = new Executor(subprocess, CONTEXT);
+        ProcessLauncher executor = new ProcessLauncher(subprocess, CONTEXT);
         ByteBucket stdoutBucket = ByteBucket.create();
         ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
                 .stdin(ByteSource.wrap(input))
