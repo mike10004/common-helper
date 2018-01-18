@@ -29,6 +29,14 @@ class BasicProcessResult<SO, SE> implements ProcessResult<SO, SE> {
     }
 
     public static <SO, SE> BasicProcessResult<SO, SE> create(int exitCode, SO stdout, SE stderr) {
-        return new BasicProcessResult<>(exitCode, new DirectOutput<>(stdout, stderr));
+        return new BasicProcessResult<>(exitCode, ProcessOutput.direct(stdout, stderr));
+    }
+
+    @Override
+    public String toString() {
+        return "ProcessResult{" +
+                "exitCode=" + exitCode +
+                ", output=" + output +
+                '}';
     }
 }

@@ -23,6 +23,7 @@
  */
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.github.mike10004.nativehelper.subprocess.ProcessOutputControl.UniformOutputControl;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -37,6 +38,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -79,7 +82,7 @@ public class Subprocess {
             throw new ProcessLaunchException("failed to produce stream endpoints", e);
         }
         Function<Integer, ProcessResult<SO, SE>> transform = outputControl.getTransform();
-        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture().transformAsync(transform, waitingExecutor);
+        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture().transform(transform::apply, waitingExecutor);
         ProcessFuture<SO, SE> processFuture = new ProcessFuture<>(execution.getProcess(), fullResultFuture);
         return processFuture;
     }
@@ -158,6 +161,8 @@ public class Subprocess {
 
         /**
          * Set variables in the environment of the process to be executed.
+         * Each entry in the argument map is put into this builder's environment map.
+         * Existing entries are not cleared; use {@link #clearEnv()} for that.
          * @param environment map of variables to set
          * @return this builder instance
          */
@@ -178,9 +183,20 @@ public class Subprocess {
         }
 
         /**
+         * Clears this builder's environment map.
+         * @return this instance
+         */
+        @SuppressWarnings("unused")
+        public Builder clearEnv() {
+            this.environment.clear();
+            return this;
+        }
+
+        /**
          * Clears the argument list of this builder.
          * @return this builder instance
          */
+        @SuppressWarnings("unused")
         public Builder clearArgs() {
             this.arguments.clear();
             return this;
@@ -232,13 +248,29 @@ public class Subprocess {
         return new Launcher<Void, Void>(processContext, ProcessOutputControls.sinkhole()){};
     }
 
+    /**
+     * Helper class that retains references to some dependencies so that you can
+     * use a builder-style pattern to launch a process. Instances of this class are immutable
+     * and methods that have return type {@code Launcher} return new instances.
+     * @param <SO> standard output capture type
+     * @param <SE> standard error capture type
+     */
     public abstract class Launcher<SO, SE> {
-        private final ProcessContext processContext;
-        private final ProcessOutputControl outputControl;
 
-        private Launcher(ProcessContext processContext, ProcessOutputControl outputControl) {
+        private final ProcessContext processContext;
+        protected final ProcessOutputControl<SO, SE> outputControl;
+
+        private Launcher(ProcessContext processContext, ProcessOutputControl<SO, SE> outputControl) {
             this.processContext = requireNonNull(processContext);
             this.outputControl = requireNonNull(outputControl);
+        }
+
+        public <S> UniformLauncher<S> output(UniformOutputControl<S> outputControl) {
+            return uniformOutput(outputControl);
+        }
+
+        public <S> UniformLauncher<S> uniformOutput(ProcessOutputControl<S, S> outputControl) {
+            return new UniformLauncher<S>(processContext, outputControl) {};
         }
 
         public <SO2, SE2> Launcher<SO2, SE2> output(ProcessOutputControl<SO2, SE2> outputControl) {
@@ -246,34 +278,61 @@ public class Subprocess {
         }
 
         public ProcessFuture<SO, SE> launch() throws ProcessException {
-            return Subprocess.this.launch(outputControl(), processContext);
-        }
-
-        private ProcessOutputControl<SO, SE> outputControl() {
-            @SuppressWarnings("unchecked")
-            ProcessOutputControl<SO, SE> typedOutputControl = outputControl;
-            return typedOutputControl;
+            return Subprocess.this.launch(outputControl, processContext);
         }
 
         public ProcessResult<SO, SE> execute() throws ProcessException {
-            return Subprocess.this.execute(outputControl(), processContext);
+            return Subprocess.this.execute(outputControl, processContext);
         }
 
-        public Launcher<ByteSource, ByteSource> outputInMemory() {
-            ProcessOutputControl<ByteSource, ByteSource> m = ProcessOutputControls.memory();
-            Launcher<ByteSource, ByteSource> l = output(m);
-            return l;
+        public <SO2, SE2> Launcher<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
+            return output(outputControl.map(stdoutMap, stderrMap));
+        }
+
+        public UniformLauncher<String> outputStrings(Charset charset) {
+            requireNonNull(charset, "charset");
+            return outputStrings(charset, null);
+        }
+
+        public UniformLauncher<String> outputStrings(Charset charset, @Nullable ByteSource stdin) {
+            requireNonNull(charset, "charset");
+            return output(ProcessOutputControls.strings(charset, stdin));
+        }
+
+        public UniformLauncher<byte[]> outputInMemory() {
+            return outputInMemory(null);
+        }
+
+        public UniformLauncher<byte[]> outputInMemory(@Nullable ByteSource stdin) {
+            UniformOutputControl<byte[]> m = ProcessOutputControls.byteArrays(stdin);
+            return output(m);
+        }
+
+    }
+
+    public abstract class UniformLauncher<S> extends Launcher<S, S> {
+
+        private UniformLauncher(ProcessContext processContext, ProcessOutputControl<S, S> outputControl) {
+            super(processContext, outputControl);
+        }
+
+        public <T> UniformLauncher<T> map(Function<? super S, T> mapper) {
+            UniformOutputControl<S> u = UniformOutputControl.wrap(this.outputControl);
+            UniformOutputControl<T> t = u.map(mapper);
+            return uniformOutput(t);
         }
     }
-    
+
     /**
      * Constructs a builder instance that will produce a program that 
-     * launches the given executable.
+     * launches the given executable. Checks that a file exists at the given pathname
+     * and that it is executable by the operating system.
      * @param executable the executable file
      * @return a builder instance
      * @throws IllegalArgumentException if {@link File#canExecute() } is false
      */
     public static Builder running(File executable) {
+        checkArgument(executable.isFile(), "file not found: %s", executable);
         checkArgument(executable.canExecute(), "executable.canExecute");
         return running(executable.getPath());
     }

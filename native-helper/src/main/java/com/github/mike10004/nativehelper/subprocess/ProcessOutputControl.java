@@ -1,7 +1,5 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.google.common.util.concurrent.AsyncFunction;
-
 import java.io.IOException;
 import java.util.function.Function;
 
@@ -11,13 +9,40 @@ public interface ProcessOutputControl<SO, SE> {
 
     Function<Integer, ProcessResult<SO, SE>> getTransform();
 
-    default <SO2, SE2> ProcessOutputControl<SO2, SE2> map(Function<SO, SO2> stdoutMap, Function<SE, SE2> stderrMap) {
+    default <SO2, SE2> ProcessOutputControl<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
+        ProcessOutputControl<SO, SE> self = this;
+        return new ProcessOutputControl<SO2, SE2>() {
+            @Override
+            public ProcessStreamEndpoints produceEndpoints() throws IOException {
+                return self.produceEndpoints();
+            }
 
+            @Override
+            public Function<Integer, ProcessResult<SO2, SE2>> getTransform() {
+                return self.getTransform().andThen(result -> {
+                    return result.map(stdoutMap, stderrMap);
+                });
+            }
+        };
     }
 
     interface UniformOutputControl<S> extends ProcessOutputControl<S, S> {
 
-        default <T> UniformOutputControl<T> map(Function<S, T> function) {
+        static <S> UniformOutputControl<S> wrap(ProcessOutputControl<S, S> homogenous) {
+            return new UniformOutputControl<S>() {
+                @Override
+                public ProcessStreamEndpoints produceEndpoints() throws IOException {
+                    return homogenous.produceEndpoints();
+                }
+
+                @Override
+                public Function<Integer, ProcessResult<S, S>> getTransform() {
+                    return homogenous.getTransform();
+                }
+            };
+        }
+
+        default <T> UniformOutputControl<T> map(Function<? super S, T> stmap) {
             ProcessOutputControl<S, S> duplex = this;
             return new UniformOutputControl<T>() {
 
@@ -33,10 +58,11 @@ public interface ProcessOutputControl<SO, SE> {
                         @Override
                         public ProcessResult<T, T> apply(Integer integer) {
                             ProcessResult<S, S> result = f.apply(integer);
+                            return result.map(stmap, stmap);
                         }
-                    }
+                    };
                 }
-            }
+            };
         }
     }
 }

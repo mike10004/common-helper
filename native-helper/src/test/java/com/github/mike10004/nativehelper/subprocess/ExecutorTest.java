@@ -1,12 +1,15 @@
 package com.github.mike10004.nativehelper.subprocess;
 
 import com.github.mike10004.nativehelper.subprocess.Executor.Execution;
+import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.ByteSource;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.*;
 
 public class ExecutorTest {
@@ -25,7 +28,7 @@ public class ExecutorTest {
         Execution execution = executor.launch(endpoints);
         Integer exitCode = execution.getFuture().get();
         assertEquals("exitcode", 0, exitCode.intValue());
-        String actual = new String(stdout.dump(), StandardCharsets.US_ASCII);
+        String actual = new String(stdout.dump(), US_ASCII);
         assertEquals("stdout", expected, actual.trim());
     }
 
@@ -36,13 +39,33 @@ public class ExecutorTest {
                 .args(expected)
                 .build();
         Executor executor = new Executor(subprocess, CONTEXT);
-        ProcessOutputControl<ByteSource, ByteSource> ctrl = ProcessOutputControls.memory();
+        ProcessOutputControl<ByteSource, ByteSource> ctrl = ProcessOutputControls.memoryByteSources();
         ProcessStreamEndpoints endpoints = ctrl.produceEndpoints();
         Execution execution = executor.launch(endpoints);
         Integer exitCode = execution.getFuture().get();
         assertEquals("exitcode", 0, exitCode.intValue());
-        ByteSource stdout = ctrl.getTransform().apply(exitCode).get().getOutput().getStdout();
-        String actual = new String(stdout.read(), StandardCharsets.US_ASCII);
+        ByteSource stdout = ctrl.getTransform().apply(exitCode).getOutput().getStdout();
+        String actual = new String(stdout.read(), US_ASCII);
         assertEquals("stdout", expected, actual.trim());
+    }
+
+    @Test
+    public void readStdin() throws Exception {
+        byte[] input = { 1, 2, 3, 4 };
+        Subprocess subprocess = Subprocess.running(Tests.getPythonFile("length.py"))
+                .build();
+        Executor executor = new Executor(subprocess, CONTEXT);
+        ByteBucket stdoutBucket = ByteBucket.create();
+        ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
+                .stdin(ByteSource.wrap(input))
+                .stdout(stdoutBucket)
+                .build();
+        Execution execution = executor.launch(endpoints);
+        int exitCode = execution.getFuture().get(5, TimeUnit.SECONDS);
+        System.out.println(stdoutBucket);
+        assertEquals("exitcode", 0, exitCode);
+        String length = new String(stdoutBucket.dump(), US_ASCII);
+        System.out.format("output: %s%n", length);
+        assertEquals("length", String.valueOf(input.length), length);
     }
 }

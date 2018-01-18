@@ -4,6 +4,8 @@
 from __future__ import print_function
 import sys
 
+"""Exits with a status code specified by the first argument"""
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     code = 0

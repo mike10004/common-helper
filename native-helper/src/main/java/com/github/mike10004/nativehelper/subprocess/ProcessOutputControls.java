@@ -1,13 +1,12 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.github.mike10004.nativehelper.subprocess.ProcessOutputControl.UniformOutputControl;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.IOException;
+import javax.annotation.Nullable;
 import java.nio.charset.Charset;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,42 +20,68 @@ public class ProcessOutputControls {
             }
 
             @Override
-            public AsyncFunction<Integer, ProcessResult<Void, Void>> getTransform() {
+            public Function<Integer, ProcessResult<Void, Void>> getTransform() {
                 //noinspection NullableProblems
-                return new AsyncFunction<Integer, ProcessResult<Void, Void>>() {
+                return new Function<Integer, ProcessResult<Void, Void>>() {
                     @Override
-                    public ListenableFuture<ProcessResult<Void, Void>> apply(Integer input) {
-                        requireNonNull(input, "exitCode");
-                        return Futures.immediateFuture(BasicProcessResult.withNoOutput(input));
+                    public ProcessResult<Void, Void> apply(Integer exitCode) {
+                        requireNonNull(exitCode, "exitCode");
+                        return BasicProcessResult.withNoOutput(exitCode);
                     }
                 };
             }
         };
     }
 
-    public static ProcessOutputControl<ByteSource, ByteSource> memory() {
+    public static UniformOutputControl<ByteSource> memoryByteSources() {
+        return memoryByteSources(null);
+    }
+
+    public static UniformOutputControl<ByteSource> memoryByteSources(@Nullable ByteSource stdin) {
+        return byteArrays(stdin).map(ByteSource::wrap);
+    }
+
+    public static ProcessOutputControl<CharSource, CharSource> memoryCharSources(Charset charset) {
+        requireNonNull(charset);
+        return memoryCharSources(charset, null);
+    }
+
+    public static ProcessOutputControl<CharSource, CharSource> memoryCharSources(Charset charset, @Nullable ByteSource stdin) {
+        requireNonNull(charset);
+        return memoryByteSources(stdin).map(byteSource -> byteSource.asCharSource(charset));
+    }
+
+    public static UniformOutputControl<byte[]> byteArrays() {
+        return byteArrays(null);
+    }
+
+    public static UniformOutputControl<byte[]> byteArrays(@Nullable ByteSource stdin) {
         ByteBucket stdout = ByteBucket.withInitialCapacity(256);
         ByteBucket stderr = ByteBucket.withInitialCapacity(256);
         ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
                 .stderr(stderr)
                 .stdout(stdout)
+                .stdin(stdin)
                 .build();
-        return new ProcessOutputControl<ByteSource, ByteSource>() {
+        return new UniformOutputControl<byte[]>() {
             @Override
-            public ProcessStreamEndpoints produceEndpoints() throws IOException {
+            public ProcessStreamEndpoints produceEndpoints() {
                 return endpoints;
             }
 
             @Override
-            public AsyncFunction<Integer, ProcessResult<ByteSource, ByteSource>> getTransform() {
-                return AsyncFunctions.asAsync(exitCode -> {
-                    return BasicProcessResult.create(exitCode, ByteSource.wrap(stdout.dump()), ByteSource.wrap(stderr.dump()));
-                });
+            public Function<Integer, ProcessResult<byte[], byte[]>> getTransform() {
+                return exitCode -> BasicProcessResult.create(exitCode, stdout.dump(), stderr.dump());
             }
         };
     }
 
-    public static ProcessOutputControl<CharSource, CharSource> memoryDecoded(Charset charset) {
+    public static UniformOutputControl<String> strings(Charset charset) {
+        return strings(charset, null);
+    }
 
+    public static UniformOutputControl<String> strings(Charset charset, @Nullable ByteSource stdin) {
+        requireNonNull(charset);
+        return byteArrays(stdin).map(bytes -> new String(bytes, charset));
     }
 }

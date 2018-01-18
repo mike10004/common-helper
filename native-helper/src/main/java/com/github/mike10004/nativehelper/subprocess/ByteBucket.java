@@ -30,4 +30,8 @@ class ByteBucket extends ByteSink {
     public static ByteBucket create() {
         return new ByteBucket(new ByteArrayOutputStream());
     }
+
+    public String toString() {
+        return "ByteBucket[" + collector.size() + "]";
+    }
 }

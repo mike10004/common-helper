@@ -4,6 +4,8 @@
 from __future__ import print_function
 import sys
 
+"""Prints arguments, alternating standard output and standard error"""
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     for i in range(0, len(args), 2):
