@@ -1,8 +1,9 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessLauncher.Execution;
+import com.github.mike10004.nativehelper.subprocess.ProcessMissionControl.Execution;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.ByteSource;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
@@ -11,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.*;
 
-public class ProcessLauncherTest {
+public class ProcessMissionControlTest {
 
     private static final ProcessContext CONTEXT = ProcessContext.create();
 
@@ -21,7 +22,7 @@ public class ProcessLauncherTest {
         Subprocess subprocess = Subprocess.running("echo")
                 .args(expected)
                 .build();
-        ProcessLauncher executor = new ProcessLauncher(subprocess, CONTEXT);
+        ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ByteBucket stdout = ByteBucket.create(), stderr = ByteBucket.create();
         ProcessStreamEndpoints endpoints = new ProcessStreamEndpoints(stdout, stderr, null);
         Execution execution = executor.launch(endpoints);
@@ -37,7 +38,7 @@ public class ProcessLauncherTest {
         Subprocess subprocess = Subprocess.running("echo")
                 .args(expected)
                 .build();
-        ProcessLauncher executor = new ProcessLauncher(subprocess, CONTEXT);
+        ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ProcessOutputControl<ByteSource, ByteSource> ctrl = ProcessOutputControls.memoryByteSources();
         ProcessStreamEndpoints endpoints = ctrl.produceEndpoints();
         Execution execution = executor.launch(endpoints);
@@ -53,7 +54,7 @@ public class ProcessLauncherTest {
         byte[] input = { 1, 2, 3, 4 };
         Subprocess subprocess = Subprocess.running(Tests.getPythonFile("length.py"))
                 .build();
-        ProcessLauncher executor = new ProcessLauncher(subprocess, CONTEXT);
+        ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ByteBucket stdoutBucket = ByteBucket.create();
         ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
                 .stdin(ByteSource.wrap(input))
@@ -66,5 +67,9 @@ public class ProcessLauncherTest {
         String length = new String(stdoutBucket.dump(), US_ASCII);
         System.out.format("output: %s%n", length);
         assertEquals("length", String.valueOf(input.length), length);
+    }
+
+    private ListeningExecutorService createExecutorService() {
+        return ExecutorServices.newSingleThreadExecutorServiceFactory().get();
     }
 }

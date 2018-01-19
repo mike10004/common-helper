@@ -8,7 +8,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteSource;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,24 +20,22 @@ import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.requireNonNull;
 
-class ProcessLauncher {
+class ProcessMissionControl {
 
-    private static final Logger log = LoggerFactory.getLogger(ProcessLauncher.class);
+    private static final Logger log = LoggerFactory.getLogger(ProcessMissionControl.class);
 
     private final ListeningExecutorService terminationWaitingService;
-
     private final Subprocess program;
     private final ProcessContext processDestroyer;
 
-    public ProcessLauncher(Subprocess program, ProcessContext processDestroyer) {
+    public ProcessMissionControl(Subprocess program, ProcessContext processDestroyer, ListeningExecutorService terminationWaitingService) {
         this.program = requireNonNull(program);
         this.processDestroyer = requireNonNull(processDestroyer);
-        terminationWaitingService = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
+        this.terminationWaitingService = requireNonNull(terminationWaitingService);
     }
 
     public interface Execution {

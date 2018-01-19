@@ -2,19 +2,26 @@ package com.github.mike10004.nativehelper.subprocess;
 
 import com.github.mike10004.nativehelper.subprocess.Subprocess.ProcessExecutionException;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 public class ProcessMonitor<SO, SE> {
 
     private final Process process;
     private final ListenableFuture<ProcessResult<SO, SE>> future;
+    private final Supplier<? extends ListeningExecutorService> killExecutorServiceFactory;
 
-    ProcessMonitor(Process process, ListenableFuture<ProcessResult<SO, SE>> future) {
-        this.future = future;
-        this.process = process;
+    ProcessMonitor(Process process, ListenableFuture<ProcessResult<SO, SE>> future, Supplier<? extends ListeningExecutorService> killExecutorServiceFactory) {
+        this.future = requireNonNull(future);
+        this.process = requireNonNull(process);
+        this.killExecutorServiceFactory = requireNonNull(killExecutorServiceFactory);
     }
 
     public ListenableFuture<ProcessResult<SO, SE>> future() {
@@ -22,7 +29,7 @@ public class ProcessMonitor<SO, SE> {
     }
 
     public ProcessDestructor destructor() {
-        return new BasicProcessDestructor(process, ExecutorServices.newSingleThreadExecutorServiceFactory());
+        return new BasicProcessDestructor(process, killExecutorServiceFactory);
     }
 
     public Process getProcess() {

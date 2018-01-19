@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteSource;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
@@ -44,8 +43,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -61,28 +60,34 @@ public class Subprocess {
     @Nullable
     private final File workingDirectory;
     private final ImmutableMap<String, String> environment;
+    private final Supplier<? extends ListeningExecutorService> launchExecutorServiceFactory;
+    private final Supplier<? extends ListeningExecutorService> killExecutorServiceFactory;
 
     protected Subprocess(String executable, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments) {
         this.executable = requireNonNull(executable, "executable");
         this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);
         this.environment = ImmutableMap.copyOf(environment);
+        launchExecutorServiceFactory = ExecutorServices.newSingleThreadExecutorServiceFactory();
+        killExecutorServiceFactory = ExecutorServices.newSingleThreadExecutorServiceFactory();
     }
 
     /**
      * @return a future representing the computation
      */
     public <SO, SE> ProcessMonitor<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
-        ListeningExecutorService waitingExecutor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
-        ProcessLauncher.Execution execution;
+        ListeningExecutorService launchExecutorService = launchExecutorServiceFactory.get();
+        ProcessMissionControl.Execution execution;
         try {
-            execution = new ProcessLauncher(this, processContext).launch(outputControl.produceEndpoints());
+            execution = new ProcessMissionControl(this, processContext, launchExecutorService)
+                    .launch(outputControl.produceEndpoints());
         } catch (IOException e) {
             throw new ProcessLaunchException("failed to produce stream endpoints", e);
         }
         Function<Integer, ProcessResult<SO, SE>> transform = outputControl.getTransform();
-        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture().transform(transform::apply, waitingExecutor);
-        ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture);
+        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture()
+                .transform(transform::apply, launchExecutorService);
+        ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture, killExecutorServiceFactory);
         return monitor;
     }
 
