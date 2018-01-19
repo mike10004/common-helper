@@ -1,6 +1,5 @@
-package com.github.mike10004.nativehelper.subprocess;
+package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Platforms;
 import com.google.common.base.Suppliers;
 
 import javax.annotation.Nullable;

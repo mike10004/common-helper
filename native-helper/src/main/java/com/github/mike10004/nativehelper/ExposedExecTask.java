@@ -6,8 +6,7 @@ package com.github.mike10004.nativehelper;
 import com.github.mike10004.nativehelper.LethalWatchdog.ProcessStartListener;
 import org.apache.tools.ant.taskdefs.ExecTask;
 import org.apache.tools.ant.taskdefs.Execute;
-import com.github.mike10004.nativehelper.subprocess.Processes;
-import com.github.mike10004.nativehelper.subprocess.Processes.DestroyStatus;
+import com.github.mike10004.nativehelper.Processes.DestroyStatus;
 import org.apache.tools.ant.BuildException;
 
 import javax.annotation.Nullable;
