@@ -194,7 +194,7 @@ public class SubprocessTest {
     @Test(timeout = 5000L)
     public void launch_readInput_piped() throws Exception {
         Charset charset = UTF_8;
-        EchoByteSource pipe = new EchoByteSource();
+        StreamPipeSource pipe = new StreamPipeSource();
         ListenableFuture<ProcessResult<String, String>> resultFuture = running(pyReadInput())
                 .build()
                 .launcher(CONTEXT)
@@ -238,7 +238,7 @@ public class SubprocessTest {
         org.apache.commons.io.input.TeeInputStream.class.getName();
         File wastelandFile = writePoemToFile();
         ByteBucket stderrBucket = ByteBucket.create();
-        EchoByteSink stdoutPipe = new EchoByteSink();
+        StreamPipeSink stdoutPipe = new StreamPipeSink();
         ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
                 .stderr(stderrBucket)
                 .stdout(stdoutPipe.asByteSink())
@@ -267,8 +267,8 @@ public class SubprocessTest {
     @Test(timeout = 5000L)
     public void listen_pipe_interleaved() throws Exception {
         ByteBucket stderrBucket = ByteBucket.create();
-        EchoByteSink stdoutPipe = new EchoByteSink();
-        EchoByteSource stdinPipe = new EchoByteSource();
+        StreamPipeSink stdoutPipe = new StreamPipeSink();
+        StreamPipeSource stdinPipe = new StreamPipeSource();
         ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
                 .stderr(stderrBucket)
                 .stdout(stdoutPipe.asByteSink())

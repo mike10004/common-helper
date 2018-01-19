@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
-public abstract class Pipe<F0 extends Closeable, T0 extends Closeable> {
+public abstract class StreamPipe<F0 extends Closeable, T0 extends Closeable> {
 
     private transient ComponentPair<F0, T0> componentPair;
 

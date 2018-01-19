@@ -8,7 +8,7 @@ import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 
-public class EchoByteSink extends Pipe<InputStream, OutputStream> {
+public class StreamPipeSink extends StreamPipe<InputStream, OutputStream> {
 
     @Override
     protected ComponentPair<InputStream, OutputStream> createComponents() throws IOException {
