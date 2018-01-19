@@ -13,7 +13,7 @@ import static org.junit.Assert.assertEquals;
 public class SubprocessKillTest extends SubprocessTestBase {
 
     private static File pySignalFile() {
-        return Tests.getPythonFile("signal_listener.py");
+        return Tests.getPythonFile("nht_signal_listener.py");
     }
 
     private static Subprocess signalProgram(boolean swallowSigterm, File pidFile) {

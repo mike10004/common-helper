@@ -19,7 +19,7 @@ class ProcessUtils {
     private ProcessUtils() {}
 
     public static File pythonScript_mustBeKilled() {
-        return Tests.getPythonFile("signal_listener.py");
+        return Tests.getPythonFile("nht_signal_listener.py");
     }
 
     public static TestProcessState killIfRunning(File pidfile) throws IOException, InterruptedException {

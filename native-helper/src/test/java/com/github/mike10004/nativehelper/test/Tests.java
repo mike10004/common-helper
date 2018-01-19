@@ -51,7 +51,7 @@ public class Tests {
     }
 
     public static File pyReadInput() {
-        return getPythonFile("read_input.py");
+        return getPythonFile("nht_read_input.py");
     }
 
     public static String joinPlus(String delimiter, Iterable<String> items) {
@@ -59,7 +59,7 @@ public class Tests {
     }
 
     public static File pyCat() {
-        return getPythonFile("bin_cat.py");
+        return getPythonFile("nht_cat.py");
     }
 
     public static String readWhenNonempty(File file) throws InterruptedException {

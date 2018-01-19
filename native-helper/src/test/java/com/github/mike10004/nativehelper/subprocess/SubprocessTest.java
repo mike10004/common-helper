@@ -42,15 +42,15 @@ public class SubprocessTest extends SubprocessTestBase {
     }
 
     private static File pyEcho() {
-        return Tests.getPythonFile("bin_echo.py");
+        return Tests.getPythonFile("nht_echo.py");
     }
 
     private static File pyTrue() {
-        return Tests.getPythonFile("bin_true.py");
+        return Tests.getPythonFile("nht_true.py");
     }
 
     private static File pyExit() {
-        return Tests.getPythonFile("bin_exit.py");
+        return Tests.getPythonFile("nht_exit.py");
     }
 
     @Test
@@ -83,7 +83,7 @@ public class SubprocessTest extends SubprocessTestBase {
             }
         }
         ProcessResult<String, String> result =
-                running(Tests.getPythonFile("stereo.py"))
+                running(Tests.getPythonFile("nht_stereo.py"))
                 .args(args)
                 .build()
                 .launcher(CONTEXT)
@@ -177,7 +177,7 @@ public class SubprocessTest extends SubprocessTestBase {
             PrintStream tempErr = new PrintStream(stderrBucket.openStream(), true)) {
             System.setOut(tempOut);
             System.setErr(tempErr);
-            result = Subprocess.running(Tests.getPythonFile("stereo.py"))
+            result = Subprocess.running(Tests.getPythonFile("nht_stereo.py"))
                     .args("foo", "bar")
                     .build()
                     .launcher(CONTEXT)
