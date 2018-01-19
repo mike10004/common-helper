@@ -4,7 +4,7 @@ import org.junit.After;
 
 import static org.junit.Assert.assertEquals;
 
-public class SubprocessTestBase {
+public abstract class SubprocessTestBase {
 
     protected static final ProcessContext CONTEXT = ProcessContext.create();
 

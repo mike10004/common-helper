@@ -44,7 +44,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
@@ -73,7 +72,7 @@ public class Subprocess {
     /**
      * @return a future representing the computation
      */
-    public <SO, SE> ProcessFuture<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
+    public <SO, SE> ProcessMonitor<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
         ListeningExecutorService waitingExecutor = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
         ProcessLauncher.Execution execution;
         try {
@@ -83,8 +82,8 @@ public class Subprocess {
         }
         Function<Integer, ProcessResult<SO, SE>> transform = outputControl.getTransform();
         ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture().transform(transform::apply, waitingExecutor);
-        ProcessFuture<SO, SE> processFuture = new ProcessFuture<>(execution.getProcess(), fullResultFuture);
-        return processFuture;
+        ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture);
+        return monitor;
     }
 
     @SuppressWarnings("unused")
@@ -102,27 +101,6 @@ public class Subprocess {
         }
     }
 
-    public static class WaitingThreadInterruptedException extends ProcessExecutionException {
-        public WaitingThreadInterruptedException(InterruptedException cause) {
-            super(cause);
-        }
-    }
-
-    public static class ProcessExecutionInnerException extends ProcessExecutionException {
-        public ProcessExecutionInnerException(Throwable cause) {
-            super(cause);
-        }
-    }
-
-    public <SO, SE> ProcessResult<SO, SE> execute(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
-        try {
-            return launch(outputControl, processContext).get();
-        } catch (InterruptedException e) {
-            throw new WaitingThreadInterruptedException(e);
-        } catch (ExecutionException e) {
-            throw new ProcessExecutionInnerException(e.getCause());
-        }
-    }
 
     /**
      * Class that represents a builder of program instances. Create a builder
@@ -277,12 +255,8 @@ public class Subprocess {
             return new Launcher<SO2, SE2>(processContext, outputControl) {};
         }
 
-        public ProcessFuture<SO, SE> launch() throws ProcessException {
+        public ProcessMonitor<SO, SE> launch() throws ProcessException {
             return Subprocess.this.launch(outputControl, processContext);
-        }
-
-        public ProcessResult<SO, SE> execute() throws ProcessException {
-            return Subprocess.this.execute(outputControl, processContext);
         }
 
         public <SO2, SE2> Launcher<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {

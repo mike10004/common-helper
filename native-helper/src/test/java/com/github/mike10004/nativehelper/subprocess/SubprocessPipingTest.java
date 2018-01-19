@@ -29,7 +29,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
     public void launch_readInput_piped() throws Exception {
         Charset charset = UTF_8;
         StreamPipeSource pipe = new StreamPipeSource();
-        ListenableFuture<ProcessResult<String, String>> resultFuture = running(Tests.pyReadInput())
+        ProcessMonitor<String, String> monitor = running(Tests.pyReadInput())
                 .build()
                 .launcher(CONTEXT)
                 .outputStrings(charset, pipe.asByteSource())
@@ -40,7 +40,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
             printer.println(line);
             printer.flush();
         }
-        ProcessResult<String, String> result = resultFuture.get();
+        ProcessResult<String, String> result = monitor.await();
         System.out.format("get() returned %s%n", result);
         assertEquals("exit code", 0, result.getExitCode());
         String expected = Tests.joinPlus(System.lineSeparator(), lines.subList(0, 3));
@@ -79,7 +79,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
                 .noStdin() // read from file passed as argument
                 .build();
         ProcessOutputControl<Void, String> outputControl = ProcessOutputControls.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
-        ListenableFuture<ProcessResult<Void, String>> future = Subprocess.running(Tests.pyCat())
+        ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyCat())
                 .arg(wastelandFile.getAbsolutePath())
                 .build()
                 .launcher(CONTEXT)
@@ -90,7 +90,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         try (Reader reader = new InputStreamReader(stdoutPipe.connect(), charset)) {
             actualLines = CharStreams.readLines(reader);
         }
-        ProcessResult<Void, String> result = future.get();
+        ProcessResult<Void, String> result = monitor.await();
         System.out.format("result: %s%n", result);
         System.out.format("lines:%n%s%n", String.join(System.lineSeparator(), actualLines));
         assertEquals("actual", poemLines, actualLines);
@@ -109,7 +109,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
                 .stdin(stdinPipe.asByteSource())
                 .build();
         ProcessOutputControl<Void, String> outputControl = ProcessOutputControls.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
-        ListenableFuture<ProcessResult<Void, String>> future = Subprocess.running(Tests.pyReadInput())
+        ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyReadInput())
                 .build()
                 .launcher(CONTEXT)
                 .output(outputControl)
@@ -125,7 +125,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
                 actualLines.add(pipeReader.readLine());
             }
         }
-        ProcessResult<Void, String> result = future.get();
+        ProcessResult<Void, String> result = monitor.await();
         System.out.format("result: %s%n", result);
         if (result.getExitCode() != 0) {
             System.err.println(result.getOutput().getStderr());
