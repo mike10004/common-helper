@@ -41,4 +41,16 @@ public class Tests {
     public static Properties getProperties() {
         return propertiesSupplier.get();
     }
+
+    public static File pyReadInput() {
+        return getPythonFile("read_input.py");
+    }
+
+    public static String joinPlus(String delimiter, Iterable<String> items) {
+        return String.join(delimiter, items) + delimiter;
+    }
+
+    public static File pyCat() {
+        return getPythonFile("bin_cat.py");
+    }
 }
