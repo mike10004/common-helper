@@ -1,9 +1,12 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.annotation.Nullable;
+import java.lang.reflect.Array;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -38,8 +41,34 @@ class ProcessOutputs {
         }
     }
 
+    @VisibleForTesting
+    static String betterToString(@Nullable Object object) {
+        if (object == null) {
+            return null;
+        }
+        if (object.getClass().isArray()) {
+            String componentTypeName = object.getClass().getComponentType().getName();
+            StringBuilder s = new StringBuilder(32);
+            while (object != null && object.getClass().isArray()) {
+                componentTypeName = object.getClass().getComponentType().getName();
+                int length = Array.getLength(object);
+                s.append('[').append(length).append(']');
+                if (length > 0) {
+                    object = Array.get(object, 0);
+                } else {
+                    break;
+                }
+            }
+            if (componentTypeName.matches("^java\\.lang\\.[A-Z].*$")) {
+                componentTypeName = StringUtils.removeStart(componentTypeName, "java.lang.");
+            }
+            return componentTypeName + s.toString();
+        }
+        return object.toString();
+    }
+
     private static String abbrev(Object object) {
-        String abbreved = StringUtils.abbreviateMiddle(object.toString(), "...", ABBREV);
+        String abbreved = StringUtils.abbreviateMiddle(betterToString(object), "...", ABBREV);
         return StringEscapeUtils.escapeJava(abbreved);
     }
 

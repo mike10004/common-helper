@@ -5,6 +5,7 @@ import com.google.common.io.ByteSink;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 class ByteBucket extends ByteSink {
 
@@ -17,6 +18,10 @@ class ByteBucket extends ByteSink {
     @Override
     public OutputStream openStream() throws IOException {
         return collector;
+    }
+
+    public String decode(Charset charset) {
+        return new String(dump(), charset);
     }
 
     public byte[] dump() {

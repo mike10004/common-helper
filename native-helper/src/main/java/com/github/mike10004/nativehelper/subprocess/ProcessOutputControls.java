@@ -5,8 +5,10 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -83,5 +85,28 @@ public class ProcessOutputControls {
     public static UniformOutputControl<String> strings(Charset charset, @Nullable ByteSource stdin) {
         requireNonNull(charset);
         return byteArrays(stdin).map(bytes -> new String(bytes, charset));
+    }
+
+    public static <SO, SE> ProcessOutputControl<SO, SE> predefined(ProcessStreamEndpoints endpoints, Supplier<SO> stdoutProvider, Supplier<SE> stderrProvider) {
+        return predefined(endpoints, () -> ProcessOutput.direct(stdoutProvider.get(), stderrProvider.get()));
+    }
+
+    public static <SO, SE> ProcessOutputControl<SO, SE> predefined(ProcessStreamEndpoints endpoints, Supplier<ProcessOutput<SO, SE>> outputter) {
+        Function<Integer, ProcessResult<SO, SE>> transform = exitCode -> ProcessResult.direct(exitCode, outputter.get());
+        return predefined(endpoints, transform);
+    }
+
+    public static <SO, SE> ProcessOutputControl<SO, SE> predefined(ProcessStreamEndpoints endpoints, Function<Integer, ProcessResult<SO, SE>> transform) {
+        return new ProcessOutputControl<SO, SE>() {
+            @Override
+            public ProcessStreamEndpoints produceEndpoints() {
+                return endpoints;
+            }
+
+            @Override
+            public Function<Integer, ProcessResult<SO, SE>> getTransform() {
+                return transform;
+            }
+        };
     }
 }
