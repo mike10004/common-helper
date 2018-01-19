@@ -4,20 +4,17 @@ import com.google.common.io.ByteSource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 
-public class EchoByteSource extends Pipe<PipedOutputStream, PipedInputStream> {
-
-    @SuppressWarnings("RedundantThrows")
-    @Override
-    protected PipedOutputStream createFrom() throws IOException {
-        return new PipedOutputStream();
-    }
+public class EchoByteSource extends Pipe<OutputStream, InputStream> {
 
     @Override
-    protected PipedInputStream createTo(PipedOutputStream from) throws IOException {
-        return new PipedInputStream(from);
+    protected ComponentPair<OutputStream, InputStream> createComponents() throws IOException {
+        PipedOutputStream out = new PipedOutputStream();
+        PipedInputStream in = new PipedInputStream(out);
+        return ComponentPair.of(out, in);
     }
 
     public ByteSource asByteSource() {

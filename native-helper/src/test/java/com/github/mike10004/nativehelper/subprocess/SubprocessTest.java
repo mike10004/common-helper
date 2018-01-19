@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.After;
 import org.junit.Test;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -240,7 +241,7 @@ public class SubprocessTest {
         EchoByteSink stdoutPipe = new EchoByteSink();
         ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
                 .stderr(stderrBucket)
-                .stdout(stdoutPipe)
+                .stdout(stdoutPipe.asByteSink())
                 .noStdin() // read from file passed as argument
                 .build();
         ProcessOutputControl<Void, String> outputControl = ProcessOutputControls.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
@@ -262,35 +263,43 @@ public class SubprocessTest {
         assertEquals("exit code", 0, result.getExitCode());
     }
 
-//    @Test
-//    public void launch_readWrite_interleaved() throws Exception {
-//        EchoByteSink echo = new EchoByteSink();
-//        Charset charset = UTF_8;
-//        ListenableFuture<ProcessResult<String, String>> resultFuture = running(pyReadInput())
-//                .build()
-//                .launcher(CONTEXT)
-//                .outputStrings(charset, )
-//                .launch();
-//        ExecutorService executor = Executors.newSingleThreadExecutor();
-//        Futures.addCallback(resultFuture, new AlwaysCallback<Object>() {
-//            @Override
-//            protected void always(@Nullable Object result, @Nullable Throwable t) {
-//                System.out.println("program ended: " + result);
-//            }
-//        }, executor);
-//        List<String> lines = Arrays.asList("foo", "bar", "baz", "");
-//        PrintWriter printer = new PrintWriter(new OutputStreamWriter(pipeOut, charset));
-//        for (String line : lines) {
-//            printer.println(line);
-//            printer.flush();
-//        }
-//        ProcessResult<String, String> result = resultFuture.get();
-//        assertEquals("exit code", 0, result.getExitCode());
-//        String expected = joinPlus(System.lineSeparator(), lines.subList(0, 3));
-//        assertEquals("output", expected, result.getOutput().getStdout());
-//        executor.awaitTermination(5, TimeUnit.SECONDS);
-//        executor.shutdown();
-//    }
-//
+    @SuppressWarnings("Duplicates")
+    @Test(timeout = 5000L)
+    public void listen_pipe_interleaved() throws Exception {
+        ByteBucket stderrBucket = ByteBucket.create();
+        EchoByteSink stdoutPipe = new EchoByteSink();
+        EchoByteSource stdinPipe = new EchoByteSource();
+        ProcessStreamEndpoints endpoints = ProcessStreamEndpoints.builder()
+                .stderr(stderrBucket)
+                .stdout(stdoutPipe.asByteSink())
+                .stdin(stdinPipe.asByteSource())
+                .build();
+        ProcessOutputControl<Void, String> outputControl = ProcessOutputControls.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
+        ListenableFuture<ProcessResult<Void, String>> future = Subprocess.running(pyReadInput())
+                .build()
+                .launcher(CONTEXT)
+                .output(outputControl)
+                .launch();
+        Charset charset = Charset.defaultCharset();
+        System.out.format("expecting poem: %n%s%n", String.join(System.lineSeparator(), poemLines));
+        List<String> actualLines = new ArrayList<>(poemLines.size());
+        try (PrintWriter pipeWriter = new PrintWriter(new OutputStreamWriter(stdinPipe.connect(), charset));
+                BufferedReader pipeReader = new BufferedReader(new InputStreamReader(stdoutPipe.connect(), charset))) {
+            for (String line : poemLines) {
+                pipeWriter.println(line);
+                pipeWriter.flush();
+                actualLines.add(pipeReader.readLine());
+            }
+        }
+        ProcessResult<Void, String> result = future.get();
+        System.out.format("result: %s%n", result);
+        if (result.getExitCode() != 0) {
+            System.err.println(result.getOutput().getStderr());
+        }
+        System.out.format("lines:%n%s%n", String.join(System.lineSeparator(), actualLines));
+        assertEquals("actual", poemLines, actualLines);
+        assertEquals("exit code", 0, result.getExitCode());
+    }
+
 
 }

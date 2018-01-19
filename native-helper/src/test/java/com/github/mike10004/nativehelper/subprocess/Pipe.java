@@ -1,46 +1,55 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 
-public abstract class Pipe<F, T> {
+public abstract class Pipe<F0 extends Closeable, T0 extends Closeable> {
 
-    private F pipedInputStream;
-    private T pipedOutputStream;
+    private transient ComponentPair<F0, T0> componentPair;
+
     private transient final CountDownLatch latch = new CountDownLatch(1);
 
-    protected abstract F createFrom() throws IOException;
-    protected abstract T createTo(F from) throws IOException;
+    public static class ComponentPair<F, T> {
+        public final F from;
+        public final T to;
 
-    public T openTo() throws IOException {
-        pipedInputStream = createFrom();
-        if (pipedOutputStream != null) {
-            return pipedOutputStream;
+        public ComponentPair(F from, T to) {
+            this.from = requireNonNull(from);
+            this.to = requireNonNull(to);
         }
-        pipedOutputStream = createTo(pipedInputStream);
+
+        public static <F, T> ComponentPair<F, T> of(F from, T to) {
+            return new ComponentPair<>(from, to);
+        }
+    }
+
+    protected abstract ComponentPair<F0, T0> createComponents() throws IOException;
+
+    public T0 openTo() throws IOException {
+        componentPair = createComponents();
         latch.countDown();
-        return pipedOutputStream;
+        return componentPair.to;
     }
 
     @SuppressWarnings("RedundantThrows")
-    public F connect() throws IOException, InterruptedException {
+    public F0 connect() throws IOException, InterruptedException {
         latch.await();
-        checkState(pipedInputStream != null, "BUG: input stream not yet created");
-        return pipedInputStream;
+        checkState(componentPair != null, "BUG: components not yet created");
+        return componentPair.from;
     }
 
     @SuppressWarnings("RedundantThrows")
-    public F connect(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException {
+    public F0 connect(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException {
         boolean succeeded = latch.await(timeout, timeUnit);
         if (!succeeded) {
             throw new IOException("waited for pipe to connect " + timeout + " " + timeUnit + " but it did not; this means that the stream was never opened");
         }
-        checkState(pipedInputStream != null, "BUG: input stream not yet created");
-        return pipedInputStream;
+        checkState(componentPair != null, "BUG: components not yet created");
+        return componentPair.from;
     }
 }
