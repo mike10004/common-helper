@@ -5,7 +5,6 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
@@ -20,15 +19,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-public class SubprocessTest {
-
-    private static final ProcessContext CONTEXT = ProcessContext.create();
-
-    @After
-    public void checkProcesses() {
-        int active = CONTEXT.activeCount();
-        assertEquals("num active", 0, active);
-    }
+public class SubprocessTest extends SubprocessTestBase {
 
     @Test
     public void launch_true() throws Exception {

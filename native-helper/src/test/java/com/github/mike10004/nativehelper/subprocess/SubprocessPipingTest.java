@@ -23,9 +23,7 @@ import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-public class SubprocessPipingTest {
-
-    private static final ProcessContext CONTEXT = ProcessContext.create();
+public class SubprocessPipingTest extends SubprocessTestBase {
 
     @Test(timeout = 5000L)
     public void launch_readInput_piped() throws Exception {

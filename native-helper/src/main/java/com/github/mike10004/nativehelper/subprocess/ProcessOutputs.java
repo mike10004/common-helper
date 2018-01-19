@@ -12,6 +12,25 @@ import java.util.function.Supplier;
 
 class ProcessOutputs {
 
+    private static int lengthOf(@Nullable String s) {
+        return s == null ? 0 : s.length();
+    }
+
+    private static String innerFieldsToString(Object stdout, Object stderr) {
+        String so = abbrev(stdout);
+        String se = abbrev(stderr);
+        StringBuilder s = new StringBuilder(lengthOf(so) + lengthOf(se) + 20);
+        s.append("stdout=");
+        if (so != null) {
+            s.append('"').append(so).append('"');
+        }
+        s.append(", stderr=");
+        if (se != null) {
+            s.append('"').append(se).append('"');
+        }
+        return s.toString();
+    }
+
     public static class DirectOutput<SO, SE> implements ProcessOutput<SO, SE> {
 
         private final SO stdout;
@@ -34,10 +53,7 @@ class ProcessOutputs {
 
         @Override
         public String toString() {
-            return "DirectOutput{" +
-                    "stdout=" + abbrev(stdout )+
-                    ", stderr=" + abbrev(stderr) +
-                    '}';
+            return "DirectOutput{" + innerFieldsToString(stdout, stderr) + '}';
         }
     }
 
@@ -68,6 +84,9 @@ class ProcessOutputs {
     }
 
     private static String abbrev(Object object) {
+        if (object == null) {
+            return null;
+        }
         String abbreved = StringUtils.abbreviateMiddle(betterToString(object), "...", ABBREV);
         return StringEscapeUtils.escapeJava(abbreved);
     }
@@ -101,10 +120,7 @@ class ProcessOutputs {
         }
 
         public String toStringExpanded() {
-            return "DeferredOutput:Expanded{" +
-                    "stdout=" + abbrev(getStdout().toString()) +
-                    ", stderr=" + abbrev(getStderr().toString()) +
-                    '}';
+            return "DeferredOutput:Expanded{" + innerFieldsToString(getStdout(), getStderr()) + '}';
         }
 
     }
