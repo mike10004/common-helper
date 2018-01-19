@@ -1,7 +1,5 @@
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.Poller.PollOutcome;
-import com.github.mike10004.nativehelper.Poller.StopReason;
 import com.github.mike10004.nativehelper.ProgramKillTest.TestProcessState;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.Files;
@@ -10,7 +8,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,30 +22,8 @@ class ProcessUtils {
         return Tests.getPythonFile("signal_listener.py");
     }
 
-    public static String readWhenNonempty(File file) throws InterruptedException {
-        PollOutcome<String> outcome = new Poller<String>() {
-
-            @Override
-            protected PollAnswer<String> check(int pollAttemptsSoFar) {
-                if (file.length() > 0) {
-                    try {
-                        return resolve(Files.asCharSource(file, StandardCharsets.US_ASCII).read());
-                    } catch (IOException e) {
-                        e.printStackTrace(System.err);
-                        return abortPolling();
-                    }
-                }
-                return continuePolling();
-            }
-        }.poll(250, 10);
-        if (outcome.reason == StopReason.RESOLVED) {
-            return outcome.content;
-        }
-        throw new IllegalStateException("polling for nonempty file failed: " + file);
-    }
-
     public static TestProcessState killIfRunning(File pidfile) throws IOException, InterruptedException {
-        String fileContents = readWhenNonempty(pidfile);
+        String fileContents = Tests.readWhenNonempty(pidfile);
         return killIfRunning(Integer.parseInt(fileContents.trim()));
     }
 

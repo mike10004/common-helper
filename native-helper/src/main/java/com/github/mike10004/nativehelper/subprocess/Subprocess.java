@@ -282,6 +282,13 @@ public class Subprocess {
             return output(m);
         }
 
+        public Launcher<Void, Void> inheritAllStreams() {
+            return output(ProcessOutputControls.inheritAll());
+        }
+
+        public Launcher<Void, Void> inheritOutputStreams() {
+            return output(ProcessOutputControls.inheritOutputs());
+        }
     }
 
     public abstract class UniformLauncher<S> extends Launcher<S, S> {

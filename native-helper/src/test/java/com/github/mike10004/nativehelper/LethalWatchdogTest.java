@@ -2,6 +2,7 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled;
 import com.github.mike10004.nativehelper.Processes.DestroyStatus;
+import com.github.mike10004.nativehelper.test.Tests;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -42,7 +43,7 @@ public class LethalWatchdogTest {
                 .inheritIO()
                 .start();
         try (ProcessToBeKilled ignored = new ProcessToBeKilled(pidFile)) {
-            String pidFileContents = ProcessUtils.readWhenNonempty(pidFile);
+            String pidFileContents = Tests.readWhenNonempty(pidFile);
             System.out.format("pidfile contents %s%n", pidFileContents.trim());
             DestroyStatus status = Processes.destroy(process, 500, TimeUnit.MILLISECONDS);
             assertEquals("status", expected, status);

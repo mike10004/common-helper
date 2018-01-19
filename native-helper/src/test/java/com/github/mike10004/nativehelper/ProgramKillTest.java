@@ -3,6 +3,7 @@ package com.github.mike10004.nativehelper;
 import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled;
 import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled.PidFailureReaction;
 import com.github.mike10004.nativehelper.Program.TaskStage;
+import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.junit.Rule;
@@ -59,7 +60,7 @@ public class ProgramKillTest {
             ProgramFuture<ProgramWithOutputStringsResult> future = program.executeAsync(executorService);
             future.awaitStage(stageToAwait);
             if (waitForPidfile) {
-                System.out.format("pidfile contents: %s%n", ProcessUtils.readWhenNonempty(pidFile).trim());
+                System.out.format("pidfile contents: %s%n", Tests.readWhenNonempty(pidFile).trim());
             }
             @SuppressWarnings("deprecation")
             boolean cancelResult = future.cancel(true);

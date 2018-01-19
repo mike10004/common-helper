@@ -6,7 +6,21 @@ import os
 import sys
 
 
+"""Program that listens for signals, swallowing some. 
+
+This program listens for signals, swallowing those specified by the --swallow-XYZ options.
+When using this program to test the operation of external signal senders, beware of this
+inherent race condition: The program must start up, parse the command line, and then 
+attach signal handlers before it will begin swallowing them, so there is a period of time
+after launch where it is not in fact swallowing signals yet. To make sure the signals you
+send will be swallowed, specify --pidfile and poll that file until it is nonempty. If you 
+want the pid, poll until the file contains a terminal newline to make sure you don't 
+read a partial value, e.g. 1234 when the pid is 12345. 
+"""
+
+
 def main():
+    sys.stdout.flush()
     from argparse import ArgumentParser
     swallowed = [signal.SIGINT]
     parser = ArgumentParser()

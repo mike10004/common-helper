@@ -7,6 +7,7 @@ import com.google.common.io.ByteStreams;
 import javax.annotation.Nullable;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -30,7 +31,6 @@ public class ProcessStreamEndpoints {
         stderr = builder.stderr;
         stdin = builder.stdin;
     }
-
 
     private static FilterOutputStream nonclosing(OutputStream outputStream) {
         return new FilterOutputStream(outputStream) {
@@ -113,6 +113,33 @@ public class ProcessStreamEndpoints {
         public Builder stdin(@Nullable ByteSource val) {
             stdin = val;
             return this;
+        }
+
+        public Builder inheritStdin() {
+            return stdin(new ByteSource() {
+                @Override
+                public InputStream openStream() {
+                    return nonclosing(System.in);
+                }
+            });
+        }
+
+        public Builder inheritStderr() {
+            return stderr(new ByteSink() {
+                @Override
+                public OutputStream openStream() {
+                    return nonclosing(System.err);
+                }
+            });
+        }
+
+        public Builder inheritStdout() {
+            return stdout(new ByteSink() {
+                @Override
+                public OutputStream openStream() {
+                    return nonclosing(System.out);
+                }
+            });
         }
 
         public ProcessStreamEndpoints build() {

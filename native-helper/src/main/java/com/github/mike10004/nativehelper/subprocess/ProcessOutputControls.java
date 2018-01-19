@@ -14,25 +14,18 @@ import static java.util.Objects.requireNonNull;
 
 public class ProcessOutputControls {
 
-    public static ProcessOutputControl<Void, Void> sinkhole() {
-        return new ProcessOutputControl<Void, Void>() {
+    private static <SO, SE> Function<Integer, ProcessResult<SO, SE>> noOutputTransform() {
+        return new Function<Integer, ProcessResult<SO, SE>>() {
             @Override
-            public ProcessStreamEndpoints produceEndpoints() {
-                return ProcessStreamEndpoints.nullWithNullInput();
-            }
-
-            @Override
-            public Function<Integer, ProcessResult<Void, Void>> getTransform() {
-                //noinspection NullableProblems
-                return new Function<Integer, ProcessResult<Void, Void>>() {
-                    @Override
-                    public ProcessResult<Void, Void> apply(Integer exitCode) {
-                        requireNonNull(exitCode, "exitCode");
-                        return BasicProcessResult.withNoOutput(exitCode);
-                    }
-                };
+            public ProcessResult<SO, SE> apply(Integer exitCode) {
+                requireNonNull(exitCode, "exitCode");
+                return BasicProcessResult.withNoOutput(exitCode);
             }
         };
+    }
+
+    public static ProcessOutputControl<Void, Void> sinkhole() {
+        return predefined(ProcessStreamEndpoints.nullWithNullInput(), noOutputTransform());
     }
 
     public static UniformOutputControl<ByteSource> memoryByteSources() {
@@ -87,6 +80,10 @@ public class ProcessOutputControls {
         return byteArrays(stdin).map(bytes -> new String(bytes, charset));
     }
 
+    public static <SO, SE> ProcessOutputControl<SO, SE> predefinedNoOutput(ProcessStreamEndpoints endpoints) {
+        return predefined(endpoints, noOutputTransform());
+    }
+
     public static <SO, SE> ProcessOutputControl<SO, SE> predefined(ProcessStreamEndpoints endpoints, Supplier<SO> stdoutProvider, Supplier<SE> stderrProvider) {
         return predefined(endpoints, () -> ProcessOutput.direct(stdoutProvider.get(), stderrProvider.get()));
     }
@@ -108,5 +105,13 @@ public class ProcessOutputControls {
                 return transform;
             }
         };
+    }
+
+    public static ProcessOutputControl<Void, Void> inheritOutputs() {
+        return predefined(ProcessStreamEndpoints.builder().inheritStderr().inheritStdout().build(), noOutputTransform());
+    }
+
+    public static ProcessOutputControl<Void, Void> inheritAll() {
+        return predefined(ProcessStreamEndpoints.builder().inheritStdin().inheritStderr().inheritStdout().build(), noOutputTransform());
     }
 }

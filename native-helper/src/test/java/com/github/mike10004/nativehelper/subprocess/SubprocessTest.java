@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -151,4 +152,46 @@ public class SubprocessTest extends SubprocessTestBase {
         assertEquals("exit code", 0, result.getExitCode());
     }
 
+    /**
+     * Runs echo, printing to the JVM stdout stream.
+     * This is not an automated test, as it requires visual inspection in the console
+     * to confirm expected behavior, but it's useful for diagnosing issues.
+     */
+    @Test
+    public void launch_echo_inherit() throws Exception {
+        int exitCode = Subprocess.running(pyEcho())
+                .arg("hello, world")
+                .build()
+                .launcher(CONTEXT)
+                .inheritOutputStreams()
+                .launch().await().getExitCode();
+        checkState(exitCode == 0);
+    }
+
+    @Test
+    public void launch_stereo_inherit() throws Exception {
+        PrintStream JVM_STDOUT = System.out, JVM_STDERR = System.err;
+        ByteBucket stdoutBucket = ByteBucket.create(), stderrBucket = ByteBucket.create();
+        ProcessResult<Void, Void> result;
+        try (PrintStream tempOut = new PrintStream(stdoutBucket.openStream(), true);
+            PrintStream tempErr = new PrintStream(stderrBucket.openStream(), true)) {
+            System.setOut(tempOut);
+            System.setErr(tempErr);
+            result = Subprocess.running(Tests.getPythonFile("stereo.py"))
+                    .args("foo", "bar")
+                    .build()
+                    .launcher(CONTEXT)
+                    .inheritOutputStreams()
+                    .launch().await();
+            assertEquals("exit code", 0, result.getExitCode());
+        } finally {
+            System.setOut(JVM_STDOUT);
+            System.setErr(JVM_STDERR);
+        }
+        System.out.format("result: %s%n", result);
+        String actualStdout = stdoutBucket.decode(US_ASCII);
+        String actualStderr = stderrBucket.decode(US_ASCII);
+        assertEquals("stdout", "foo" + System.lineSeparator(), actualStdout);
+        assertEquals("stderr", "bar" + System.lineSeparator(), actualStderr);
+    }
 }

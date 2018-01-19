@@ -1,4 +1,4 @@
-package com.github.mike10004.nativehelper;
+package com.github.mike10004.nativehelper.test;
 
 import javax.annotation.Nullable;
 import java.time.Duration;
@@ -21,7 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @param <T> type of content returned upon resolution
  */
-abstract class Poller<T> {
+public abstract class Poller<T> {
 
     private final Sleeper sleeper;
 

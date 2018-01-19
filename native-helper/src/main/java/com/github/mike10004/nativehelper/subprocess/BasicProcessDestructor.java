@@ -1,7 +1,9 @@
 package com.github.mike10004.nativehelper.subprocess;
 
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl;
+import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl.KillAttemptImpl;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl.ProcessWaiter;
+import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl.TermAttemptImpl;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.KillAttempt;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.TermAttempt;
 import org.slf4j.Logger;
@@ -28,7 +30,7 @@ public class BasicProcessDestructor implements ProcessDestructor {
     @Override
     public TermAttempt sendTermSignal() {
         if (isAlreadyTerminated()) {
-            return Impl.alreadyTerminated();
+            return Impl.terminated();
         }
         sendSignal(Process::destroy);
         return createTermAttempt();
@@ -53,23 +55,23 @@ public class BasicProcessDestructor implements ProcessDestructor {
     protected TermAttempt createTermAttempt() {
         DestroyResult result = makeCurrentResult();
         if (result == DestroyResult.TERMINATED) {
-            return DestroyAttempt.Impl.alreadyTerminated();
+            return DestroyAttempt.Impl.terminated();
         }
-        return new DestroyAttempt.Impl.TermAttempt(this, waiter(), result, executorServiceFactory);
+        return new TermAttemptImpl(this, waiter(), result, executorServiceFactory);
     }
 
     protected KillAttempt createKillAttempt() {
         DestroyResult result = makeCurrentResult();
         if (result == DestroyResult.TERMINATED) {
-            return DestroyAttempt.Impl.alreadyTerminated();
+            return DestroyAttempt.Impl.terminated();
         }
-        return new Impl.KillAttempt(result, waiter(), executorServiceFactory);
+        return new KillAttemptImpl(result, waiter(), executorServiceFactory);
     }
 
     @Override
     public KillAttempt sendKillSignal() {
         if (isAlreadyTerminated()) {
-            return Impl.alreadyTerminated();
+            return Impl.terminated();
         }
         sendSignal(Process::destroyForcibly);
         return createKillAttempt();

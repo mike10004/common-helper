@@ -4,20 +4,11 @@ import com.github.mike10004.nativehelper.Platforms;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.KillAttempt;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.TermAttempt;
 import com.github.mike10004.nativehelper.test.Tests;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.sun.javafx.scene.control.skin.IntegerFieldSkin;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.io.File;
-import java.util.Objects;
-import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class SubprocessKillTest extends SubprocessTestBase {
 
@@ -25,20 +16,27 @@ public class SubprocessKillTest extends SubprocessTestBase {
         return Tests.getPythonFile("signal_listener.py");
     }
 
-    private static Subprocess pySignal(boolean swallowSigterm) {
+    private static Subprocess signalProgram(boolean swallowSigterm, File pidFile) {
         Subprocess.Builder builder = Subprocess.running(pySignalFile());
+        builder.args("--pidfile", pidFile.getAbsolutePath());
         if (swallowSigterm) {
             builder.arg("--swallow-sigterm");
         }
         return builder.build();
     }
 
-    @Test(timeout = 10000L)
-    public void killTerm() throws Exception {
-        ProcessMonitor<?, ?> monitor = pySignal(true).launcher(CONTEXT)
+    private static final long STD_TIMEOUT = 3000L;
+
+    @Test(timeout = STD_TIMEOUT)
+    public void destroyWithSigKill() throws Exception {
+        File pidFile = File.createTempFile("SubprocessKillTest", ".pid");
+        ProcessMonitor<?, ?> monitor = signalProgram(true, pidFile)
+                .launcher(CONTEXT)
+                .inheritOutputStreams()
                 .launch();
-        ExitCheck<ProcessResult<?, ?>> exitCheck = new ExitCheck<>(result -> result.getExitCode() != 0);
-        Futures.addCallback(monitor.future(), exitCheck, MoreExecutors.directExecutor());
+        System.out.println("waiting for pid to be printed...");
+        String pid = Tests.readWhenNonempty(pidFile) ;// new String(ByteStreams.toByteArray(stderrSink.connect()), StandardCharsets.US_ASCII);
+        System.out.format("pid printed: %s%n", pid);
         TermAttempt termAttempt = monitor.destructor().sendTermSignal();
         assertEquals("term attempt result", DestroyResult.STILL_ALIVE, termAttempt.result());
         KillAttempt attempt = termAttempt.kill();
@@ -47,33 +45,27 @@ public class SubprocessKillTest extends SubprocessTestBase {
         if (Platforms.getPlatform().isLinux()) {
             assertEquals("exit code", EXPECTED_SIGKILL_EXIT_CODE, exitCode);
         }
-        exitCheck.doAssert();
+    }
+
+    @Test(timeout = STD_TIMEOUT)
+    public void destroyWithSigTerm() throws Exception {
+        File pidFile = File.createTempFile("SubprocessKillTest", ".pid");
+        ProcessMonitor<?, ?> monitor = signalProgram(false, pidFile)
+                .launcher(CONTEXT)
+                .inheritOutputStreams()
+                .launch();
+        System.out.println("waiting for pid to be printed...");
+        String pid = Tests.readWhenNonempty(pidFile) ;// new String(ByteStreams.toByteArray(stderrSink.connect()), StandardCharsets.US_ASCII);
+        System.out.format("pid printed: %s%n", pid);
+        TermAttempt termAttempt = monitor.destructor().sendTermSignal().await();
+        assertEquals("term attempt result", DestroyResult.TERMINATED, termAttempt.result());
+        int exitCode = monitor.await().getExitCode();
+        if (Platforms.getPlatform().isLinux()) {
+            assertEquals("exit code", EXPECTED_SIGTERM_EXIT_CODE, exitCode);
+        }
     }
 
     private static final int EXPECTED_SIGTERM_EXIT_CODE = 128 + 15;
     private static final int EXPECTED_SIGKILL_EXIT_CODE = 128 + 9;
 
-    private static class ExitCheck<T> extends AlwaysCallback<T> implements FutureCallback<T> {
-        private final Predicate<? super T> exitCodePredicate;
-        private volatile boolean check;
-        private T result;
-
-        private ExitCheck(Predicate<? super T> exitCodePredicate) {
-            this.exitCodePredicate = exitCodePredicate;
-        }
-
-        @Override
-        protected void always(@Nullable T result, @Nullable Throwable t) {
-            this.check = exitCodePredicate.test(result);
-            this.result = result;
-        }
-
-        @SuppressWarnings("UnusedReturnValue")
-        public T doAssert() {
-            assertNotNull("check not performed", result);
-            assertTrue("failed exit check with " + result, check);
-            return result;
-        }
-
-    }
 }

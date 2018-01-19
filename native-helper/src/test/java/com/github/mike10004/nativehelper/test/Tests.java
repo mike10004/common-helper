@@ -1,11 +1,15 @@
 package com.github.mike10004.nativehelper.test;
 
+import com.github.mike10004.nativehelper.test.Poller.PollOutcome;
+import com.github.mike10004.nativehelper.test.Poller.StopReason;
 import com.google.common.base.Suppliers;
+import com.google.common.io.Files;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.function.Supplier;
 
@@ -15,8 +19,12 @@ public class Tests {
 
     private Tests() {}
 
-    private static File getPythonTestSourcesDir() {
-        File f = new File(getProperties().getProperty("project.basedir"), "src/test/python");
+    public static File getTestSourcesDir() {
+        return new File(getProperties().getProperty("project.basedir"), "src/test");
+    }
+
+    public static File getPythonTestSourcesDir() {
+        File f = new File(getTestSourcesDir(), "python");
         checkState(f.isDirectory(), "not a directory: %s", f);
         return f;
     }
@@ -52,5 +60,27 @@ public class Tests {
 
     public static File pyCat() {
         return getPythonFile("bin_cat.py");
+    }
+
+    public static String readWhenNonempty(File file) throws InterruptedException {
+        PollOutcome<String> outcome = new Poller<String>() {
+
+            @Override
+            protected PollAnswer<String> check(int pollAttemptsSoFar) {
+                if (file.length() > 0) {
+                    try {
+                        return resolve(Files.asCharSource(file, StandardCharsets.US_ASCII).read());
+                    } catch (IOException e) {
+                        e.printStackTrace(System.err);
+                        return abortPolling();
+                    }
+                }
+                return continuePolling();
+            }
+        }.poll(250, 20);
+        if (outcome.reason == StopReason.RESOLVED) {
+            return outcome.content;
+        }
+        throw new IllegalStateException("polling for nonempty file failed: " + file);
     }
 }

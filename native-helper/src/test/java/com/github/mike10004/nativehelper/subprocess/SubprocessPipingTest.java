@@ -56,10 +56,6 @@ public class SubprocessPipingTest extends SubprocessTestBase {
             "Earth in forgetful snow, feeding",
             "A little life with dried tubers.");
 
-    private static <T> Supplier<T> nullSupplier() {
-        return () -> null;
-    }
-
     private static File writePoemToFile() throws IOException {
         File wastelandFile = File.createTempFile("SubprocessTest", ".txt");
         Files.asCharSink(wastelandFile, UTF_8).writeLines(poemLines);

@@ -144,5 +144,20 @@ class ProcessOutputs {
         return BOTH_NULL;
     }
 
-    private static final ProcessOutput BOTH_NULL = ProcessOutput.direct(null, null);
+    private static final ProcessOutput BOTH_NULL = new ProcessOutput() {
+        @Override
+        public Void getStdout() {
+            return null;
+        }
+
+        @Override
+        public Void getStderr() {
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return "NoOutput{}";
+        }
+    };
 }
