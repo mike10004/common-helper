@@ -1,12 +1,12 @@
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.ExposedExecTask.AlreadyKilledException;
 import com.github.mike10004.nativehelper.Program.TaskStage;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled;
 import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled.PidFailureReaction;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,6 +18,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
@@ -31,7 +32,7 @@ public class ProgramKillTest {
 
     private static final long KILL_TIMEOUT = 5000L;
 
-    private static final int NUM_TRIALS = 10;
+    private static final int NUM_TRIALS = 20;
 
     @Parameterized.Parameters
     public static List<Object[]> params() {
@@ -73,6 +74,8 @@ public class ProgramKillTest {
                         "but it's possible for the Process.destroy call to kill the program and " +
                         "thus allow the submitted Callable to complete 'naturally'", false);
             } catch (CancellationException ignore2) {
+            } catch (ExecutionException e) {
+                Assume.assumeTrue("this is the result of an inherent race condition", e.getCause() instanceof AlreadyKilledException);
             }
             clean = true;
         } finally {

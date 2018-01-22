@@ -38,7 +38,6 @@ public class ExposedExecTask extends ExecTask {
 
     private final LethalWatchdog watchdog;
     private Execute execute;
-    private final transient Object executeLock = new Object();
     private transient volatile boolean killed;
     private transient volatile Process process;
 
@@ -125,11 +124,15 @@ public class ExposedExecTask extends ExecTask {
 
     @Override
     public void execute() {
-        synchronized (executeLock) {
-            if (killed) {
-                throw new IllegalStateException("kill() already called on this instance");
-            }
-            executeProcess(process -> {});
+        if (killed) {
+            throw new AlreadyKilledException();
+        }
+        executeProcess(process -> {});
+    }
+
+    static class AlreadyKilledException extends IllegalStateException {
+        public AlreadyKilledException() {
+            super("not executing because abort() was already called on this instance");
         }
     }
 
