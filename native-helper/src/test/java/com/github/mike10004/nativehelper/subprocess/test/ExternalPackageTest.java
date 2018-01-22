@@ -1,9 +1,9 @@
 package com.github.mike10004.nativehelper.subprocess.test;
 
-import com.github.mike10004.nativehelper.subprocess.OutputContext;
-import com.github.mike10004.nativehelper.subprocess.ProcessContext;
+import com.github.mike10004.nativehelper.subprocess.StreamControl;
+import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ProcessOutputControl;
+import com.github.mike10004.nativehelper.subprocess.StreamContext;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.github.mike10004.nativehelper.test.Tests;
@@ -34,9 +34,9 @@ import static org.junit.Assert.assertEquals;
 public class ExternalPackageTest {
 
     @Rule
-    public ProcessContextRule processContextRule = new ProcessContextRule();
+    public ProcessTrackerRule processContextRule = new ProcessTrackerRule();
 
-    private ProcessContext CONTEXT;
+    private ProcessTracker CONTEXT;
 
     @Before
     public void setUp() {
@@ -54,7 +54,7 @@ public class ExternalPackageTest {
     public void listenToPipedOutput() throws Exception {
         PipedOutputStream pout = new PipedOutputStream();
         PipedInputStream pin = new PipedInputStream(pout);
-        OutputContext ctx = new OutputContext() {
+        StreamControl ctx = new StreamControl() {
             @Override
             public OutputStream openStdoutSink() {
                 return pout;
@@ -71,7 +71,7 @@ public class ExternalPackageTest {
                 return null;
             }
         };
-        ProcessOutputControl<?, Void, Void> outputControl = ProcessOutputControl.predefinedAndOutputIgnored(ctx);
+        StreamContext<?, Void, Void> outputControl = StreamContext.predefinedAndOutputIgnored(ctx);
         ProcessMonitor<Void, Void> monitor = fixture.subprocess.launcher(CONTEXT).output(outputControl).launch();
         byte[] stdoutcontent = ByteStreams.toByteArray(pin);
         ProcessResult<Void, Void> result = monitor.await();

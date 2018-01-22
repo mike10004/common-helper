@@ -1,6 +1,7 @@
 package com.github.mike10004.nativehelper.subprocess;
 
 import com.github.mike10004.nativehelper.test.Tests;
+import com.google.common.base.CharMatcher;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static com.google.common.base.Preconditions.checkState;
@@ -193,5 +195,15 @@ public class SubprocessTest extends SubprocessTestBase {
         String actualStderr = stderrBucket.decode(US_ASCII);
         assertEquals("stdout", "foo" + System.lineSeparator(), actualStdout);
         assertEquals("stderr", "bar" + System.lineSeparator(), actualStderr);
+    }
+
+    private static CharMatcher alphanumeric() {
+        return CharMatcher.inRange('a', 'z').or(CharMatcher.inRange('A', 'Z')).or(CharMatcher.inRange('0', '9'));
+    }
+
+    @Test(expected = ProcessLaunchException.class)
+    public void launch_notAnExecutable() throws Exception {
+        String executable  = "e" + alphanumeric().retainFrom(UUID.randomUUID().toString());
+        Subprocess.running(executable).build().launcher(CONTEXT).launch();
     }
 }

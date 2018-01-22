@@ -1,6 +1,6 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessOutputs.MappedOutput;
+import com.github.mike10004.nativehelper.subprocess.StreamContents.MappedOutput;
 
 import java.util.function.Function;
 
@@ -10,7 +10,7 @@ import java.util.function.Function;
  * @param <SO> type of captured standard output contents
  * @param <SE> type of captured standard error contents
  */
-public interface ProcessOutput<SO, SE> {
+public interface StreamContent<SO, SE> {
 
     /**
      * Returns the content written to standard output by a process.
@@ -24,11 +24,11 @@ public interface ProcessOutput<SO, SE> {
      */
     SE getStderr();
 
-    static <SO, SE> ProcessOutput<SO, SE> direct(SO stdout, SE stderr) {
-        return new ProcessOutputs.DirectOutput<>(stdout, stderr);
+    static <SO, SE> StreamContent<SO, SE> direct(SO stdout, SE stderr) {
+        return new StreamContents.DirectOutput<>(stdout, stderr);
     }
 
-    default <SO2, SE2> ProcessOutput<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
+    default <SO2, SE2> StreamContent<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
         return new MappedOutput<>(this, stdoutMap, stderrMap);
     }
 }

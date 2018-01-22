@@ -23,7 +23,7 @@
  */
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessOutputControl.UniformOutputControl;
+import com.github.mike10004.nativehelper.subprocess.StreamContext.UniformStreamContext;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -75,23 +75,23 @@ public class Subprocess {
     }
 
     /**
-     * Launches a subprocess. It's probably easier to use {@link #launcher(ProcessContext)}
+     * Launches a subprocess. It's probably easier to use {@link #launcher(ProcessTracker)}
      * to build a launcher and then invoke {@link Launcher#launch()}.
      * @return a future representing the computation
      */
-    public <C extends OutputContext, SO, SE> ProcessMonitor<SO, SE> launch(ProcessOutputControl<C, SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
+    public <C extends StreamControl, SO, SE> ProcessMonitor<SO, SE> launch(StreamContext<C, SO, SE> streamContext, ProcessTracker processTracker) throws ProcessException {
         ListeningExecutorService launchExecutorService = launchExecutorServiceFactory.get();
         C outputContext;
         try {
-            outputContext = outputControl.produceContext();
+            outputContext = streamContext.produceControl();
         } catch (IOException e) {
             throw new ProcessLaunchException("failed to produce output context", e);
         }
-        ProcessMissionControl.Execution execution = new ProcessMissionControl(this, processContext, launchExecutorService)
+        ProcessMissionControl.Execution execution = new ProcessMissionControl(this, processTracker, launchExecutorService)
                 .launch(outputContext);
         ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture()
                 .transform(exitCode -> {
-                    ProcessOutput<SO, SE> output = outputControl.transform(exitCode, outputContext);
+                    StreamContent<SO, SE> output = streamContext.transform(exitCode, outputContext);
                     return ProcessResult.direct(exitCode, output);
                 }, launchExecutorService);
         ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture, killExecutorServiceFactory);
@@ -239,12 +239,12 @@ public class Subprocess {
      * @param context the process context
      * @return the launcher
      */
-    public Launcher<Void, Void> launcher(ProcessContext context) {
+    public Launcher<Void, Void> launcher(ProcessTracker context) {
         return toSinkhole(context);
     }
 
-    private Launcher<Void, Void> toSinkhole(ProcessContext processContext) {
-        return new Launcher<Void, Void>(processContext, ProcessOutputControls.sinkhole()){};
+    private Launcher<Void, Void> toSinkhole(ProcessTracker processTracker) {
+        return new Launcher<Void, Void>(processTracker, StreamContexts.sinkhole()){};
     }
 
     /**
@@ -256,32 +256,32 @@ public class Subprocess {
      */
     public abstract class Launcher<SO, SE> {
 
-        private final ProcessContext processContext;
-        protected final ProcessOutputControl<?, SO, SE> outputControl;
+        private final ProcessTracker processTracker;
+        protected final StreamContext<?, SO, SE> streamContext;
 
-        private Launcher(ProcessContext processContext, ProcessOutputControl<?, SO, SE> outputControl) {
-            this.processContext = requireNonNull(processContext);
-            this.outputControl = requireNonNull(outputControl);
+        private Launcher(ProcessTracker processTracker, StreamContext<?, SO, SE> streamContext) {
+            this.processTracker = requireNonNull(processTracker);
+            this.streamContext = requireNonNull(streamContext);
         }
 
-        public <S> UniformLauncher<S> output(UniformOutputControl<?, S> outputControl) {
-            return uniformOutput(outputControl);
+        public <S> UniformLauncher<S> output(UniformStreamContext<?, S> streamContext) {
+            return uniformOutput(streamContext);
         }
 
-        public <S> UniformLauncher<S> uniformOutput(ProcessOutputControl<?, S, S> outputControl) {
-            return new UniformLauncher<S>(processContext, outputControl) {};
+        public <S> UniformLauncher<S> uniformOutput(StreamContext<?, S, S> streamContext) {
+            return new UniformLauncher<S>(processTracker, streamContext) {};
         }
 
-        public <SO2, SE2> Launcher<SO2, SE2> output(ProcessOutputControl<?, SO2, SE2> outputControl) {
-            return new Launcher<SO2, SE2>(processContext, outputControl) {};
+        public <SO2, SE2> Launcher<SO2, SE2> output(StreamContext<?, SO2, SE2> streamContext) {
+            return new Launcher<SO2, SE2>(processTracker, streamContext) {};
         }
 
         public ProcessMonitor<SO, SE> launch() throws ProcessException {
-            return Subprocess.this.launch(outputControl, processContext);
+            return Subprocess.this.launch(streamContext, processTracker);
         }
 
         public <SO2, SE2> Launcher<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
-            return output(outputControl.map(stdoutMap, stderrMap));
+            return output(streamContext.map(stdoutMap, stderrMap));
         }
 
         public UniformLauncher<String> outputStrings(Charset charset) {
@@ -291,7 +291,7 @@ public class Subprocess {
 
         public UniformLauncher<String> outputStrings(Charset charset, @Nullable ByteSource stdin) {
             requireNonNull(charset, "charset");
-            return output(ProcessOutputControls.strings(charset, stdin));
+            return output(StreamContexts.strings(charset, stdin));
         }
 
         @SuppressWarnings("unused")
@@ -300,21 +300,21 @@ public class Subprocess {
         }
 
         public UniformLauncher<byte[]> outputInMemory(@Nullable ByteSource stdin) {
-            UniformOutputControl<?, byte[]> m = ProcessOutputControls.byteArrays(stdin);
+            UniformStreamContext<?, byte[]> m = StreamContexts.byteArrays(stdin);
             return output(m);
         }
 
         @SuppressWarnings("unused")
         public Launcher<Void, Void> inheritAllStreams() {
-            return output(ProcessOutputControls.inheritAll());
+            return output(StreamContexts.inheritAll());
         }
 
         public Launcher<Void, Void> inheritOutputStreams() {
-            return output(ProcessOutputControls.inheritOutputs());
+            return output(StreamContexts.inheritOutputs());
         }
 
         public UniformLauncher<File> outputFiles(File stdoutFile, File stderrFile, @Nullable ByteSource stdin) {
-            return output(ProcessOutputControls.outputFiles(stdoutFile, stderrFile, stdin));
+            return output(StreamContexts.outputFiles(stdoutFile, stderrFile, stdin));
         }
 
         public UniformLauncher<File> outputFiles(File stdoutFile, File stderrFile) {
@@ -326,7 +326,7 @@ public class Subprocess {
         }
 
         public UniformLauncher<File> outputTempFiles(Path directory, @Nullable ByteSource stdin) {
-            return output(ProcessOutputControls.outputTempFiles(directory, stdin));
+            return output(StreamContexts.outputTempFiles(directory, stdin));
         }
     }
 
@@ -336,20 +336,16 @@ public class Subprocess {
      */
     public abstract class UniformLauncher<S> extends Launcher<S, S> {
 
-        private UniformLauncher(ProcessContext processContext, ProcessOutputControl<?, S, S> outputControl) {
-            super(processContext, outputControl);
+        private UniformLauncher(ProcessTracker processTracker, StreamContext<?, S, S> streamContext) {
+            super(processTracker, streamContext);
         }
 
         public <T> UniformLauncher<T> map(Function<? super S, T> mapper) {
-            UniformOutputControl<?, S> u = UniformOutputControl.wrap(this.outputControl);
-            UniformOutputControl<?, T> t = u.map(mapper);
+            UniformStreamContext<?, S> u = UniformStreamContext.wrap(this.streamContext);
+            UniformStreamContext<?, T> t = u.map(mapper);
             return uniformOutput(t);
         }
 
-        @Override
-        public ProcessMonitor<S, S> launch() throws ProcessException {
-            return super.launch();
-        }
     }
 
     /**

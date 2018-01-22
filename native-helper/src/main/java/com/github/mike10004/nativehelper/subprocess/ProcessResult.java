@@ -1,7 +1,6 @@
 package com.github.mike10004.nativehelper.subprocess;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Interface representing a process result. A process result is an exit code
@@ -13,17 +12,13 @@ public interface ProcessResult<SO, SE> {
 
     int getExitCode();
 
-    ProcessOutput<SO, SE> getOutput();
+    StreamContent<SO, SE> getOutput();
 
     static <SO, SE> ProcessResult<SO, SE> direct(int exitCode, SO stdout, SE stderr) {
         return BasicProcessResult.create(exitCode, stdout, stderr);
     }
 
-//    static <SO, SE> ProcessResult<SO, SE> supplied(int exitCode, Supplier<? extends ProcessOutput<SO, SE>> outputSupplier) {
-//
-//    }
-
-    static <SO, SE> ProcessResult<SO, SE> direct(int exitCode, ProcessOutput<SO, SE> output) {
+    static <SO, SE> ProcessResult<SO, SE> direct(int exitCode, StreamContent<SO, SE> output) {
         return new BasicProcessResult<>(exitCode, output);
     }
 

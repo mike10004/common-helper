@@ -10,13 +10,13 @@ import java.util.function.Supplier;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Base class for subprocess tests. This superclass provides a {@link ProcessContext} field
+ * Base class for subprocess tests. This superclass provides a {@link ProcessTracker} field
  * for test classes to use, and implements a check after each test that confirms that there
  * are no active processes remaining.
  */
 public abstract class SubprocessTestBase {
 
-    protected static final ProcessContext CONTEXT = ProcessContext.create();
+    protected static final ProcessTracker CONTEXT = ProcessTracker.create();
 
     private volatile boolean testFailed;
 

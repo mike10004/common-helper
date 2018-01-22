@@ -4,7 +4,7 @@ package com.github.mike10004.nativehelper.subprocess;
  * Interface that represents a process context. A process context tracks the creation
  * and destruction of processes.
  */
-public interface ProcessContext {
+public interface ProcessTracker {
 
     /**
      * Adds a process to this context instance.
@@ -37,8 +37,8 @@ public interface ProcessContext {
      * Creates a process context instance. The default implementation is used.
      * @return a new process context instance
      */
-    static ProcessContext create() {
-        return new ShutdownHookProcessContext();
+    static ProcessTracker create() {
+        return new ShutdownHookProcessTracker();
     }
 
 }

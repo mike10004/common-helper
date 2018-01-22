@@ -5,7 +5,6 @@ package com.github.mike10004.nativehelper.subprocess;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteSource;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import org.slf4j.Logger;
@@ -30,9 +29,9 @@ class ProcessMissionControl {
 
     private final ListeningExecutorService terminationWaitingService;
     private final Subprocess program;
-    private final ProcessContext processDestroyer;
+    private final ProcessTracker processDestroyer;
 
-    public ProcessMissionControl(Subprocess program, ProcessContext processDestroyer, ListeningExecutorService terminationWaitingService) {
+    public ProcessMissionControl(Subprocess program, ProcessTracker processDestroyer, ListeningExecutorService terminationWaitingService) {
         this.program = requireNonNull(program);
         this.processDestroyer = requireNonNull(processDestroyer);
         this.terminationWaitingService = requireNonNull(terminationWaitingService);
@@ -43,7 +42,7 @@ class ProcessMissionControl {
         FluentFuture<Integer> getFuture();
     }
 
-    public Execution launch(OutputContext outputContext) {
+    public Execution launch(StreamControl outputContext) {
         Process process = execute();
         FluentFuture<Integer> future = FluentFuture.from(terminationWaitingService.submit(() -> {
             return follow(process, outputContext);
@@ -139,7 +138,7 @@ class ProcessMissionControl {
 
     @VisibleForTesting
     @Nullable
-    Integer follow(Process process, OutputContext outputContext) throws IOException {
+    Integer follow(Process process, StreamControl outputContext) throws IOException {
         processDestroyer.add(process);
         boolean terminated = false;
         @Nullable Integer exitVal;
@@ -148,7 +147,7 @@ class ProcessMissionControl {
         try (MaybeNullResource<InputStream> inResource = MaybeNullResource.of(outputContext.openStdinSource());
             OutputStream stdoutDestination = outputContext.openStdoutSink();
             OutputStream stderrDestination = outputContext.openStderrSink()) {
-            ProcessConduit conduit = new ProcessConduit(stdoutDestination, stderrDestination, inResource.resource);
+            StreamConduit conduit = new StreamConduit(stdoutDestination, stderrDestination, inResource.resource);
             processStdin = process.getOutputStream();
             processStdout = process.getInputStream();
             processStderr = process.getErrorStream();

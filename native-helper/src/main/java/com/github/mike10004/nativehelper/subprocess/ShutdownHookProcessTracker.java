@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkState;
 
-class ShutdownHookProcessContext implements ProcessContext {
+class ShutdownHookProcessTracker implements ProcessTracker {
 
     private final AntProcessDestroyer destroyer = new AntProcessDestroyer();
 

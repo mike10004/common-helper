@@ -67,12 +67,12 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         File wastelandFile = writePoemToFile();
         ByteBucket stderrBucket = ByteBucket.create();
         StreamPipeSink stdoutPipe = new StreamPipeSink();
-        PredefinedOutputContext endpoints = PredefinedOutputContext.builder()
+        PredefinedStreamControl endpoints = PredefinedStreamControl.builder()
                 .stderr(stderrBucket)
                 .stdout(stdoutPipe.asByteSink())
                 .noStdin() // read from file passed as argument
                 .build();
-        ProcessOutputControl<?, Void, String> outputControl = ProcessOutputControl.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
+        StreamContext<?, Void, String> outputControl = StreamContext.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
         ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyCat())
                 .arg(wastelandFile.getAbsolutePath())
                 .build()
@@ -103,12 +103,12 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         ByteBucket stderrBucket = ByteBucket.create();
         StreamPipeSink stdoutPipe = new StreamPipeSink();
         StreamPipeSource stdinPipe = new StreamPipeSource();
-        PredefinedOutputContext endpoints = PredefinedOutputContext.builder()
+        PredefinedStreamControl endpoints = PredefinedStreamControl.builder()
                 .stderr(stderrBucket)
                 .stdout(stdoutPipe.asByteSink())
                 .stdin(stdinPipe.asByteSource())
                 .build();
-        ProcessOutputControl<?, Void, String> outputControl = ProcessOutputControl.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
+        StreamContext<?, Void, String> outputControl = StreamContext.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
         ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyReadInput())
                 .build()
                 .launcher(CONTEXT)

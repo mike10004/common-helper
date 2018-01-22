@@ -5,9 +5,9 @@ import static java.util.Objects.requireNonNull;
 class BasicProcessResult<SO, SE> implements ProcessResult<SO, SE> {
 
     private final int exitCode;
-    private final ProcessOutput<SO, SE> output;
+    private final StreamContent<SO, SE> output;
 
-    public BasicProcessResult(int exitCode, ProcessOutput<SO, SE> output) {
+    public BasicProcessResult(int exitCode, StreamContent<SO, SE> output) {
         this.exitCode = exitCode;
         this.output = requireNonNull(output);
     }
@@ -18,16 +18,16 @@ class BasicProcessResult<SO, SE> implements ProcessResult<SO, SE> {
     }
 
     @Override
-    public ProcessOutput<SO, SE> getOutput() {
+    public StreamContent<SO, SE> getOutput() {
         return output;
     }
 
     public static <SO, SE> BasicProcessResult<SO, SE> withNoOutput(int exitCode) {
-        return new BasicProcessResult<>(exitCode, ProcessOutputs.bothNull());
+        return new BasicProcessResult<>(exitCode, StreamContents.bothNull());
     }
 
     public static <SO, SE> BasicProcessResult<SO, SE> create(int exitCode, SO stdout, SE stderr) {
-        return new BasicProcessResult<>(exitCode, ProcessOutput.direct(stdout, stderr));
+        return new BasicProcessResult<>(exitCode, StreamContent.direct(stdout, stderr));
     }
 
     @Override

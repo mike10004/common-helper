@@ -1,6 +1,6 @@
 package com.github.mike10004.nativehelper.subprocess.test;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessContext;
+import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -10,13 +10,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 
-public class ProcessContextRule extends ExternalResource {
+public class ProcessTrackerRule extends ExternalResource {
 
     private final TestWatcher watcher;
     private final AtomicBoolean passage;
-    private ProcessContext processContext;
+    private ProcessTracker processContext;
 
-    public ProcessContextRule() {
+    public ProcessTrackerRule() {
         passage = new AtomicBoolean(false);
         watcher = new TestWatcher() {
             @Override
@@ -34,12 +34,12 @@ public class ProcessContextRule extends ExternalResource {
 
     @Override
     protected void before() {
-        processContext = ProcessContext.create();
+        processContext = ProcessTracker.create();
     }
 
     @Override
     protected void after() {
-        ProcessContext processContext = this.processContext;
+        ProcessTracker processContext = this.processContext;
         if (processContext != null) {
             boolean testPassed = passage.get();
             if (testPassed) {
@@ -52,7 +52,7 @@ public class ProcessContextRule extends ExternalResource {
         }
     }
 
-    public ProcessContext getContext() {
+    public ProcessTracker getContext() {
         return processContext;
     }
 }

@@ -12,11 +12,11 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
-public class ProcessOutputs_betterToStringTest {
+public class StreamContents_betterToStringTest {
 
     private TestCase testCase;
 
-    public ProcessOutputs_betterToStringTest(TestCase testCase) {
+    public StreamContents_betterToStringTest(TestCase testCase) {
         this.testCase = testCase;
     }
 
@@ -32,7 +32,7 @@ public class ProcessOutputs_betterToStringTest {
                 .add(new TestCase(new int[3][4][5], "int[3][4][5]", "primitive"))
                 .add(new TestCase(new Double[5], "Double[5]"))
                 .add(new TestCase(new java.lang.reflect.Type[][]{
-                        new java.lang.reflect.Type[]{ProcessOutputs_betterToStringTest.class}
+                        new java.lang.reflect.Type[]{StreamContents_betterToStringTest.class}
                 }, "java.lang.reflect.Type[1][1]", "java.lang.reflect"))
                 .add(new TestCase(new Color[][]{
                         new Color[]{Color.RED, Color.GREEN, Color.BLUE}
@@ -52,7 +52,7 @@ public class ProcessOutputs_betterToStringTest {
 
     @Test
     public void betterToString() {
-        String actual = ProcessOutputs.betterToString(testCase.object);
+        String actual = StreamContents.betterToString(testCase.object);
         String desc = testCase.description == null ? "result for " + testCase.object : testCase.description;
         assertEquals(desc, testCase.expected, actual);
     }

@@ -1,7 +1,7 @@
 package com.github.mike10004.nativehelper.subprocess;
 
 import com.github.mike10004.nativehelper.subprocess.ProcessMissionControl.Execution;
-import com.github.mike10004.nativehelper.subprocess.ProcessOutputControls.BucketContext;
+import com.github.mike10004.nativehelper.subprocess.StreamContexts.BucketContext;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.ByteSource;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 
 public class ProcessMissionControlTest {
 
-    private static final ProcessContext CONTEXT = ProcessContext.create();
+    private static final ProcessTracker CONTEXT = ProcessTracker.create();
 
     @Test
     public void launch() throws ExecutionException, InterruptedException {
@@ -25,7 +25,7 @@ public class ProcessMissionControlTest {
                 .build();
         ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ByteBucket stdout = ByteBucket.create(), stderr = ByteBucket.create();
-        PredefinedOutputContext endpoints = new PredefinedOutputContext(stdout, stderr, null);
+        PredefinedStreamControl endpoints = new PredefinedStreamControl(stdout, stderr, null);
         Execution execution = executor.launch(endpoints);
         Integer exitCode = execution.getFuture().get();
         assertEquals("exitcode", 0, exitCode.intValue());
@@ -41,8 +41,8 @@ public class ProcessMissionControlTest {
                 .build();
         ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         @SuppressWarnings("unchecked")
-        ProcessOutputControl<BucketContext, ByteSource, ByteSource> ctrl = (ProcessOutputControl<BucketContext, ByteSource, ByteSource>) ProcessOutputControls.memoryByteSources(null);
-        OutputContext outputcontext = ctrl.produceContext();
+        StreamContext<BucketContext, ByteSource, ByteSource> ctrl = (StreamContext<BucketContext, ByteSource, ByteSource>) StreamContexts.memoryByteSources(null);
+        StreamControl outputcontext = ctrl.produceControl();
         Execution execution = executor.launch(outputcontext);
         Integer exitCode = execution.getFuture().get();
         assertEquals("exitcode", 0, exitCode.intValue());
@@ -58,7 +58,7 @@ public class ProcessMissionControlTest {
                 .build();
         ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ByteBucket stdoutBucket = ByteBucket.create();
-        PredefinedOutputContext endpoints = PredefinedOutputContext.builder()
+        PredefinedStreamControl endpoints = PredefinedStreamControl.builder()
                 .stdin(ByteSource.wrap(input))
                 .stdout(stdoutBucket)
                 .build();

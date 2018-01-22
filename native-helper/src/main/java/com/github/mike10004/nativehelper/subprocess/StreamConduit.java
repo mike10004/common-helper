@@ -31,7 +31,7 @@ import java.io.OutputStream;
 /**
  * A customized version of {@link org.apache.tools.ant.taskdefs.PumpStreamHandler}.
  */
-class ProcessConduit {
+class StreamConduit {
 
     private volatile Thread outputThread;
     private volatile Thread errorThread;
@@ -48,7 +48,7 @@ class ProcessConduit {
      * @param err the error <code>OutputStream</code>.
      * @param input the input <code>InputStream</code>.
      */
-    public ProcessConduit(OutputStream out, OutputStream err, @Nullable InputStream input) {
+    public StreamConduit(OutputStream out, OutputStream err, @Nullable InputStream input) {
         this.out = out;
         this.err = err;
         this.input = input;

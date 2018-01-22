@@ -14,7 +14,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Class that represents a prcoess monitor. A process monitor is returned by
- * {@link Subprocess#launch(ProcessOutputControl, ProcessContext)} or
+ * {@link Subprocess#launch(StreamContext, ProcessTracker)} or
  * {@link Launcher#launch()}.
  * @param <SO> type of captured standard output contents
  * @param <SE> type of captured standard error contents

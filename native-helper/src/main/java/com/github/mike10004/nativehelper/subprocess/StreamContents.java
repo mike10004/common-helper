@@ -10,7 +10,7 @@ import java.lang.reflect.Array;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-class ProcessOutputs {
+class StreamContents {
 
     private static int lengthOf(@Nullable String s) {
         return s == null ? 0 : s.length();
@@ -33,7 +33,7 @@ class ProcessOutputs {
         return s.toString();
     }
 
-    public static class DirectOutput<SO, SE> implements ProcessOutput<SO, SE> {
+    public static class DirectOutput<SO, SE> implements StreamContent<SO, SE> {
 
         private final SO stdout;
         private final SE stderr;
@@ -93,7 +93,7 @@ class ProcessOutputs {
         return StringEscapeUtils.escapeJava(abbreved);
     }
 
-    public static class DeferredOutput<SO, SE> implements ProcessOutput<SO, SE> {
+    public static class DeferredOutput<SO, SE> implements StreamContent<SO, SE> {
 
         private final Supplier<SO> stdoutSupplier;
         private final Supplier<SE> stderrSupplier;
@@ -131,7 +131,7 @@ class ProcessOutputs {
 
     public static class MappedOutput<SO, SE> extends DeferredOutput<SO, SE> {
 
-        public <SO0, SE0> MappedOutput(ProcessOutput<SO0, SE0> original, Function<? super SO0, SO> stdoutMap, Function<? super SE0, SE> stderrMap) {
+        public <SO0, SE0> MappedOutput(StreamContent<SO0, SE0> original, Function<? super SO0, SO> stdoutMap, Function<? super SE0, SE> stderrMap) {
             super(() -> stdoutMap.apply(original.getStdout()), () -> stderrMap.apply(original.getStderr()));
         }
 
@@ -142,11 +142,11 @@ class ProcessOutputs {
     }
 
     @SuppressWarnings("unchecked")
-    public static <SO, SE> ProcessOutput<SO, SE> bothNull() {
+    public static <SO, SE> StreamContent<SO, SE> bothNull() {
         return BOTH_NULL;
     }
 
-    private static final ProcessOutput BOTH_NULL = new ProcessOutput() {
+    private static final StreamContent BOTH_NULL = new StreamContent() {
         @Override
         public Void getStdout() {
             return null;

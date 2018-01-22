@@ -17,7 +17,7 @@ import static java.util.Objects.requireNonNull;
  * Class that represents the byte sources and sinks to be attached to
  * a process's standard output, error, and input streams.
  */
-class PredefinedOutputContext implements OutputContext {
+class PredefinedStreamControl implements StreamControl {
 
     /**
      * Sink for bytes read from the process standard output stream.
@@ -36,7 +36,7 @@ class PredefinedOutputContext implements OutputContext {
     @Nullable
     private  final ByteSource stdin;
 
-    public PredefinedOutputContext(ByteSink stdout, ByteSink stderr, @Nullable ByteSource stdin) {
+    public PredefinedStreamControl(ByteSink stdout, ByteSink stderr, @Nullable ByteSource stdin) {
         this.stdin = stdin;
         this.stdout = requireNonNull(stdout);
         this.stderr = requireNonNull(stderr);
@@ -58,7 +58,7 @@ class PredefinedOutputContext implements OutputContext {
         return stdin == null ? null : stdin.openStream();
     }
 
-    private PredefinedOutputContext(Builder builder) {
+    private PredefinedStreamControl(Builder builder) {
         stdout = builder.stdout;
         stderr = builder.stderr;
         stdin = builder.stdin;
@@ -101,17 +101,17 @@ class PredefinedOutputContext implements OutputContext {
      * any output from the process and do not send any input to the process.
      * @return
      */
-    public static PredefinedOutputContext nullWithNullInput() {
+    public static PredefinedStreamControl nullWithNullInput() {
         return NULL_WITH_NULL_INPUT;
     }
 
     @SuppressWarnings("unused")
-    public static PredefinedOutputContext nullWithEmptyInput() {
+    public static PredefinedStreamControl nullWithEmptyInput() {
         return NULL_WITH_EMPTY_INPUT;
     }
 
-    private static final PredefinedOutputContext NULL_WITH_NULL_INPUT = builder().build();
-    private static final PredefinedOutputContext NULL_WITH_EMPTY_INPUT = builder().stdin(ByteSource.empty()).build();
+    private static final PredefinedStreamControl NULL_WITH_NULL_INPUT = builder().build();
+    private static final PredefinedStreamControl NULL_WITH_EMPTY_INPUT = builder().stdin(ByteSource.empty()).build();
 
     /**
      * Builder of instances. By default, no output is captured
@@ -184,8 +184,8 @@ class PredefinedOutputContext implements OutputContext {
             });
         }
 
-        public PredefinedOutputContext build() {
-            return new PredefinedOutputContext(this);
+        public PredefinedStreamControl build() {
+            return new PredefinedStreamControl(this);
         }
     }
 }
