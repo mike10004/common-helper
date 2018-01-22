@@ -1,6 +1,6 @@
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.ProcessUtils.ProcessToBeKilled;
+import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled;
 import com.github.mike10004.nativehelper.Processes.DestroyStatus;
 import com.github.mike10004.nativehelper.test.Tests;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class LethalWatchdogTest {
 
     private void testDestroy(DestroyStatus expected, String...extraArgs) throws Exception {
         File pidFile = File.createTempFile("LethalWatchdogTest", ".pid");
-        File scriptFile = ProcessUtils.pythonScript_mustBeKilled();
+        File scriptFile = Tests.getPythonFile("nht_signal_listener.py");
         List<String> cmd = new ArrayList<>(Arrays.asList(
                 "python",
                 scriptFile.getAbsolutePath(),
