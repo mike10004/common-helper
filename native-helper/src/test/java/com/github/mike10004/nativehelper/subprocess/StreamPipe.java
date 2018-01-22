@@ -30,7 +30,7 @@ public abstract class StreamPipe<F0 extends Closeable, T0 extends Closeable> {
 
     protected abstract ComponentPair<F0, T0> createComponents() throws IOException;
 
-    public T0 openTo() throws IOException {
+    protected T0 openTo() throws IOException {
         componentPair = createComponents();
         latch.countDown();
         return componentPair.to;

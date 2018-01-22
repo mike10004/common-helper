@@ -83,7 +83,13 @@ public class SubprocessPipingTest extends SubprocessTestBase {
                 .launch();
         Charset charset = Charset.defaultCharset();
         List<String> actualLines;
+        // read from the process output stream while the process executes
         try (Reader reader = new InputStreamReader(stdoutPipe.connect(), charset)) {
+            /*
+             * It's possible to get an IOException here when the process has not yet finished
+             * (so PipedOutputStream.receivedLast has not been invoked) but the thread on which
+             * data was being written is dead.
+             */
             actualLines = CharStreams.readLines(reader);
         }
         ProcessResult<Void, String> result = monitor.await();

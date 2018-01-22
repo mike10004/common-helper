@@ -7,4 +7,4 @@ addons:
     - libaio1
 notifications:
   email: false
-script: mvn verify -B
+script: mvn test -B -Dtest=SubprocessPipingTest
