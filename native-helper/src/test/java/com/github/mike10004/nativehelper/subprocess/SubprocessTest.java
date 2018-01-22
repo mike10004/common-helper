@@ -1,18 +1,25 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.github.mike10004.nativehelper.Platforms;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -206,4 +213,53 @@ public class SubprocessTest extends SubprocessTestBase {
         String executable  = "e" + alphanumeric().retainFrom(UUID.randomUUID().toString());
         Subprocess.running(executable).build().launcher(CONTEXT).launch();
     }
+
+    private static final String homeVarName = Platforms.getPlatform().isWindows() ? "UserProfile" : "HOME";
+
+    @Test
+    public void launch_env_noSupplements() throws Exception {
+        String expectedUser = System.getProperty("user.name");
+        String expectedHome = System.getProperty("user.home");
+        Map<String, String> result = launchEnv(ImmutableMap.of(), "USER", homeVarName);
+        assertEquals("user", expectedUser, result.get("USER"));
+        assertEquals("home", expectedHome, result.get(homeVarName));
+    }
+
+    @Test
+    public void launch_env_override() throws Exception {
+        String expectedUser = System.getProperty("user.name");
+        String expectedHome = FileUtils.getTempDirectory().getAbsolutePath();
+        Map<String, String> result = launchEnv(ImmutableMap.of(homeVarName, expectedHome), "USER", homeVarName);
+        assertEquals("user", expectedUser, result.get("USER"));
+        assertEquals("home", expectedHome, result.get(homeVarName));
+    }
+
+    @Test
+    public void launch_env_withSupplements() throws Exception {
+        String expectedUser = System.getProperty("user.name");
+        String expectedHome = System.getProperty("user.home");
+        String expectedFoo = "bar";
+        Map<String, String> result = launchEnv(ImmutableMap.of("FOO", expectedFoo), "USER", homeVarName, "FOO");
+        assertEquals("user", expectedUser, result.get("USER"));
+        assertEquals("home", expectedHome, result.get(homeVarName));
+        assertEquals("foo", expectedFoo, result.get("FOO"));
+    }
+
+    private Map<String, String> launchEnv(Map<String, String> env, String...varnamesArray) throws InterruptedException {
+        List<String> varnames = Arrays.asList(varnamesArray);
+        ProcessResult<String, String> result = Subprocess.running(Tests.getPythonFile("nht_env.py"))
+                .env(env)
+                .args(varnames)
+                .build().launcher(CONTEXT).outputStrings(Charset.defaultCharset()).launch().await();
+        System.out.format("result: %s%n", result);
+        List<String> lines = Splitter.on(System.lineSeparator()).omitEmptyStrings().splitToList(result.getOutput().getStdout());
+        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("num lines in output", varnames.size(), lines.size());
+        Map<String, String> defs = new HashMap<>();
+        for (int i = 0; i < lines.size(); i++) {
+            defs.put(varnames.get(i), lines.get(i));
+        }
+        return defs;
+    }
+
 }
