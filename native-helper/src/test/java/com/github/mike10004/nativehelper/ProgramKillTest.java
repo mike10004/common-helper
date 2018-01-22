@@ -1,12 +1,13 @@
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled;
-import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled.PidFailureReaction;
 import com.github.mike10004.nativehelper.Program.TaskStage;
 import com.github.mike10004.nativehelper.test.Tests;
+import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled;
+import com.github.mike10004.nativehelper.test.Tests.ProcessToBeKilled.PidFailureReaction;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -19,10 +20,8 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class) // we repeat this because race conditions are common
 public class ProgramKillTest {
@@ -70,7 +69,7 @@ public class ProgramKillTest {
             try {
                 ProgramWithOutputStringsResult result = future.get();
                 System.out.println(result);
-                Assert.assertTrue("should not be able to get result from cancelled future, " +
+                Assume.assumeTrue("should not be able to get result from cancelled future, " +
                         "but it's possible for the Process.destroy call to kill the program and " +
                         "thus allow the submitted Callable to complete 'naturally'", false);
             } catch (CancellationException ignore2) {
