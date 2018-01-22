@@ -52,8 +52,6 @@ public class ProcessMonitor<SO, SE> {
     public ProcessResult<SO, SE> await(long timeout, TimeUnit unit) throws TimeoutException, InterruptedException {
         try {
             boolean ok = process.waitFor(timeout, unit);
-//            return future().get(timeout, unit);
-//            return future().get(0, TimeUnit.SECONDS);
             if (!ok) {
                 throw new TimeoutException("process.waitFor timeout elapsed");
             }

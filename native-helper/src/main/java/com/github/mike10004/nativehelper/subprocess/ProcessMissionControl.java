@@ -43,10 +43,10 @@ class ProcessMissionControl {
         FluentFuture<Integer> getFuture();
     }
 
-    public Execution launch(ProcessStreamEndpoints endpoints) {
+    public Execution launch(OutputContext outputContext) {
         Process process = execute();
         FluentFuture<Integer> future = FluentFuture.from(terminationWaitingService.submit(() -> {
-            return follow(process, endpoints);
+            return follow(process, outputContext);
         }));
         return new Execution() {
             @Override
@@ -131,27 +131,23 @@ class ProcessMissionControl {
                 resource.close();
             }
         }
-    }
 
-    private static MaybeNullResource<InputStream> openMaybeNullInputStream(@Nullable ByteSource source) throws IOException {
-        if (source == null) {
-            return new MaybeNullResource<>(null);
-        } else {
-            return new MaybeNullResource<>(source.openStream());
+        public static <T extends Closeable> MaybeNullResource<T> of(T stream) {
+            return new MaybeNullResource<>(stream);
         }
     }
 
     @VisibleForTesting
     @Nullable
-    Integer follow(Process process, ProcessStreamEndpoints endpoints) throws IOException {
+    Integer follow(Process process, OutputContext outputContext) throws IOException {
         processDestroyer.add(process);
         boolean terminated = false;
         @Nullable Integer exitVal;
         OutputStream processStdin = null;
         InputStream processStdout = null, processStderr = null;
-        try (MaybeNullResource<InputStream> inResource = openMaybeNullInputStream(endpoints.stdin);
-            OutputStream stdoutDestination = endpoints.stdout.openStream();
-            OutputStream stderrDestination = endpoints.stderr.openStream()) {
+        try (MaybeNullResource<InputStream> inResource = MaybeNullResource.of(outputContext.openStdinSource());
+            OutputStream stdoutDestination = outputContext.openStdoutSink();
+            OutputStream stderrDestination = outputContext.openStderrSink()) {
             ProcessConduit conduit = new ProcessConduit(stdoutDestination, stderrDestination, inResource.resource);
             processStdin = process.getOutputStream();
             processStdout = process.getInputStream();

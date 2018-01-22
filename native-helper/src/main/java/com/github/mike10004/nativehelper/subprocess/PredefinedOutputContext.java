@@ -17,32 +17,48 @@ import static java.util.Objects.requireNonNull;
  * Class that represents the byte sources and sinks to be attached to
  * a process's standard output, error, and input streams.
  */
-public class ProcessStreamEndpoints {
+class PredefinedOutputContext implements OutputContext {
 
     /**
      * Sink for bytes read from the process standard output stream.
      */
-    public final ByteSink stdout;
+    private final ByteSink stdout;
 
     /**
      * Sink for bytes read from the process standard error stream.
      */
-    public final ByteSink stderr;
+    private final ByteSink stderr;
 
     /**
      * Source of bytes to supply on the process's standard input stream. Can be null
      * if nothing is to be sent to the process.
      */
     @Nullable
-    public final ByteSource stdin;
+    private  final ByteSource stdin;
 
-    public ProcessStreamEndpoints(ByteSink stdout, ByteSink stderr, @Nullable ByteSource stdin) {
+    public PredefinedOutputContext(ByteSink stdout, ByteSink stderr, @Nullable ByteSource stdin) {
         this.stdin = stdin;
         this.stdout = requireNonNull(stdout);
         this.stderr = requireNonNull(stderr);
     }
 
-    private ProcessStreamEndpoints(Builder builder) {
+    @Override
+    public OutputStream openStdoutSink() throws IOException {
+        return stdout.openStream();
+    }
+
+    @Override
+    public OutputStream openStderrSink() throws IOException {
+        return stderr.openStream();
+    }
+
+    @Nullable
+    @Override
+    public InputStream openStdinSource() throws IOException {
+        return stdin == null ? null : stdin.openStream();
+    }
+
+    private PredefinedOutputContext(Builder builder) {
         stdout = builder.stdout;
         stderr = builder.stderr;
         stdin = builder.stdin;
@@ -85,20 +101,20 @@ public class ProcessStreamEndpoints {
      * any output from the process and do not send any input to the process.
      * @return
      */
-    public static ProcessStreamEndpoints nullWithNullInput() {
+    public static PredefinedOutputContext nullWithNullInput() {
         return NULL_WITH_NULL_INPUT;
     }
 
     @SuppressWarnings("unused")
-    public static ProcessStreamEndpoints nullWithEmptyInput() {
+    public static PredefinedOutputContext nullWithEmptyInput() {
         return NULL_WITH_EMPTY_INPUT;
     }
 
-    private static final ProcessStreamEndpoints NULL_WITH_NULL_INPUT = builder().build();
-    private static final ProcessStreamEndpoints NULL_WITH_EMPTY_INPUT = builder().stdin(ByteSource.empty()).build();
+    private static final PredefinedOutputContext NULL_WITH_NULL_INPUT = builder().build();
+    private static final PredefinedOutputContext NULL_WITH_EMPTY_INPUT = builder().stdin(ByteSource.empty()).build();
 
     /**
-     * Builder of process stream endpoints instances. By default, no output is captured
+     * Builder of instances. By default, no output is captured
      * from the process and no input is sent to the process.
      */
     public static final class Builder {
@@ -168,8 +184,8 @@ public class ProcessStreamEndpoints {
             });
         }
 
-        public ProcessStreamEndpoints build() {
-            return new ProcessStreamEndpoints(this);
+        public PredefinedOutputContext build() {
+            return new PredefinedOutputContext(this);
         }
     }
 }

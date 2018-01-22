@@ -17,16 +17,18 @@ class ProcessOutputs {
     }
 
     private static String innerFieldsToString(Object stdout, Object stderr) {
+        boolean soArray = stdout != null && stdout.getClass().isArray();
+        boolean seArray = stderr != null && stderr.getClass().isArray();
         String so = abbrev(stdout);
         String se = abbrev(stderr);
         StringBuilder s = new StringBuilder(lengthOf(so) + lengthOf(se) + 20);
         s.append("stdout=");
         if (so != null) {
-            s.append('"').append(so).append('"');
+            s.append(soArray ? "" : '"').append(so).append(soArray ? "" : '"');
         }
         s.append(", stderr=");
         if (se != null) {
-            s.append('"').append(se).append('"');
+            s.append(seArray ? "" : '"').append(se).append(seArray ? "" : '"');
         }
         return s.toString();
     }

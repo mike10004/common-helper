@@ -32,7 +32,9 @@ public abstract class SubprocessTestBase {
     public final void checkProcesses() {
         int active = CONTEXT.activeCount();
         if (testFailed) {
-            System.err.format("%d active processes; ignoring because test failed%n", active);
+            if (active > 0) {
+                System.err.format("%d active processes; ignoring because test failed%n", active);
+            }
         } else {
             assertEquals(active + " processes are still active but should have finished or been killed", 0, active);
         }

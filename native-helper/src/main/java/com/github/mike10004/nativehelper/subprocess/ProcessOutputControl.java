@@ -2,29 +2,32 @@ package com.github.mike10004.nativehelper.subprocess;
 
 import java.io.IOException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Interface that defines methods for manipulating process output.
  * @param <SO>
  * @param <SE>
  */
-public interface ProcessOutputControl<SO, SE> {
+public interface ProcessOutputControl<C extends OutputContext, SO, SE> {
 
     /**
      * Produces the byte sources and byte sinks to be attached to the process
      * standard output, error, and input streams.
-     * @return the endpoints instance
+     * @return an output context
      */
-    ProcessStreamEndpoints produceEndpoints() throws IOException;
+    C produceContext() throws IOException;
 
     /**
      * Gets the transform that produces a result from a process exit code.
      * Instances of this class create the process stream sources and sinks
-     * (in {@link #produceEndpoints()} and must be able to produce a
+     * (in {@link #produceContext()} and must be able to produce a
      * {@link ProcessOutput} instance after the process has finished.
+     * @param exitCode the process exit code
+     * @param context the output context produced by {@link #produceContext()}
      * @return the transform
      */
-    Function<Integer, ProcessResult<SO, SE>> getTransform();
+    ProcessOutput<SO, SE> transform(int exitCode, C context);
 
     /**
      * Maps the types of this output control to other types using a pair of functions.
@@ -34,19 +37,17 @@ public interface ProcessOutputControl<SO, SE> {
      * @param <SE2> the destination type for standard error content
      * @return an output control satisfying the requirements of the destination types
      */
-    default <SO2, SE2> ProcessOutputControl<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
-        ProcessOutputControl<SO, SE> self = this;
-        return new ProcessOutputControl<SO2, SE2>() {
+    default <SO2, SE2> ProcessOutputControl<C, SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
+        ProcessOutputControl<C, SO, SE> self = this;
+        return new ProcessOutputControl<C, SO2, SE2>() {
             @Override
-            public ProcessStreamEndpoints produceEndpoints() throws IOException {
-                return self.produceEndpoints();
+            public C produceContext() throws IOException {
+                return self.produceContext();
             }
 
             @Override
-            public Function<Integer, ProcessResult<SO2, SE2>> getTransform() {
-                return self.getTransform().andThen(result -> {
-                    return result.map(stdoutMap, stderrMap);
-                });
+            public ProcessOutput<SO2, SE2> transform(int exitCode, C context) {
+                return self.transform(exitCode, context).map(stdoutMap, stderrMap);
             }
         };
     }
@@ -56,22 +57,22 @@ public interface ProcessOutputControl<SO, SE> {
      * the same type
      * @param <S> type of the captured standard output and standard error contents
      */
-    interface UniformOutputControl<S> extends ProcessOutputControl<S, S> {
+    interface UniformOutputControl<C extends OutputContext, S> extends ProcessOutputControl<C, S, S> {
 
         /**
          * Wraps a process output control whose standard error and output type
          * in an object that satisfies this interface.
          */
-        static <S> UniformOutputControl<S> wrap(ProcessOutputControl<S, S> homogenous) {
-            return new UniformOutputControl<S>() {
+        static <C extends OutputContext, S> UniformOutputControl<C, S> wrap(ProcessOutputControl<C, S, S> homogenous) {
+            return new UniformOutputControl<C, S>() {
                 @Override
-                public ProcessStreamEndpoints produceEndpoints() throws IOException {
-                    return homogenous.produceEndpoints();
+                public C produceContext() throws IOException {
+                    return homogenous.produceContext();
                 }
 
                 @Override
-                public Function<Integer, ProcessResult<S, S>> getTransform() {
-                    return homogenous.getTransform();
+                public ProcessOutput<S, S> transform(int exitCode, C context) {
+                    return homogenous.transform(exitCode, context);
                 }
             };
         }
@@ -79,27 +80,43 @@ public interface ProcessOutputControl<SO, SE> {
         /**
          * @see ProcessOutputControl#map(Function, Function)
          */
-        default <T> UniformOutputControl<T> map(Function<? super S, T> stmap) {
-            ProcessOutputControl<S, S> duplex = this;
-            return new UniformOutputControl<T>() {
+        default <T> UniformOutputControl<C, T> map(Function<? super S, T> stmap) {
+            ProcessOutputControl<C, S, S> duplex = this;
+            return new UniformOutputControl<C, T>() {
 
                 @Override
-                public ProcessStreamEndpoints produceEndpoints() throws IOException {
-                    return duplex.produceEndpoints();
+                public C produceContext() throws IOException {
+                    return duplex.produceContext();
                 }
 
                 @Override
-                public Function<Integer, ProcessResult<T, T>> getTransform() {
-                    Function<Integer, ProcessResult<S, S>> f = duplex.getTransform();
-                    return new Function<Integer, ProcessResult<T, T>>() {
-                        @Override
-                        public ProcessResult<T, T> apply(Integer integer) {
-                            ProcessResult<S, S> result = f.apply(integer);
-                            return result.map(stmap, stmap);
-                        }
-                    };
+                public ProcessOutput<T, T> transform(int exitCode, C context) {
+                    return duplex.transform(exitCode, context).map(stmap, stmap);
                 }
             };
         }
     }
+
+    static <C extends OutputContext, SO, SE> ProcessOutputControl<C, SO, SE> predefinedAndOutputIgnored(C ctx) {
+        return predefined(ctx, ProcessOutputControls::noOutput);
+    }
+
+    static <C extends OutputContext, SO, SE> ProcessOutputControl<C, SO, SE> predefined(C outputContext, Supplier<SO> stdoutProvider, Supplier<SE> stderrProvider) {
+        return predefined(outputContext, () -> ProcessOutput.direct(stdoutProvider.get(), stderrProvider.get()));
+    }
+
+    static <C extends OutputContext, SO, SE> ProcessOutputControl<C, SO, SE> predefined(C outputContext, Supplier<ProcessOutput<SO, SE>> outputter) {
+        return new ProcessOutputControl<C, SO, SE>() {
+            @Override
+            public C produceContext() {
+                return outputContext;
+            }
+
+            @Override
+            public ProcessOutput<SO, SE> transform(int exitCode, C context) {
+                return outputter.get();
+            }
+        };
+    }
+
 }

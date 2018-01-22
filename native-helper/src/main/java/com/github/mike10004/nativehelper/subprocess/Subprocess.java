@@ -38,6 +38,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,18 +79,21 @@ public class Subprocess {
      * to build a launcher and then invoke {@link Launcher#launch()}.
      * @return a future representing the computation
      */
-    public <SO, SE> ProcessMonitor<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
+    public <C extends OutputContext, SO, SE> ProcessMonitor<SO, SE> launch(ProcessOutputControl<C, SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
         ListeningExecutorService launchExecutorService = launchExecutorServiceFactory.get();
-        ProcessMissionControl.Execution execution;
+        C outputContext;
         try {
-            execution = new ProcessMissionControl(this, processContext, launchExecutorService)
-                    .launch(outputControl.produceEndpoints());
+            outputContext = outputControl.produceContext();
         } catch (IOException e) {
-            throw new ProcessLaunchException("failed to produce stream endpoints", e);
+            throw new ProcessLaunchException("failed to produce output context", e);
         }
-        Function<Integer, ProcessResult<SO, SE>> transform = outputControl.getTransform();
+        ProcessMissionControl.Execution execution = new ProcessMissionControl(this, processContext, launchExecutorService)
+                .launch(outputContext);
         ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture()
-                .transform(transform::apply, launchExecutorService);
+                .transform(exitCode -> {
+                    ProcessOutput<SO, SE> output = outputControl.transform(exitCode, outputContext);
+                    return ProcessResult.direct(exitCode, output);
+                }, launchExecutorService);
         ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture, killExecutorServiceFactory);
         return monitor;
     }
@@ -253,22 +257,22 @@ public class Subprocess {
     public abstract class Launcher<SO, SE> {
 
         private final ProcessContext processContext;
-        protected final ProcessOutputControl<SO, SE> outputControl;
+        protected final ProcessOutputControl<?, SO, SE> outputControl;
 
-        private Launcher(ProcessContext processContext, ProcessOutputControl<SO, SE> outputControl) {
+        private Launcher(ProcessContext processContext, ProcessOutputControl<?, SO, SE> outputControl) {
             this.processContext = requireNonNull(processContext);
             this.outputControl = requireNonNull(outputControl);
         }
 
-        public <S> UniformLauncher<S> output(UniformOutputControl<S> outputControl) {
+        public <S> UniformLauncher<S> output(UniformOutputControl<?, S> outputControl) {
             return uniformOutput(outputControl);
         }
 
-        public <S> UniformLauncher<S> uniformOutput(ProcessOutputControl<S, S> outputControl) {
+        public <S> UniformLauncher<S> uniformOutput(ProcessOutputControl<?, S, S> outputControl) {
             return new UniformLauncher<S>(processContext, outputControl) {};
         }
 
-        public <SO2, SE2> Launcher<SO2, SE2> output(ProcessOutputControl<SO2, SE2> outputControl) {
+        public <SO2, SE2> Launcher<SO2, SE2> output(ProcessOutputControl<?, SO2, SE2> outputControl) {
             return new Launcher<SO2, SE2>(processContext, outputControl) {};
         }
 
@@ -296,7 +300,7 @@ public class Subprocess {
         }
 
         public UniformLauncher<byte[]> outputInMemory(@Nullable ByteSource stdin) {
-            UniformOutputControl<byte[]> m = ProcessOutputControls.byteArrays(stdin);
+            UniformOutputControl<?, byte[]> m = ProcessOutputControls.byteArrays(stdin);
             return output(m);
         }
 
@@ -308,6 +312,22 @@ public class Subprocess {
         public Launcher<Void, Void> inheritOutputStreams() {
             return output(ProcessOutputControls.inheritOutputs());
         }
+
+        public UniformLauncher<File> outputFiles(File stdoutFile, File stderrFile, @Nullable ByteSource stdin) {
+            return output(ProcessOutputControls.outputFiles(stdoutFile, stderrFile, stdin));
+        }
+
+        public UniformLauncher<File> outputFiles(File stdoutFile, File stderrFile) {
+            return outputFiles(stdoutFile, stderrFile, null);
+        }
+
+        public UniformLauncher<File> outputTempFiles(Path directory) {
+            return outputTempFiles(directory, null);
+        }
+
+        public UniformLauncher<File> outputTempFiles(Path directory, @Nullable ByteSource stdin) {
+            return output(ProcessOutputControls.outputTempFiles(directory, stdin));
+        }
     }
 
     /**
@@ -316,14 +336,19 @@ public class Subprocess {
      */
     public abstract class UniformLauncher<S> extends Launcher<S, S> {
 
-        private UniformLauncher(ProcessContext processContext, ProcessOutputControl<S, S> outputControl) {
+        private UniformLauncher(ProcessContext processContext, ProcessOutputControl<?, S, S> outputControl) {
             super(processContext, outputControl);
         }
 
         public <T> UniformLauncher<T> map(Function<? super S, T> mapper) {
-            UniformOutputControl<S> u = UniformOutputControl.wrap(this.outputControl);
-            UniformOutputControl<T> t = u.map(mapper);
+            UniformOutputControl<?, S> u = UniformOutputControl.wrap(this.outputControl);
+            UniformOutputControl<?, T> t = u.map(mapper);
             return uniformOutput(t);
+        }
+
+        @Override
+        public ProcessMonitor<S, S> launch() throws ProcessException {
+            return super.launch();
         }
     }
 
