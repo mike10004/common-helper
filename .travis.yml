@@ -7,4 +7,5 @@ addons:
     - libaio1
 notifications:
   email: false
-script: mvn test -B -Dtest=SubprocessPipingTest
+install: mvn install -Pskip-tests
+script: mvn test -B -f native-helper/pom.xml -Dtest=SubprocessPipingTest
