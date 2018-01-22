@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
-public class ProcessOutputControls {
+class ProcessOutputControls {
 
     private static <SO, SE> Function<Integer, ProcessResult<SO, SE>> noOutputTransform() {
         return new Function<Integer, ProcessResult<SO, SE>>() {

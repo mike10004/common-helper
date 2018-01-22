@@ -13,10 +13,26 @@ import java.io.OutputStream;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Class that represents the byte sources and sinks to be attached to
+ * a process's standard output, error, and input streams.
+ */
 public class ProcessStreamEndpoints {
 
+    /**
+     * Sink for bytes read from the process standard output stream.
+     */
     public final ByteSink stdout;
+
+    /**
+     * Sink for bytes read from the process standard error stream.
+     */
     public final ByteSink stderr;
+
+    /**
+     * Source of bytes to supply on the process's standard input stream. Can be null
+     * if nothing is to be sent to the process.
+     */
     @Nullable
     public final ByteSource stdin;
 
@@ -64,10 +80,16 @@ public class ProcessStreamEndpoints {
         }
     };
 
+    /**
+     * Returns an instance defining synthetic sources and sinks that do not capture
+     * any output from the process and do not send any input to the process.
+     * @return
+     */
     public static ProcessStreamEndpoints nullWithNullInput() {
         return NULL_WITH_NULL_INPUT;
     }
 
+    @SuppressWarnings("unused")
     public static ProcessStreamEndpoints nullWithEmptyInput() {
         return NULL_WITH_EMPTY_INPUT;
     }
@@ -75,6 +97,10 @@ public class ProcessStreamEndpoints {
     private static final ProcessStreamEndpoints NULL_WITH_NULL_INPUT = builder().build();
     private static final ProcessStreamEndpoints NULL_WITH_EMPTY_INPUT = builder().stdin(ByteSource.empty()).build();
 
+    /**
+     * Builder of process stream endpoints instances. By default, no output is captured
+     * from the process and no input is sent to the process.
+     */
     public static final class Builder {
         private ByteSink stdout = NULL_SINK;
         private ByteSink stderr = NULL_SINK;

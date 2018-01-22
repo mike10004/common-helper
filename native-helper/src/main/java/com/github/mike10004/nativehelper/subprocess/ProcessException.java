@@ -1,6 +1,10 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+/**
+ * Superclass for exceptions relating to subprocess operations.
+ */
 public class ProcessException extends RuntimeException {
+
     public ProcessException(String message) {
         super(message);
     }

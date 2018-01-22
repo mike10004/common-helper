@@ -2,6 +2,12 @@ package com.github.mike10004.nativehelper.subprocess;
 
 import java.util.function.Function;
 
+/**
+ * Interface representing a process result. A process result is an exit code
+ * and an object representing output from the process.
+ * @param <SO> type of the captured standard output contents
+ * @param <SE> type of the captured standard error contents
+ */
 public interface ProcessResult<SO, SE> {
 
     int getExitCode();

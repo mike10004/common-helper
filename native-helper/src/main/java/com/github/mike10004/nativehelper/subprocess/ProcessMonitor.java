@@ -1,17 +1,24 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.github.mike10004.nativehelper.subprocess.Subprocess.Launcher;
 import com.github.mike10004.nativehelper.subprocess.Subprocess.ProcessExecutionException;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Class that represents a prcoess monitor. A process monitor is returned by
+ * {@link Subprocess#launch(ProcessOutputControl, ProcessContext)} or
+ * {@link Launcher#launch()}.
+ * @param <SO> type of captured standard output contents
+ * @param <SE> type of captured standard error contents
+ */
 public class ProcessMonitor<SO, SE> {
 
     private final Process process;

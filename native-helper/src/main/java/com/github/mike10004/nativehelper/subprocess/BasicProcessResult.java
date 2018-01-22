@@ -1,7 +1,5 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessOutputs.DirectOutput;
-
 import static java.util.Objects.requireNonNull;
 
 class BasicProcessResult<SO, SE> implements ProcessResult<SO, SE> {

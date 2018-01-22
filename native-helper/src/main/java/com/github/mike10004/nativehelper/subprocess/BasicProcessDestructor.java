@@ -1,9 +1,8 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl;
-import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl.KillAttemptImpl;
-import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl.ProcessWaiter;
-import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.Impl.TermAttemptImpl;
+import com.github.mike10004.nativehelper.subprocess.DestroyAttempts.KillAttemptImpl;
+import com.github.mike10004.nativehelper.subprocess.AbstractDestroyAttempt.ProcessWaiter;
+import com.github.mike10004.nativehelper.subprocess.DestroyAttempts.TermAttemptImpl;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.KillAttempt;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.TermAttempt;
 import org.slf4j.Logger;
@@ -14,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class BasicProcessDestructor implements ProcessDestructor {
+class BasicProcessDestructor implements ProcessDestructor {
 
     @SuppressWarnings("unused")
     private static final Logger log = LoggerFactory.getLogger(BasicProcessDestructor.class);
@@ -30,7 +29,7 @@ public class BasicProcessDestructor implements ProcessDestructor {
     @Override
     public TermAttempt sendTermSignal() {
         if (isAlreadyTerminated()) {
-            return Impl.terminated();
+            return DestroyAttempts.terminated();
         }
         sendSignal(Process::destroy);
         return createTermAttempt();
@@ -49,13 +48,13 @@ public class BasicProcessDestructor implements ProcessDestructor {
     }
 
     private ProcessWaiter waiter() {
-        return ProcessWaiter.jre(process);
+        return AbstractDestroyAttempt.ProcessWaiter.jre(process);
     }
 
     protected TermAttempt createTermAttempt() {
         DestroyResult result = makeCurrentResult();
         if (result == DestroyResult.TERMINATED) {
-            return DestroyAttempt.Impl.terminated();
+            return DestroyAttempts.terminated();
         }
         return new TermAttemptImpl(this, waiter(), result, executorServiceFactory);
     }
@@ -63,7 +62,7 @@ public class BasicProcessDestructor implements ProcessDestructor {
     protected KillAttempt createKillAttempt() {
         DestroyResult result = makeCurrentResult();
         if (result == DestroyResult.TERMINATED) {
-            return DestroyAttempt.Impl.terminated();
+            return DestroyAttempts.terminated();
         }
         return new KillAttemptImpl(result, waiter(), executorServiceFactory);
     }
@@ -71,7 +70,7 @@ public class BasicProcessDestructor implements ProcessDestructor {
     @Override
     public KillAttempt sendKillSignal() {
         if (isAlreadyTerminated()) {
-            return Impl.terminated();
+            return DestroyAttempts.terminated();
         }
         sendSignal(Process::destroyForcibly);
         return createKillAttempt();

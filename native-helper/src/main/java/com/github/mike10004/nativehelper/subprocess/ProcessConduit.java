@@ -31,7 +31,7 @@ import java.io.OutputStream;
 /**
  * A customized version of {@link org.apache.tools.ant.taskdefs.PumpStreamHandler}.
  */
-public class ProcessConduit {
+class ProcessConduit {
 
     private volatile Thread outputThread;
     private volatile Thread errorThread;

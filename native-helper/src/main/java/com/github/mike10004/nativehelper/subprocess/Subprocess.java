@@ -51,7 +51,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Class that represents a subprocess to be executed.
+ * Class that represents a subprocess to be executed. Instances of this class
+ * are immutable and may be reused.
  */
 public class Subprocess {
     
@@ -73,6 +74,8 @@ public class Subprocess {
     }
 
     /**
+     * Launches a subprocess. It's probably easier to use {@link #launcher(ProcessContext)}
+     * to build a launcher and then invoke {@link Launcher#launch()}.
      * @return a future representing the computation
      */
     public <SO, SE> ProcessMonitor<SO, SE> launch(ProcessOutputControl<SO, SE> outputControl, ProcessContext processContext) throws ProcessException {
@@ -224,9 +227,18 @@ public class Subprocess {
 
     }
 
+    /**
+     * Creates a new launcher in the given process context. The launcher
+     * created does not specify that output is to be captured. Use the
+     * {@code Launcher} methods to specify how input is to be sent to the process and how
+     * output is to be captured.
+     * @param context the process context
+     * @return the launcher
+     */
     public Launcher<Void, Void> launcher(ProcessContext context) {
         return toSinkhole(context);
     }
+
     private Launcher<Void, Void> toSinkhole(ProcessContext processContext) {
         return new Launcher<Void, Void>(processContext, ProcessOutputControls.sinkhole()){};
     }
@@ -278,6 +290,7 @@ public class Subprocess {
             return output(ProcessOutputControls.strings(charset, stdin));
         }
 
+        @SuppressWarnings("unused")
         public UniformLauncher<byte[]> outputInMemory() {
             return outputInMemory(null);
         }
@@ -287,6 +300,7 @@ public class Subprocess {
             return output(m);
         }
 
+        @SuppressWarnings("unused")
         public Launcher<Void, Void> inheritAllStreams() {
             return output(ProcessOutputControls.inheritAll());
         }
@@ -296,6 +310,10 @@ public class Subprocess {
         }
     }
 
+    /**
+     * Class that represents a launcher using a uniform output control.
+     * @param <S>
+     */
     public abstract class UniformLauncher<S> extends Launcher<S, S> {
 
         private UniformLauncher(ProcessContext processContext, ProcessOutputControl<S, S> outputControl) {
@@ -332,22 +350,40 @@ public class Subprocess {
     public static Builder running(String executable) {
         return new Builder(executable);
     }
-    
+
+    /**
+     * Gets the executable to be executed.
+     * @return the executable
+     */
     @SuppressWarnings("unused")
     public String getExecutable() {
         return executable;
     }
 
+    /**
+     * Gets the arguments to be provided to the process.
+     * @return the arguments
+     */
     @SuppressWarnings("unused")
     public ImmutableList<String> getArguments() {
         return arguments;
     }
 
+    /**
+     * Gets the working directory of the process. Null means the working
+     * directory of the JVM.
+     * @return the working directory pathname
+     */
     @Nullable
     protected File getWorkingDirectory() {
         return workingDirectory;
     }
 
+    /**
+     * Gets the map of environment variables to override or supplement
+     * the process environment.
+     * @return the environment
+     */
     @SuppressWarnings("unused")
     public ImmutableMap<String, String> getEnvironment() {
         return environment;

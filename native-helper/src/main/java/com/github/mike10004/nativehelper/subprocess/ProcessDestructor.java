@@ -5,7 +5,16 @@ package com.github.mike10004.nativehelper.subprocess;
  */
 public interface ProcessDestructor {
 
+    /**
+     * Sends SIGTERM or equivalent to a process.
+     * @return a termination attempt instance
+     */
     DestroyAttempt.TermAttempt sendTermSignal();
+
+    /**
+     * Sends SIGKILL or equivalent to a process.
+     * @return a kill attempt instance
+     */
     DestroyAttempt.KillAttempt sendKillSignal();
 
 }
