@@ -1,3 +1,22 @@
+/*
+ * (most of this code is from Ant's PumpStreamHandler}
+ *
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
 package com.github.mike10004.nativehelper.subprocess;
 
 import org.apache.tools.ant.taskdefs.PumpStreamHandler;
@@ -9,6 +28,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * A customized version of {@link org.apache.tools.ant.taskdefs.PumpStreamHandler}.
+ */
 public class ProcessConduit {
 
     private volatile Thread outputThread;
@@ -19,22 +41,17 @@ public class ProcessConduit {
     private final OutputStream err;
     @Nullable
     private final InputStream input;
-    private final boolean nonBlockingRead;
 
     /**
      * Construct a new <code>PumpStreamHandler</code>.
      * @param out the output <code>OutputStream</code>.
      * @param err the error <code>OutputStream</code>.
      * @param input the input <code>InputStream</code>.
-     * @param nonBlockingRead set it to <code>true</code> if the input should be
-     *                      read with simulated non blocking IO.
      */
-    public ProcessConduit(OutputStream out, OutputStream err,
-                             @Nullable InputStream input, boolean nonBlockingRead) {
+    public ProcessConduit(OutputStream out, OutputStream err, @Nullable InputStream input) {
         this.out = out;
         this.err = err;
         this.input = input;
-        this.nonBlockingRead = nonBlockingRead;
     }
 
     /**
@@ -64,7 +81,7 @@ public class ProcessConduit {
      */
     private void setProcessInputStream(OutputStream os) {
         if (input != null) {
-            inputThread = createPump(input, os, true, nonBlockingRead);
+            inputThread = createPump(input, os, true);
         } else {
             FileUtils.close(os);
         }
@@ -84,7 +101,7 @@ public class ProcessConduit {
         }
         return new Closeable() {
             @Override
-            public void close() throws IOException {
+            public void close() {
                 stop();
             }
         };
@@ -120,13 +137,13 @@ public class ProcessConduit {
      *
      * @since Ant 1.8.0
      */
-    private final void finish(Thread t) {
+    private void finish(Thread t) {
         if (t == null) {
             // nothing to terminate
             return;
         }
         try {
-            StreamPumper s = null;
+            BlockingStreamPumper s = null;
             if (t instanceof ThreadWithPumper) {
                 s = ((ThreadWithPumper) t).getPumper();
             }
@@ -166,13 +183,15 @@ public class ProcessConduit {
         return out;
     }
 
+    private static final boolean CLOSE_STDOUT_AND_STDERR_INSTREAMS_WHEN_EXHAUSTED = true;
+
     /**
      * Create the pump to handle process output.
      * @param is the <code>InputStream</code>.
      * @param os the <code>OutputStream</code>.
      */
-    protected void createProcessOutputPump(InputStream is, OutputStream os) {
-        outputThread = createPump(is, os);
+    private void createProcessOutputPump(InputStream is, OutputStream os) {
+        outputThread = createPump(is, os, CLOSE_STDOUT_AND_STDERR_INSTREAMS_WHEN_EXHAUSTED);
     }
 
     /**
@@ -180,19 +199,8 @@ public class ProcessConduit {
      * @param is the input stream to copy from.
      * @param os the output stream to copy to.
      */
-    protected void createProcessErrorPump(InputStream is, OutputStream os) {
-        errorThread = createPump(is, os);
-    }
-
-    /**
-     * Creates a stream pumper to copy the given input stream to the
-     * given output stream.
-     * @param is the input stream to copy from.
-     * @param os the output stream to copy to.
-     * @return a thread object that does the pumping.
-     */
-    protected Thread createPump(InputStream is, OutputStream os) {
-        return createPump(is, os, false);
+    private void createProcessErrorPump(InputStream is, OutputStream os) {
+        errorThread = createPump(is, os, CLOSE_STDOUT_AND_STDERR_INSTREAMS_WHEN_EXHAUSTED);
     }
 
     /**
@@ -205,28 +213,10 @@ public class ProcessConduit {
      * should return an instance of {@link PumpStreamHandler.ThreadWithPumper
      * ThreadWithPumper}.
      */
-    protected Thread createPump(InputStream is, OutputStream os,
+    private Thread createPump(InputStream is, OutputStream os,
                                 boolean closeWhenExhausted) {
-        return createPump(is, os, closeWhenExhausted, true);
-    }
-
-    /**
-     * Creates a stream pumper to copy the given input stream to the
-     * given output stream.
-     * @param is the input stream to copy from.
-     * @param os the output stream to copy to.
-     * @param closeWhenExhausted if true close the inputstream.
-     * @param nonBlockingIO set it to <code>true</code> to use simulated non
-     *                     blocking IO.
-     * @return a thread object that does the pumping, subclasses
-     * should return an instance of {@link PumpStreamHandler.ThreadWithPumper
-     * ThreadWithPumper}.
-     * @since Ant 1.8.2
-     */
-    protected Thread createPump(InputStream is, OutputStream os,
-                                boolean closeWhenExhausted, boolean nonBlockingIO) {
-        StreamPumper pumper = new StreamPumper(is, os, closeWhenExhausted, nonBlockingIO);
-        pumper.setAutoflush(true);
+        BlockingStreamPumper pumper = new BlockingStreamPumper(is, os, closeWhenExhausted);
+        // pumper.setAutoflush(true); // always auto-flush
         final Thread result = new ThreadWithPumper(pumper);
         result.setDaemon(true);
         return result;
@@ -238,12 +228,12 @@ public class ProcessConduit {
      * @since Ant 1.8.0
      */
     protected static class ThreadWithPumper extends Thread {
-        private final StreamPumper pumper;
-        public ThreadWithPumper(StreamPumper p) {
+        private final BlockingStreamPumper pumper;
+        public ThreadWithPumper(BlockingStreamPumper p) {
             super(p);
             pumper = p;
         }
-        protected StreamPumper getPumper() {
+        protected BlockingStreamPumper getPumper() {
             return pumper;
         }
     }

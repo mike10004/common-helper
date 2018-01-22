@@ -3,7 +3,6 @@ package com.github.mike10004.nativehelper.subprocess;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -17,7 +16,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static java.nio.charset.StandardCharsets.UTF_8;

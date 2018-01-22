@@ -68,8 +68,6 @@ class ProcessMissionControl {
         return cmdline.build();
     }
 
-    private static final boolean NON_BLOCKING_READ = false;
-
     private Process createProcess(List<String> cmdline) {
         ProcessBuilder pb = new ProcessBuilder()
                 .command(cmdline)
@@ -154,7 +152,7 @@ class ProcessMissionControl {
         try (MaybeNullResource<InputStream> inResource = openMaybeNullInputStream(endpoints.stdin);
             OutputStream stdoutDestination = endpoints.stdout.openStream();
             OutputStream stderrDestination = endpoints.stderr.openStream()) {
-            ProcessConduit conduit = new ProcessConduit(stdoutDestination, stderrDestination, inResource.resource, NON_BLOCKING_READ);
+            ProcessConduit conduit = new ProcessConduit(stdoutDestination, stderrDestination, inResource.resource);
             processStdin = process.getOutputStream();
             processStdout = process.getInputStream();
             processStderr = process.getErrorStream();
@@ -178,7 +176,8 @@ class ProcessMissionControl {
         boolean terminatedNaturally = false;
         try {
             terminatedNaturally = process.waitFor(0, TimeUnit.MILLISECONDS);
-        } catch(InterruptedException ignore) {
+        } catch(InterruptedException e) {
+            throw new IllegalStateException("BUG: interrupted exception shouldn't happen because timeout length is zero", e);
         } finally {
             if (!terminatedNaturally && process.isAlive()) {
                 process.destroy();

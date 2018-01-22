@@ -17,18 +17,19 @@
  */
 package com.github.mike10004.nativehelper.subprocess;
 
-import java.io.IOException;
+import org.apache.tools.ant.util.FileUtils;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.apache.tools.ant.util.FileUtils;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Copies all data from an input stream to an output stream.
  *
  * @since Ant 1.2
  */
-class StreamPumper implements Runnable {
+class BlockingStreamPumper implements Runnable {
 
     private static final int SMALL_BUFFER_SIZE = 128;
 
@@ -37,11 +38,10 @@ class StreamPumper implements Runnable {
     private volatile boolean finish;
     private volatile boolean finished;
     private final boolean closeWhenExhausted;
-    private boolean autoflush = false;
+    private final static boolean autoflush = true;
     private Exception exception = null;
     private int bufferSize = SMALL_BUFFER_SIZE;
     private boolean started = false;
-    private final boolean useAvailable;
 
     /**
      * Create a new StreamPumper.
@@ -51,60 +51,10 @@ class StreamPumper implements Runnable {
      * @param closeWhenExhausted if true, the output stream will be closed when
      *        the input is exhausted.
      */
-    public StreamPumper(InputStream is, OutputStream os, boolean closeWhenExhausted) {
-        this(is, os, closeWhenExhausted, false);
-    }
-
-
-    /**
-     * Create a new StreamPumper.
-     *
-     * <p><b>Note:</b> If you set useAvailable to true, you must
-     * explicitly invoke {@link #stop stop} or interrupt the
-     * corresponding Thread when you are done or the run method will
-     * never finish on some JVMs (namely those where available returns
-     * 0 on a closed stream).  Setting it to true may also impact
-     * performance negatively.  This flag should only be set to true
-     * if you intend to stop the pumper before the input stream gets
-     * closed.</p>
-     *
-     * @param is input stream to read data from
-     * @param os output stream to write data to.
-     * @param closeWhenExhausted if true, the output stream will be closed when
-     *        the input is exhausted.
-     * @param useAvailable whether the pumper should use {@link
-     *        java.io.InputStream#available available} to determine
-     *        whether input is ready, thus trying to emulate
-     *        non-blocking behavior.
-     *
-     * @since Ant 1.8.0
-     */
-    public StreamPumper(InputStream is, OutputStream os,
-                        boolean closeWhenExhausted,
-                        boolean useAvailable) {
-        this.is = is;
-        this.os = os;
+    public BlockingStreamPumper(InputStream is, OutputStream os, boolean closeWhenExhausted) {
+        this.is = requireNonNull(is);
+        this.os = requireNonNull(os);
         this.closeWhenExhausted = closeWhenExhausted;
-        this.useAvailable = useAvailable;
-    }
-
-    /**
-     * Create a new StreamPumper.
-     *
-     * @param is input stream to read data from
-     * @param os output stream to write data to.
-     */
-    public StreamPumper(InputStream is, OutputStream os) {
-        this(is, os, false);
-    }
-
-    /**
-     * Set whether data should be flushed through to the output stream.
-     * @param autoflush if true, push through data; if false, let it be buffered
-     * @since Ant 1.6.3
-     */
-    /*package*/ void setAutoflush(boolean autoflush) {
-        this.autoflush = autoflush;
     }
 
     /**
@@ -123,8 +73,6 @@ class StreamPumper implements Runnable {
         int length;
         try {
             while (true) {
-                waitForInput(is);
-
                 if (finish || Thread.interrupted()) {
                     break;
                 }
@@ -155,8 +103,6 @@ class StreamPumper implements Runnable {
                 }
             }
             os.flush();
-        } catch (InterruptedException ie) {
-            // likely PumpStreamHandler trying to stop us
         } catch (Exception e) {
             synchronized (this) {
                 exception = e;
@@ -186,6 +132,7 @@ class StreamPumper implements Runnable {
      * @throws InterruptedException if interrupted.
      * @see #isFinished()
      */
+    @SuppressWarnings("unused")
     public synchronized void waitFor() throws InterruptedException {
         while (!isFinished()) {
             wait();
@@ -197,6 +144,7 @@ class StreamPumper implements Runnable {
      * @param bufferSize the buffer size to use.
      * @throws IllegalStateException if the StreamPumper is already running.
      */
+    @SuppressWarnings("unused")
     public synchronized void setBufferSize(int bufferSize) {
         if (started) {
             throw new IllegalStateException("Cannot set buffer size on a running StreamPumper");
@@ -208,6 +156,7 @@ class StreamPumper implements Runnable {
      * Get the size in bytes of the read buffer.
      * @return the int size of the read buffer.
      */
+    @SuppressWarnings("unused")
     public synchronized int getBufferSize() {
         return bufferSize;
     }
@@ -230,23 +179,6 @@ class StreamPumper implements Runnable {
     /*package*/ synchronized void stop() {
         finish = true;
         notifyAll();
-    }
-
-    private static final long POLL_INTERVAL = 100;
-
-    private void waitForInput(InputStream is)
-            throws IOException, InterruptedException {
-        if (useAvailable) {
-            while (!finish && is.available() == 0) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-
-                synchronized (this) {
-                    this.wait(POLL_INTERVAL);
-                }
-            }
-        }
     }
 
 }
