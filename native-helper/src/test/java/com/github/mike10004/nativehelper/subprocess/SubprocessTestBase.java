@@ -4,7 +4,12 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
@@ -14,6 +19,7 @@ import static org.junit.Assert.assertEquals;
  * for test classes to use, and implements a check after each test that confirms that there
  * are no active processes remaining.
  */
+@RunWith(Parameterized.class)
 public abstract class SubprocessTestBase {
 
     protected static final ProcessTracker CONTEXT = ProcessTracker.create();
@@ -38,6 +44,24 @@ public abstract class SubprocessTestBase {
         } else {
             assertEquals(active + " processes are still active but should have finished or been killed", 0, active);
         }
+    }
+
+    private static int getNumTrials() {
+        String trialsStr = System.getenv("SUBPROCESS_TESTS_TRIALS");
+        if (trialsStr != null && !trialsStr.isEmpty()) {
+            try {
+                return Integer.parseInt(trialsStr);
+            } catch (RuntimeException e) {
+                System.err.format("failed to parse %s: %s%n", trialsStr, e);
+            }
+        }
+        return 1;
+    }
+
+    @Parameters
+    public static List<Object[]> params() {
+        int numTrials = getNumTrials();
+        return Arrays.asList(new Object[numTrials][0]);
     }
 
     protected static <T> Supplier<T> nullSupplier() {
