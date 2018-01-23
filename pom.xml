@@ -12,6 +12,7 @@
         <module>native-helper</module>
         <module>ormlite-helper</module>
         <module>ormlite-helper-testtools</module>
+        <module>native-helper-legacy</module>
     </modules>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
