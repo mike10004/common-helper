@@ -46,7 +46,7 @@ public class ProcessMissionControlTest {
         Execution execution = executor.launch(outputcontext);
         Integer exitCode = execution.getFuture().get();
         assertEquals("exitcode", 0, exitCode.intValue());
-        ByteSource stdout = ctrl.transform(exitCode, (BucketContext) outputcontext).getStdout();
+        ByteSource stdout = ctrl.transform(exitCode, (BucketContext) outputcontext).stdout();
         String actual = new String(stdout.read(), US_ASCII);
         assertEquals("stdout", expected, actual.trim());
     }

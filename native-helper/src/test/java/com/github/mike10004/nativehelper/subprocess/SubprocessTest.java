@@ -35,7 +35,7 @@ public class SubprocessTest extends SubprocessTestBase {
     public void launch_true() throws Exception {
         int exitCode = running(pyTrue()).build()
                 .launcher(CONTEXT)
-                .launch().await().getExitCode();
+                .launch().await().exitCode();
         assertEquals("exit code", 0, exitCode);
     }
 
@@ -46,7 +46,7 @@ public class SubprocessTest extends SubprocessTestBase {
                 .arg(String.valueOf(expected))
                 .build()
                 .launcher(CONTEXT)
-                .launch().await().getExitCode();
+                .launch().await().exitCode();
         assertEquals("exit code", expected, exitCode);
     }
 
@@ -70,10 +70,10 @@ public class SubprocessTest extends SubprocessTestBase {
                 .launcher(CONTEXT)
                 .outputStrings(US_ASCII)
                 .launch().await();
-        int exitCode = processResult.getExitCode();
+        int exitCode = processResult.exitCode();
         assertEquals("exit code", 0, exitCode);
-        String actualStdout = processResult.getOutput().getStdout();
-        String actualStderr = processResult.getOutput().getStderr();
+        String actualStdout = processResult.content().stdout();
+        String actualStderr = processResult.content().stderr();
         System.out.format("output: \"%s\"%n", StringEscapeUtils.escapeJava(actualStdout));
         assertEquals("stdout", arg, actualStdout);
         assertEquals("stderr", "", actualStderr);
@@ -98,8 +98,8 @@ public class SubprocessTest extends SubprocessTestBase {
                 .launcher(CONTEXT)
                 .outputStrings(US_ASCII)
                 .launch().await();
-        String actualStdout = result.getOutput().getStdout();
-        String actualStderr = result.getOutput().getStderr();
+        String actualStdout = result.content().stdout();
+        String actualStderr = result.content().stderr();
         assertEquals("stdout", Tests.joinPlus(linesep, stdout), actualStdout);
         assertEquals("stderr", Tests.joinPlus(linesep, stderr), actualStderr);
     }
@@ -119,9 +119,9 @@ public class SubprocessTest extends SubprocessTestBase {
                         .outputInMemory(ByteSource.wrap(bytes))
                         .launch().await();
         System.out.println(result);
-        assertEquals("exit code", 0, result.getExitCode());
-        assertArrayEquals("stdout", bytes, result.getOutput().getStdout());
-        assertEquals("stderr length", 0, result.getOutput().getStderr().length);
+        assertEquals("exit code", 0, result.exitCode());
+        assertArrayEquals("stdout", bytes, result.content().stdout());
+        assertEquals("stderr length", 0, result.content().stderr().length);
     }
 
     @Test
@@ -140,10 +140,10 @@ public class SubprocessTest extends SubprocessTestBase {
                         .outputInMemory(ByteSource.wrap(bytes))
                         .launch().await();
         System.out.println(result);
-        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("exit code", 0, result.exitCode());
         checkState(Arrays.equals(bytes, Files.asByteSource(dataFile).read()));
-        assertArrayEquals("stdout", bytes, result.getOutput().getStdout());
-        assertEquals("stderr length", 0, result.getOutput().getStderr().length);
+        assertArrayEquals("stdout", bytes, result.content().stdout());
+        assertEquals("stderr length", 0, result.content().stderr().length);
         //noinspection ResultOfMethodCallIgnored
         dataFile.delete();
     }
@@ -157,8 +157,8 @@ public class SubprocessTest extends SubprocessTestBase {
                 .outputStrings(US_ASCII, CharSource.wrap(expected + System.lineSeparator()).asByteSource(US_ASCII))
                 .launch().await();
         System.out.println(result);
-        assertEquals("output", expected, result.getOutput().getStdout());
-        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("output", expected, result.content().stdout());
+        assertEquals("exit code", 0, result.exitCode());
     }
 
     /**
@@ -173,7 +173,7 @@ public class SubprocessTest extends SubprocessTestBase {
                 .build()
                 .launcher(CONTEXT)
                 .inheritOutputStreams()
-                .launch().await().getExitCode();
+                .launch().await().exitCode();
         checkState(exitCode == 0);
     }
 
@@ -192,7 +192,7 @@ public class SubprocessTest extends SubprocessTestBase {
                     .launcher(CONTEXT)
                     .inheritOutputStreams()
                     .launch().await();
-            assertEquals("exit code", 0, result.getExitCode());
+            assertEquals("exit code", 0, result.exitCode());
         } finally {
             System.setOut(JVM_STDOUT);
             System.setErr(JVM_STDERR);
@@ -252,8 +252,8 @@ public class SubprocessTest extends SubprocessTestBase {
                 .args(varnames)
                 .build().launcher(CONTEXT).outputStrings(Charset.defaultCharset()).launch().await();
         System.out.format("result: %s%n", result);
-        List<String> lines = Splitter.on(System.lineSeparator()).omitEmptyStrings().splitToList(result.getOutput().getStdout());
-        assertEquals("exit code", 0, result.getExitCode());
+        List<String> lines = Splitter.on(System.lineSeparator()).omitEmptyStrings().splitToList(result.content().stdout());
+        assertEquals("exit code", 0, result.exitCode());
         assertEquals("num lines in output", varnames.size(), lines.size());
         Map<String, String> defs = new HashMap<>();
         for (int i = 0; i < lines.size(); i++) {

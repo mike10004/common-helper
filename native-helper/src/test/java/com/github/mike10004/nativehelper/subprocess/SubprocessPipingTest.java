@@ -40,9 +40,9 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         }
         ProcessResult<String, String> result = monitor.await();
         System.out.format("get() returned %s%n", result);
-        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("exit code", 0, result.exitCode());
         String expected = Tests.joinPlus(System.lineSeparator(), lines.subList(0, 3));
-        assertEquals("output", expected, result.getOutput().getStdout());
+        assertEquals("output", expected, result.content().stdout());
     }
 
     private static final List<String> poemLines = Arrays.asList(
@@ -94,7 +94,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         System.out.format("result: %s%n", result);
         System.out.format("lines:%n%s%n", String.join(System.lineSeparator(), actualLines));
         assertEquals("actual", poemLines, actualLines);
-        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("exit code", 0, result.exitCode());
     }
 
     @SuppressWarnings("Duplicates")
@@ -127,11 +127,11 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         }
         ProcessResult<Void, String> result = monitor.await();
         System.out.format("result: %s%n", result);
-        if (result.getExitCode() != 0) {
-            System.err.println(result.getOutput().getStderr());
+        if (result.exitCode() != 0) {
+            System.err.println(result.content().stderr());
         }
         System.out.format("lines:%n%s%n", String.join(System.lineSeparator(), actualLines));
         assertEquals("actual", poemLines, actualLines);
-        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("exit code", 0, result.exitCode());
     }
 }

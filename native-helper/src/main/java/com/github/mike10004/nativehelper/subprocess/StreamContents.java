@@ -44,12 +44,12 @@ class StreamContents {
         }
 
         @Override
-        public SO getStdout() {
+        public SO stdout() {
             return stdout;
         }
 
         @Override
-        public SE getStderr() {
+        public SE stderr() {
             return stderr;
         }
 
@@ -104,12 +104,12 @@ class StreamContents {
         }
 
         @Override
-        public SO getStdout() {
+        public SO stdout() {
             return stdoutSupplier.get();
         }
 
         @Override
-        public SE getStderr() {
+        public SE stderr() {
             return stderrSupplier.get();
         }
 
@@ -122,7 +122,7 @@ class StreamContents {
         }
 
         public String toStringExpanded() {
-            return "DeferredOutput:Expanded{" + innerFieldsToString(getStdout(), getStderr()) + '}';
+            return "DeferredOutput:Expanded{" + innerFieldsToString(stdout(), stderr()) + '}';
         }
 
     }
@@ -132,7 +132,7 @@ class StreamContents {
     public static class MappedOutput<SO, SE> extends DeferredOutput<SO, SE> {
 
         public <SO0, SE0> MappedOutput(StreamContent<SO0, SE0> original, Function<? super SO0, SO> stdoutMap, Function<? super SE0, SE> stderrMap) {
-            super(() -> stdoutMap.apply(original.getStdout()), () -> stderrMap.apply(original.getStderr()));
+            super(() -> stdoutMap.apply(original.stdout()), () -> stderrMap.apply(original.stderr()));
         }
 
         @Override
@@ -148,12 +148,12 @@ class StreamContents {
 
     private static final StreamContent BOTH_NULL = new StreamContent() {
         @Override
-        public Void getStdout() {
+        public Void stdout() {
             return null;
         }
 
         @Override
-        public Void getStderr() {
+        public Void stderr() {
             return null;
         }
 

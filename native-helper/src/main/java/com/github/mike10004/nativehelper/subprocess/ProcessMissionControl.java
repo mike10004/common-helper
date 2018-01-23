@@ -62,8 +62,8 @@ class ProcessMissionControl {
 
     private ImmutableList<String> getCommandLine() {
         ImmutableList.Builder<String> cmdline = ImmutableList.builder();
-        cmdline.add(program.getExecutable());
-        cmdline.addAll(program.getArguments());
+        cmdline.add(program.executable());
+        cmdline.addAll(program.arguments());
         return cmdline.build();
     }
 
@@ -73,9 +73,9 @@ class ProcessMissionControl {
                 .redirectError(Redirect.PIPE)
                 .redirectOutput(Redirect.PIPE)
                 .redirectInput(Redirect.PIPE)
-                .directory(program.getWorkingDirectory());
+                .directory(program.workingDirectory());
         Map<String, String> pbenv = pb.environment();
-        pbenv.putAll(program.getEnvironment());
+        pbenv.putAll(program.environment());
         try {
             return pb.start();
         } catch (IOException e) {
@@ -98,7 +98,7 @@ class ProcessMissionControl {
      */
     @VisibleForTesting
     Process execute() {
-        File workingDirectory = program.getWorkingDirectory();
+        File workingDirectory = program.workingDirectory();
         if (!InvalidWorkingDirectoryException.check(workingDirectory)) {
             throw new InvalidWorkingDirectoryException(workingDirectory);
         }

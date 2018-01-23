@@ -16,13 +16,13 @@ public interface StreamContent<SO, SE> {
      * Returns the content written to standard output by a process.
      * @return the standard output content
      */
-    SO getStdout();
+    SO stdout();
 
     /**
      * Returns the content written to standard error by a process.
      * @return the standard error content
      */
-    SE getStderr();
+    SE stderr();
 
     static <SO, SE> StreamContent<SO, SE> direct(SO stdout, SE stderr) {
         return new StreamContents.DirectOutput<>(stdout, stderr);

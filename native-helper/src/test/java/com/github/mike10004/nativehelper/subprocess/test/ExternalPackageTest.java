@@ -75,7 +75,7 @@ public class ExternalPackageTest {
         ProcessMonitor<Void, Void> monitor = fixture.subprocess.launcher(CONTEXT).output(outputControl).launch();
         byte[] stdoutcontent = ByteStreams.toByteArray(pin);
         ProcessResult<Void, Void> result = monitor.await();
-        assertEquals("exit code", 0, result.getExitCode());
+        assertEquals("exit code", 0, result.exitCode());
         String actualStdout = new String(stdoutcontent, StandardCharsets.US_ASCII);
         assertEquals("stdout", fixture.expectedStdout, actualStdout);
     }
@@ -136,7 +136,7 @@ public class ExternalPackageTest {
         }
 
         public <S> void check(ProcessResult<S, S> result, Function<? super S, String> outputMap) {
-            check(result.getExitCode(), outputMap.apply(result.getOutput().getStdout()), outputMap.apply(result.getOutput().getStderr()));
+            check(result.exitCode(), outputMap.apply(result.content().stdout()), outputMap.apply(result.content().stderr()));
         }
     }
 }

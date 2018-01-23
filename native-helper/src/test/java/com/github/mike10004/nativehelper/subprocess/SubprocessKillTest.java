@@ -41,7 +41,7 @@ public class SubprocessKillTest extends SubprocessTestBase {
         assertEquals("term attempt result", DestroyResult.STILL_ALIVE, termAttempt.result());
         KillAttempt attempt = termAttempt.kill();
         attempt.awaitKill();
-        int exitCode = monitor.await().getExitCode();
+        int exitCode = monitor.await().exitCode();
         if (Platforms.getPlatform().isLinux()) {
             assertEquals("exit code", EXPECTED_SIGKILL_EXIT_CODE, exitCode);
         }
@@ -59,7 +59,7 @@ public class SubprocessKillTest extends SubprocessTestBase {
         System.out.format("pid printed: %s%n", pid);
         TermAttempt termAttempt = monitor.destructor().sendTermSignal().await();
         assertEquals("term attempt result", DestroyResult.TERMINATED, termAttempt.result());
-        int exitCode = monitor.await().getExitCode();
+        int exitCode = monitor.await().exitCode();
         if (Platforms.getPlatform().isLinux()) {
             assertEquals("exit code", EXPECTED_SIGTERM_EXIT_CODE, exitCode);
         }

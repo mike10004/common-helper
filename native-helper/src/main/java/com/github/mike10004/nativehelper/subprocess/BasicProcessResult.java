@@ -13,12 +13,12 @@ class BasicProcessResult<SO, SE> implements ProcessResult<SO, SE> {
     }
 
     @Override
-    public int getExitCode() {
+    public int exitCode() {
         return exitCode;
     }
 
     @Override
-    public StreamContent<SO, SE> getOutput() {
+    public StreamContent<SO, SE> content() {
         return output;
     }
 

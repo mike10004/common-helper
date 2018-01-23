@@ -10,9 +10,9 @@ import java.util.function.Function;
  */
 public interface ProcessResult<SO, SE> {
 
-    int getExitCode();
+    int exitCode();
 
-    StreamContent<SO, SE> getOutput();
+    StreamContent<SO, SE> content();
 
     static <SO, SE> ProcessResult<SO, SE> direct(int exitCode, SO stdout, SE stderr) {
         return BasicProcessResult.create(exitCode, stdout, stderr);
@@ -23,6 +23,6 @@ public interface ProcessResult<SO, SE> {
     }
 
     default <SO2, SE2> ProcessResult<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
-        return new BasicProcessResult<>(getExitCode(), getOutput().map(stdoutMap, stderrMap));
+        return new BasicProcessResult<>(exitCode(), content().map(stdoutMap, stderrMap));
     }
 }

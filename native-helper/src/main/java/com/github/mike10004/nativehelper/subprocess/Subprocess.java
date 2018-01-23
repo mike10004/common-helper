@@ -378,7 +378,7 @@ public class Subprocess {
      * @return the executable
      */
     @SuppressWarnings("unused")
-    public String getExecutable() {
+    public String executable() {
         return executable;
     }
 
@@ -387,7 +387,7 @@ public class Subprocess {
      * @return the arguments
      */
     @SuppressWarnings("unused")
-    public ImmutableList<String> getArguments() {
+    public ImmutableList<String> arguments() {
         return arguments;
     }
 
@@ -397,7 +397,7 @@ public class Subprocess {
      * @return the working directory pathname
      */
     @Nullable
-    protected File getWorkingDirectory() {
+    protected File workingDirectory() {
         return workingDirectory;
     }
 
@@ -407,7 +407,7 @@ public class Subprocess {
      * @return the environment
      */
     @SuppressWarnings("unused")
-    public ImmutableMap<String, String> getEnvironment() {
+    public ImmutableMap<String, String> environment() {
         return environment;
     }
 
