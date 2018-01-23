@@ -10,8 +10,8 @@ Libraries that help with some common computing tasks in Java. They are:
 * imnetio-helper: imaging, networking, and I/O
 * ormlite-helper and ormlite-helper-testtools: help with ORMLite and 
   database unit/integration testing
-* native-helper: help with platform-dependent tasks like external 
-  processes and platform-specific filesystem conventions
+* native-helper: help with platform-dependent tasks like subprocesses 
+  and platform-specific filesystem conventions
 
 ## Imaging, Networking, and I/O
 
