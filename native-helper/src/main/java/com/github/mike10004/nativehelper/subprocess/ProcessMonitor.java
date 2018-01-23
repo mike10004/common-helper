@@ -2,13 +2,13 @@ package com.github.mike10004.nativehelper.subprocess;
 
 import com.github.mike10004.nativehelper.subprocess.Subprocess.Launcher;
 import com.github.mike10004.nativehelper.subprocess.Subprocess.ProcessExecutionException;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -17,7 +17,10 @@ import static java.util.Objects.requireNonNull;
  * {@link Subprocess#launch(ProcessTracker, StreamContext)} or
  * {@link Launcher#launch()}. Process execution is inherently asynchronous, so
  * launching a monitor returns an object that allows you to decide how to
- * handle changes (or lack thereof) in the process's state.
+ * handle changes (or lack thereof) in the process's state. To attach a listener
+ * to the process, grab the {@link #future() future} and
+ * {@link com.google.common.util.concurrent.Futures#addCallback(ListenableFuture, FutureCallback, Executor) Futures.addCallback()}.
+ *
  * @param <SO> type of captured standard output contents
  * @param <SE> type of captured standard error contents
  */
@@ -25,12 +28,12 @@ public class ProcessMonitor<SO, SE> {
 
     private final Process process;
     private final ListenableFuture<ProcessResult<SO, SE>> future;
-    private final Supplier<? extends ListeningExecutorService> killExecutorServiceFactory;
+    private final ProcessTracker processTracker;
 
-    ProcessMonitor(Process process, ListenableFuture<ProcessResult<SO, SE>> future, Supplier<? extends ListeningExecutorService> killExecutorServiceFactory) {
+    ProcessMonitor(Process process, ListenableFuture<ProcessResult<SO, SE>> future, ProcessTracker processTracker) {
         this.future = requireNonNull(future);
         this.process = requireNonNull(process);
-        this.killExecutorServiceFactory = requireNonNull(killExecutorServiceFactory);
+        this.processTracker = requireNonNull(processTracker);
     }
 
     public ListenableFuture<ProcessResult<SO, SE>> future() {
@@ -38,7 +41,7 @@ public class ProcessMonitor<SO, SE> {
     }
 
     public ProcessDestructor destructor() {
-        return new BasicProcessDestructor(process, killExecutorServiceFactory);
+        return new BasicProcessDestructor(process, processTracker);
     }
 
     public Process process() {

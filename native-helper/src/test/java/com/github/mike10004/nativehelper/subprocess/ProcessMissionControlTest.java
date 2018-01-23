@@ -26,8 +26,8 @@ public class ProcessMissionControlTest {
         ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ByteBucket stdout = ByteBucket.create(), stderr = ByteBucket.create();
         PredefinedStreamControl endpoints = new PredefinedStreamControl(stdout, stderr, null);
-        Execution execution = executor.launch(endpoints);
-        Integer exitCode = execution.getFuture().get();
+        Execution<?, ?> execution = executor.launch(endpoints, exitCode -> ProcessResult.direct(exitCode, null, null));
+        Integer exitCode = execution.getFuture().get().exitCode();
         assertEquals("exitcode", 0, exitCode.intValue());
         String actual = new String(stdout.dump(), US_ASCII);
         assertEquals("stdout", expected, actual.trim());
@@ -43,10 +43,10 @@ public class ProcessMissionControlTest {
         @SuppressWarnings("unchecked")
         StreamContext<BucketContext, ByteSource, ByteSource> ctrl = (StreamContext<BucketContext, ByteSource, ByteSource>) StreamContexts.memoryByteSources(null);
         StreamControl outputcontext = ctrl.produceControl();
-        Execution execution = executor.launch(outputcontext);
-        Integer exitCode = execution.getFuture().get();
-        assertEquals("exitcode", 0, exitCode.intValue());
-        ByteSource stdout = ctrl.transform(exitCode, (BucketContext) outputcontext).stdout();
+        Execution<ByteSource, ByteSource> execution = executor.launch(outputcontext, c -> ProcessResult.direct(c, ctrl.transform(c, (BucketContext) outputcontext)));
+        ProcessResult<ByteSource, ByteSource> result = execution.getFuture().get();
+        assertEquals("exitcode", 0, result.exitCode());
+        ByteSource stdout = result.content().stdout();
         String actual = new String(stdout.read(), US_ASCII);
         assertEquals("stdout", expected, actual.trim());
     }
@@ -62,8 +62,8 @@ public class ProcessMissionControlTest {
                 .stdin(ByteSource.wrap(input))
                 .stdout(stdoutBucket)
                 .build();
-        Execution execution = executor.launch(endpoints);
-        int exitCode = execution.getFuture().get(5, TimeUnit.SECONDS);
+        Execution<Void, Void> execution = executor.launch(endpoints, c -> ProcessResult.direct(c, null, null));
+        int exitCode = execution.getFuture().get(5, TimeUnit.SECONDS).exitCode();
         System.out.println(stdoutBucket);
         assertEquals("exitcode", 0, exitCode);
         String length = new String(stdoutBucket.dump(), US_ASCII);
@@ -72,6 +72,6 @@ public class ProcessMissionControlTest {
     }
 
     private ListeningExecutorService createExecutorService() {
-        return ExecutorServices.newSingleThreadExecutorServiceFactory().get();
+        return ExecutorServices.newSingleThreadExecutorServiceFactory("ProcessMissionControlTest").get();
     }
 }

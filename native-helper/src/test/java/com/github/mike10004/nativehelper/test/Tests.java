@@ -61,6 +61,10 @@ public class Tests {
         return getPythonFile("nht_cat.py");
     }
 
+    public static File pySignalListener() {
+        return getPythonFile("nht_signal_listener.py");
+    }
+
     public static String readWhenNonempty(File file) throws InterruptedException {
         PollOutcome<String> outcome = new Poller<String>() {
 

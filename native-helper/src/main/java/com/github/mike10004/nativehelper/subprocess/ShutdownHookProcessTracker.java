@@ -1,14 +1,25 @@
 package com.github.mike10004.nativehelper.subprocess;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkState;
 
-class ShutdownHookProcessTracker implements ProcessTracker {
+@VisibleForTesting
+public class ShutdownHookProcessTracker implements ProcessTracker {
+
+    private static final Logger log = LoggerFactory.getLogger(ShutdownHookProcessTracker.class);
 
     private final AntProcessDestroyer destroyer = new AntProcessDestroyer();
 
@@ -16,7 +27,7 @@ class ShutdownHookProcessTracker implements ProcessTracker {
     private final AtomicInteger activeCount = new AtomicInteger();
 
     @Override
-    public void add(Process process) {
+    public synchronized void add(Process process) {
         boolean added = destroyer.add(process);
         checkState(added, "add failed");
         allCount.incrementAndGet();
@@ -24,7 +35,7 @@ class ShutdownHookProcessTracker implements ProcessTracker {
     }
 
     @Override
-    public boolean remove(Process process) {
+    public synchronized boolean remove(Process process) {
         boolean removed = destroyer.remove(process);
         if (removed) {
             activeCount.decrementAndGet();
@@ -33,13 +44,18 @@ class ShutdownHookProcessTracker implements ProcessTracker {
     }
 
     @Override
-    public int count() {
+    public synchronized int count() {
         return allCount.get();
     }
 
     @Override
-    public int activeCount() {
+    public synchronized int activeCount() {
         return activeCount.get();
+    }
+
+    @VisibleForTesting
+    public List<Process> destroyAll(long timeout, TimeUnit duration) {
+        return destroyer.destroyAll(timeout, duration);
     }
 
     /*
@@ -67,7 +83,7 @@ class ShutdownHookProcessTracker implements ProcessTracker {
     @SuppressWarnings({"SynchronizeOnNonFinalField", "WhileLoopReplaceableByForEach", "unchecked", "unused"})
     private static class AntProcessDestroyer implements Runnable {
         private static final int THREAD_DIE_TIMEOUT = 20000;
-        private HashSet processes = new HashSet();
+        private HashSet<Process> processes = new HashSet<>();
         // methods to register and unregister shutdown hooks
         private Method addShutdownHookMethod;
         private Method removeShutdownHookMethod;
@@ -86,6 +102,8 @@ class ShutdownHookProcessTracker implements ProcessTracker {
             public ProcessDestroyerImpl() {
                 super("ProcessDestroyer Shutdown Hook");
             }
+
+            @Override
             public void run() {
                 if (shouldDestroy) {
                     AntProcessDestroyer.this.run();
@@ -252,6 +270,43 @@ class ShutdownHookProcessTracker implements ProcessTracker {
                 while (e.hasNext()) {
                     ((Process) e.next()).destroy();
                 }
+            }
+        }
+
+        /**
+         *
+         * @return undestroyed processes
+         */
+        public List<Process> destroyAll(long timeoutPerProcess, TimeUnit unit) {
+            synchronized (processes) {
+                List<Process> processes = ImmutableList.copyOf(this.processes);
+                List<Process> undestroyed = new ArrayList<>();
+                Iterator<Process> processIterator = processes.iterator();
+                while (processIterator.hasNext()) {
+                    Process p = processIterator.next();
+                    p.destroy();
+                    boolean terminated = false;
+                    try {
+                        terminated = p.waitFor(timeoutPerProcess, unit);
+                    } catch (InterruptedException e) {
+                        log.warn("interrupted while waiting for process to terminate by destroy()");
+                    }
+                    if (!terminated) {
+                        p.destroyForcibly();
+                        try {
+                            p.waitFor(timeoutPerProcess, unit);
+                        } catch (InterruptedException e) {
+                            log.warn("interrupted while waiting for process to terminate by destroyForcibly()");
+                        }
+                    }
+                    if (p.isAlive()) {
+                        log.error("failed to terminated process " + p);
+                        undestroyed.add(p);
+                    } else {
+                        processes.remove(p);
+                    }
+                }
+                return undestroyed;
             }
         }
     }

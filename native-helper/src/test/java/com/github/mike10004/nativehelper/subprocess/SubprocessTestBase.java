@@ -25,9 +25,15 @@ public abstract class SubprocessTestBase {
     protected static final ProcessTracker CONTEXT = ProcessTracker.create();
 
     private volatile boolean testFailed;
+    private volatile Description description;
 
     @Rule
     public final TestWatcher testWatcher = new TestWatcher() {
+        @Override
+        protected void starting(Description description) {
+            SubprocessTestBase.this.description = description;
+        }
+
         @Override
         protected void failed(Throwable e, Description description) {
             testFailed = true;
@@ -42,7 +48,7 @@ public abstract class SubprocessTestBase {
                 System.err.format("%d active processes; ignoring because test failed%n", active);
             }
         } else {
-            assertEquals(active + " processes are still active but should have finished or been killed", 0, active);
+            assertEquals(active + " processes are still active but should have finished or been killed after " + description, 0, active);
         }
     }
 

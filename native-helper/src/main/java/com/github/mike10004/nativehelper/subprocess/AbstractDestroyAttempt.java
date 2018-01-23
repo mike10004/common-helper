@@ -1,8 +1,6 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -10,12 +8,10 @@ public class AbstractDestroyAttempt implements DestroyAttempt {
 
     protected final DestroyResult result;
     protected final ProcessWaiter waiter;
-    protected final Supplier<? extends ExecutorService> executorServiceFactory;
 
-    public AbstractDestroyAttempt(DestroyResult result, ProcessWaiter waiter, Supplier<? extends ExecutorService> executorServiceFactory) {
+    public AbstractDestroyAttempt(DestroyResult result, ProcessWaiter waiter) {
         this.result = requireNonNull(result);
         this.waiter = requireNonNull(waiter);
-        this.executorServiceFactory = requireNonNull(executorServiceFactory);
     }
 
     @Override

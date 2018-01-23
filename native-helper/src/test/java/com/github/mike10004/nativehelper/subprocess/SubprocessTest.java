@@ -5,9 +5,11 @@ import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
+import com.google.common.primitives.Ints;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
@@ -17,17 +19,23 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class SubprocessTest extends SubprocessTestBase {
 
@@ -175,6 +183,8 @@ public class SubprocessTest extends SubprocessTestBase {
                 .inheritOutputStreams()
                 .launch().await().exitCode();
         checkState(exitCode == 0);
+        System.out.println();
+        System.out.flush();
     }
 
     @Test
@@ -262,4 +272,62 @@ public class SubprocessTest extends SubprocessTestBase {
         return defs;
     }
 
+    @Test(timeout = 5000L)
+    public void awaitWithTimeout() throws Exception {
+        ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
+                .build().launcher(CONTEXT).launch();
+        ProcessResult<?, ?> result = null;
+        try {
+            result = monitor.await(100, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ignore) {
+        }
+        assertNull("result should not have been assigned", result);
+        DestroyAttempt term = monitor.destructor().sendTermSignal().await();
+        assertEquals("term result", DestroyResult.TERMINATED, term.result());
+    }
+
+    @Test
+    public void killRemovesFromTracker() throws Exception {
+        Map<Process, Boolean> processes = Collections.synchronizedMap(new HashMap<>());
+
+        ProcessTracker localContext = new ProcessTracker() {
+            @Override
+            public void add(Process process) {
+                processes.put(process, true);
+            }
+
+            @Override
+            public boolean remove(Process process) {
+                return processes.put(process, false) != null;
+            }
+
+            @Override
+            public int count() {
+                return processes.size();
+            }
+
+            @Override
+            public int activeCount() {
+                return Ints.checkedCast(processes.entrySet().stream().filter(Entry::getValue).count());
+            }
+
+        };
+        ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
+                .build().launcher(localContext).launch();
+        ProcessResult<?, ?> result = null;
+        try {
+            result = monitor.await(100, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ignore) {
+        }
+        checkState(result == null);
+        DestroyAttempt term = monitor.destructor().sendTermSignal().await();
+        checkState(DestroyResult.TERMINATED == term.result());
+        Set<Process> pset = ImmutableSet.copyOf(processes.keySet());
+        checkState(pset.size() == 1);
+        Process process = pset.iterator().next();
+        checkState(!process.isAlive(), "process still alive");
+        assertEquals("all count", 1, localContext.count());
+        assertEquals("active count", 0, localContext.activeCount());
+
+    }
 }

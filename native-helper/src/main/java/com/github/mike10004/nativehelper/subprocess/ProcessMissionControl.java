@@ -20,6 +20,7 @@ import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,32 +30,33 @@ class ProcessMissionControl {
 
     private final ListeningExecutorService terminationWaitingService;
     private final Subprocess program;
-    private final ProcessTracker processDestroyer;
+    private final ProcessTracker processTracker;
 
-    public ProcessMissionControl(Subprocess program, ProcessTracker processDestroyer, ListeningExecutorService terminationWaitingService) {
+    public ProcessMissionControl(Subprocess program, ProcessTracker processTracker, ListeningExecutorService terminationWaitingService) {
         this.program = requireNonNull(program);
-        this.processDestroyer = requireNonNull(processDestroyer);
+        this.processTracker = requireNonNull(processTracker);
         this.terminationWaitingService = requireNonNull(terminationWaitingService);
     }
 
-    public interface Execution {
+    public interface Execution<SO, SE> {
         Process getProcess();
-        FluentFuture<Integer> getFuture();
+        FluentFuture<ProcessResult<SO, SE>> getFuture();
     }
 
-    public Execution launch(StreamControl outputContext) {
+    public <SO, SE> Execution<SO, SE> launch(StreamControl streamControl, Function<? super Integer, ? extends ProcessResult<SO, SE>> resultTransform) {
         Process process = execute();
-        FluentFuture<Integer> future = FluentFuture.from(terminationWaitingService.submit(() -> {
-            return follow(process, outputContext);
+        FluentFuture<ProcessResult<SO, SE>> future = FluentFuture.from(terminationWaitingService.submit(() -> {
+            Integer exitCode = follow(process, streamControl);
+            return resultTransform.apply(exitCode);
         }));
-        return new Execution() {
+        return new Execution<SO, SE>() {
             @Override
             public Process getProcess() {
                 return process;
             }
 
             @Override
-            public FluentFuture<Integer> getFuture() {
+            public FluentFuture<ProcessResult<SO, SE>> getFuture() {
                 return future;
             }
         };
@@ -139,7 +141,7 @@ class ProcessMissionControl {
     @VisibleForTesting
     @Nullable
     Integer follow(Process process, StreamControl outputContext) throws IOException {
-        processDestroyer.add(process);
+        processTracker.add(process);
         boolean terminated = false;
         @Nullable Integer exitVal;
         OutputStream processStdin = null;
@@ -161,10 +163,19 @@ class ProcessMissionControl {
             if (!terminated) {
                 destroy(process);
             }
-            processDestroyer.remove(process);
+            processTracker.remove(process);
             closeStreams(processStdin, processStdout, processStderr);
         }
+        if (exitVal == null) {
+            throw new IllegalProcessStateException("no way to wait for process; probably interrupted in ProcessMissionControl.waitFor");
+        }
         return exitVal;
+    }
+
+    private static class IllegalProcessStateException extends IllegalStateException {
+        public IllegalProcessStateException(String msg) {
+            super(msg);
+        }
     }
 
     private void destroy(Process process) {
@@ -172,6 +183,7 @@ class ProcessMissionControl {
         try {
             terminatedNaturally = process.waitFor(0, TimeUnit.MILLISECONDS);
         } catch(InterruptedException e) {
+            log.error("interrupted while waiting with timeout 0", e);
             throw new IllegalStateException("BUG: interrupted exception shouldn't happen because timeout length is zero", e);
         } finally {
             if (!terminatedNaturally && process.isAlive()) {

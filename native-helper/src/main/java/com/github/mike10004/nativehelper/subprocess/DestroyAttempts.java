@@ -3,9 +3,7 @@ package com.github.mike10004.nativehelper.subprocess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -63,8 +61,8 @@ class DestroyAttempts {
         @SuppressWarnings("unused")
         private static final Logger log = LoggerFactory.getLogger(KillAttemptImpl.class);
 
-        public KillAttemptImpl(DestroyResult result, ProcessWaiter waiter, Supplier<? extends ExecutorService> executorServiceFactory) {
-            super(result, waiter, executorServiceFactory);
+        public KillAttemptImpl(DestroyResult result, ProcessWaiter waiter) {
+            super(result, waiter);
         }
 
         @Override
@@ -98,8 +96,8 @@ class DestroyAttempts {
 
         private final ProcessDestructor destructor;
 
-        public TermAttemptImpl(ProcessDestructor destructor, ProcessWaiter waiter, DestroyResult result, Supplier<? extends ExecutorService> executorServiceFactory) {
-            super(result, waiter, executorServiceFactory);
+        public TermAttemptImpl(ProcessDestructor destructor, ProcessWaiter waiter, DestroyResult result) {
+            super(result, waiter);
             this.destructor = requireNonNull(destructor);
         }
 
@@ -114,7 +112,7 @@ class DestroyAttempts {
                 log.debug("interrupted while waiting on process termination: " + e);
             }
             DestroyResult result = waiter.isAlive() ? DestroyResult.STILL_ALIVE : DestroyResult.TERMINATED;
-            return new TermAttemptImpl(destructor, waiter, result, executorServiceFactory);
+            return new TermAttemptImpl(destructor, waiter, result);
         }
 
         @Override
