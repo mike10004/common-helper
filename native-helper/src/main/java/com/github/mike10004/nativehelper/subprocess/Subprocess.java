@@ -54,6 +54,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Class that represents a subprocess to be executed. Instances of this class
  * are immutable and may be reused.
+ * @since 7.1.0
  */
 public class Subprocess {
     
