@@ -64,7 +64,7 @@ public class MavenPropertiesTest {
     
     private static Properties loadMavenProperties() {
         Properties p = new Properties();
-        try (InputStream in = ExposedExecTask.class.getResourceAsStream(PROPERTIES_PATH)) {
+        try (InputStream in = MavenPropertiesTest.class.getResourceAsStream(PROPERTIES_PATH)) {
             p.load(in);
         } catch (IOException e) {
             throw new AssertionError(e);
