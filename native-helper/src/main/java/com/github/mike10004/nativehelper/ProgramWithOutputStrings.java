@@ -23,6 +23,7 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import org.apache.tools.ant.taskdefs.ExecTask;
 
 import java.io.File;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Class that represents a program whose output is captured in memory as strings.
@@ -38,7 +40,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutputStringsResult> {
 
+    @SuppressWarnings("unused")
     public static final String STDOUT_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stdout";
+    @SuppressWarnings("unused")
     public static final String STDERR_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stderr";
     
     private final Charset charset;
@@ -49,19 +53,11 @@ public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutpu
     }
 
     @Override
-    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
-        super.configureTask(task, executionContext);
-        task.setOutputproperty(STDOUT_PROPERTY_NAME);
-        task.setErrorProperty(STDERR_PROPERTY_NAME);
-    }
-    
-    @Override
-    protected ProgramWithOutputStringsResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
-        String stdout = task.getProject().getProperty(STDOUT_PROPERTY_NAME);
-        String stderr = task.getProject().getProperty(STDERR_PROPERTY_NAME);
-        int exitCode = getExitCode(task, executionContext);
-        ProgramWithOutputStringsResult result = new ProgramWithOutputStringsResult(exitCode, stdout, stderr, charset);
-        return result;
+    protected ProgramWithOutputStringsResult produceResultFromExecutedTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        @SuppressWarnings("unchecked")
+        ProcessResult<String, String> result = (ProcessResult<String, String>) task.getProcessResultOrNull();
+        checkState(result != null, "result not available; task not yet executed maybe");
+        return new ProgramWithOutputStringsResult(result.getExitCode(), result.getOutput().getStdout(), result.getOutput().getStderr(), charset);
     }
 
 }

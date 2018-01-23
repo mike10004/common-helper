@@ -31,4 +31,8 @@ public interface StreamContent<SO, SE> {
     default <SO2, SE2> StreamContent<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
         return new MappedOutput<>(this, stdoutMap, stderrMap);
     }
+
+    static <SO, SE> StreamContent<SO, SE> empty() {
+        return StreamContents.bothNull();
+    }
 }

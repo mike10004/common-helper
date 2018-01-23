@@ -3,18 +3,36 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.LethalWatchdog.ProcessStartListener;
-import org.apache.tools.ant.taskdefs.ExecTask;
-import org.apache.tools.ant.taskdefs.Execute;
-import com.github.mike10004.nativehelper.Processes.DestroyStatus;
+import com.github.mike10004.nativehelper.Program.StandardInputSource;
+import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
+import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
+import com.github.mike10004.nativehelper.subprocess.StreamContent;
+import com.github.mike10004.nativehelper.subprocess.StreamContext;
+import com.github.mike10004.nativehelper.subprocess.StreamControl;
+import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.CharSource;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.tools.ant.BuildException;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -32,71 +50,17 @@ import static com.google.common.base.Preconditions.checkState;
  * them. 
  *   @author mchaberski
  */
-public class ExposedExecTask extends ExecTask {
+public class ExposedExecTask {
 
     private static final Logger log = Logger.getLogger(ExposedExecTask.class.getName());
 
+    private static final ProcessTracker GLOBAL_TRACKER = ProcessTracker.create();
     private final LethalWatchdog watchdog;
-    private Execute execute;
-    private transient volatile boolean killed;
-    private transient volatile Process process;
+    private transient ProcessMonitor<?, ?> processMonitor;
+    private transient Subprocess.Launcher subprocessLauncher;
 
     public ExposedExecTask() {
-        redirector = new EchoableRedirector(this);
         watchdog = new LethalWatchdog();
-    }
-
-    @Override
-    public void setTimeout(Long value) {
-        throw new UnsupportedOperationException("no longer supported: use Program.executeAsync() and java.util.concurrent API");
-    }
-    
-    /**
-     * Returns the watchdog created in the constructor.
-     */
-    @Override
-    protected LethalWatchdog createWatchdog() throws BuildException {
-        return watchdog;
-    }
-
-    /**
-     * @return true, always
-     */
-    @Deprecated
-    public boolean isDestructible() {
-        return true;
-    }
-
-    /**
-     * Do not call this; it will throw an exception if the argument is false, and otherwise
-     * it will do nothing. All instances of this class are destructible.
-     * @param destructible  true if task should be destructible
-     */
-    @Deprecated
-    public void setDestructible(boolean destructible) {
-        checkArgument(destructible, "all ExposedExecTask instances are destructible");
-    }
-    
-    /**
-     * Returns the watchdog created in the constructor.
-     * @return  the watchdog
-     */
-    public LethalWatchdog getWatchdog() {
-        return watchdog;
-    }
-
-    @Override
-    protected Execute prepareExec() throws BuildException {
-        execute = super.prepareExec();
-        return execute;
-    }
-
-    public Execute getExecute() {
-        return execute;
-    }
-    
-    public EchoableRedirector getRedirector() {
-        return (EchoableRedirector) redirector;
     }
 
     /**
@@ -112,21 +76,17 @@ public class ExposedExecTask extends ExecTask {
      */
     @Deprecated
     public boolean abort() {
-        killed = true;
-        DestroyStatus status = null;
-        if (process != null) {
-            status = Processes.destroy(process, DEFAULT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        ProcessMonitor<?, ?> processMonitor = this.processMonitor;
+        if (processMonitor != null) {
+            processMonitor.destructor().sendTermSignal().timeout(DEFAULT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).kill();
+            return !processMonitor.process().isAlive();
         }
-        return status != null && status.isDefinitelyDead();
+        return false;
     }
 
     private final static int DEFAULT_TIMEOUT_MILLIS = 1000;
 
-    @Override
     public void execute() {
-        if (killed) {
-            throw new AlreadyKilledException();
-        }
         executeProcess(process -> {});
     }
 
@@ -136,26 +96,228 @@ public class ExposedExecTask extends ExecTask {
         }
     }
 
+    LethalWatchdog getWatchdog() {
+        return watchdog;
+    }
+
     /**
      * Executes the process, providing the process object in a callback that executes on a
      * different thread.
      */
     public void executeProcess(Consumer<? super Process> processCallback) {
-        ProcessStartListener listener = process -> {
-            processCallback.accept(process);
-            this.process = process;
-        };
-        watchdog.addProcessStartListener(listener);
+        checkState(subprocessLauncher != null, "subprocess launcher not present; call task.configure(program) first");
+        ProcessMonitor<?, ?> pm;
         try {
-            super.execute();
-            checkState(this.process != null, "process was never set");
-        } finally {
-            watchdog.removeProcessStartListener(listener);
+            pm = this.processMonitor = subprocessLauncher.launch();
+        } catch (com.github.mike10004.nativehelper.subprocess.ProcessLaunchException e) {
+            throw new BuildException(e);
+        }
+        watchdog.start(pm.process());
+        processCallback.accept(pm.process());
+        try {
+            pm.await();
+        } catch (InterruptedException e) {
+            throw new ProcessMonitorWaitInterruptedException(e);
+        }
+    }
+
+    static class ProcessMonitorWaitInterruptedException extends BuildException {
+        public ProcessMonitorWaitInterruptedException(Throwable cause) {
+            super(cause);
         }
     }
 
     @Nullable
     Process getProcess() {
-        return process;
+        ProcessMonitor<?, ?> processMonitor = this.processMonitor;
+        if (processMonitor != null) {
+            return processMonitor.process();
+        }
+        return null;
+    }
+
+    /**
+     * Sets the subprocess launcher for this task. The task can only be executed
+     * after the subprocess launcher is set.
+     * @param program the program
+     */
+    void configure(Program<?> program) {
+        Subprocess.Builder b = Subprocess.running(program.getExecutable())
+                .args(program.getArguments())
+                .env(program.getEnvironment());
+        if (program.getWorkingDirectory() != null) {
+            b.from(program.getWorkingDirectory());
+        }
+        subprocessLauncher = b.build()
+                .launcher(GLOBAL_TRACKER)
+                .output(produceStreamContext(program));
+    }
+
+    static class ExecTaskStreamControl implements StreamControl {
+
+        private final StandardInputSource standardInputSource;
+
+        ExecTaskStreamControl(StandardInputSource standardInputSource) {
+            this.standardInputSource = standardInputSource;
+        }
+
+        @Override
+        public OutputStream openStdoutSink() throws IOException {
+            return ByteStreams.nullOutputStream();
+        }
+
+        @Override
+        public OutputStream openStderrSink() throws IOException {
+            return ByteStreams.nullOutputStream();
+        }
+
+        @Nullable
+        @Override
+        public InputStream openStdinSource() throws IOException {
+            if (standardInputSource.getMemory() != null) {
+                return CharSource.wrap(standardInputSource.getMemory()).asByteSource(Charset.defaultCharset()).openStream();
+            } else if (standardInputSource.getDisk() != null) {
+                return new FileInputStream(standardInputSource.getDisk());
+            } else {
+                return null;
+            }
+        }
+    }
+
+    static class StringsStreamControl extends ExecTaskStreamControl {
+        private final ByteArrayOutputStream stdoutCollector, stderrCollector;
+        public StringsStreamControl(StandardInputSource standardInputSource) {
+            super(standardInputSource);
+            stdoutCollector = new ByteArrayOutputStream(256);
+            stderrCollector = new ByteArrayOutputStream(256);
+        }
+
+        @Override
+        public OutputStream openStdoutSink() throws IOException {
+            return stdoutCollector;
+        }
+
+        @Override
+        public OutputStream openStderrSink() throws IOException {
+            return stderrCollector;
+        }
+
+        public StreamContent<String, String> toOutput(Charset charset) {
+            byte[] stdout = stdoutCollector.toByteArray();
+            byte[] stderr = stderrCollector.toByteArray();
+            return StreamContent.direct(new String(stdout, charset), new String(stderr, charset));
+        }
+    }
+
+    protected StreamContext<?, ?, ?> produceStreamContext(Program program) {
+        if (program instanceof ProgramWithOutputStrings) {
+            return new StringOutputStreamContext(program);
+        } else if (program instanceof ProgramWithOutputFiles) {
+            return new FileOutputStreamContext((ProgramWithOutputFiles) program);
+        } else if (program instanceof Program.SimpleProgram) {
+            return new NoOutputStreamContext(program);
+        } else {
+            throw new IllegalArgumentException("not sure how to handle " + program);
+        }
+    }
+
+    private static class NoOutputStreamContext implements StreamContext<ExecTaskStreamControl, Void, Void> {
+
+        private final Program program;
+
+        private NoOutputStreamContext(Program program) {
+            this.program = program;
+        }
+
+        @Override
+        public ExecTaskStreamControl produceControl() throws IOException {
+            return new ExecTaskStreamControl(program.getStandardInput());
+        }
+
+        @Override
+        public StreamContent<Void, Void> transform(int exitCode, ExecTaskStreamControl context) {
+            return StreamContent.empty();
+        }
+    }
+
+    private static class StringOutputStreamContext implements StreamContext<StringsStreamControl, String, String> {
+
+        private final Program program;
+
+        private StringOutputStreamContext(Program program) {
+            this.program = program;
+        }
+
+        @Override
+        public StringsStreamControl produceControl() throws IOException {
+            return new StringsStreamControl(program.getStandardInput());
+        }
+
+        @Override
+        public StreamContent<String, String> transform(int exitCode, StringsStreamControl context) {
+            return context.toOutput(Charset.defaultCharset());
+        }
+    }
+
+    private static class FilesStreamControl extends ExecTaskStreamControl {
+
+        private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
+
+        public FilesStreamControl(StandardInputSource standardInputSource, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
+            super(standardInputSource);
+            this.stdoutFileSupplier = stdoutFileSupplier;
+            this.stderrFileSupplier = stderrFileSupplier;
+        }
+
+        @Override
+        public OutputStream openStdoutSink() throws IOException {
+            return new FileOutputStream(stdoutFileSupplier.get());
+        }
+
+        @Override
+        public OutputStream openStderrSink() throws IOException {
+            return new FileOutputStream(stderrFileSupplier.get());
+        }
+    }
+
+    private static class FileOutputStreamContext implements StreamContext<FilesStreamControl, File, File> {
+
+        private final ProgramWithOutputFiles program;
+
+        private FileOutputStreamContext(ProgramWithOutputFiles program) {
+            this.program = program;
+        }
+
+        @Override
+        public FilesStreamControl produceControl() throws IOException {
+            return new FilesStreamControl(program.getStandardInput(), program.getStdoutFileSupplier(), program.getStderrFileSupplier());
+        }
+
+        @Override
+        public StreamContent<File, File> transform(int exitCode, FilesStreamControl context) {
+            return StreamContent.direct(context.stdoutFileSupplier.get(), context.stderrFileSupplier.get());
+        }
+    }
+
+    ProcessResult<?, ?> getProcessResultOrDie() {
+        return checkNotNull(getProcessResultOrNull(), "process result not yet obtained");
+    }
+
+    @Nullable
+    ProcessResult<?, ?> getProcessResultOrNull() {
+        ProcessMonitor<?, ?> processMonitor = this.processMonitor;
+        ListenableFuture<? extends ProcessResult<?, ?>> future = processMonitor.future();
+        if (future.isDone()) {
+            try {
+                return future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IllegalStateException("BUG: already checked isDone()");
+            }
+        }
+        return null;
+    }
+
+    public EchoableRedirector getRedirector() {
+        throw new UnsupportedOperationException();
     }
 }

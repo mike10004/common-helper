@@ -79,7 +79,7 @@ public class Subprocess {
      * to build a launcher and then invoke {@link Launcher#launch()}.
      * @return a future representing the computation
      */
-    public <C extends StreamControl, SO, SE> ProcessMonitor<SO, SE> launch(StreamContext<C, SO, SE> streamContext, ProcessTracker processTracker) throws ProcessException {
+    public <C extends StreamControl, SO, SE> ProcessMonitor<SO, SE> launch(ProcessTracker processTracker, StreamContext<C, SO, SE> streamContext) throws ProcessException {
         ListeningExecutorService launchExecutorService = launchExecutorServiceFactory.get();
         C outputContext;
         try {
@@ -277,7 +277,7 @@ public class Subprocess {
         }
 
         public ProcessMonitor<SO, SE> launch() throws ProcessException {
-            return Subprocess.this.launch(streamContext, processTracker);
+            return Subprocess.this.launch(processTracker, streamContext);
         }
 
         public <SO2, SE2> Launcher<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {

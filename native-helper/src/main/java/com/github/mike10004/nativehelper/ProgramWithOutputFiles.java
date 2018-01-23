@@ -23,6 +23,7 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.base.Suppliers;
 import org.apache.tools.ant.taskdefs.ExecTask;
 
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Class representing a program whose output is written to file.
@@ -53,23 +55,22 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
     }
 
     @Override
-    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
-        super.configureTask(task, executionContext);
-        File stdoutFile = stdoutFileSupplier.get();
-        File stderrFile = stderrFileSupplier.get();
-        executionContext.put(KEY_STDOUT, stdoutFile);
-        executionContext.put(KEY_STDERR, stderrFile);
-        task.setOutput(stdoutFile);
-        task.setError(stderrFile);
-    }
-    
-    @Override
-    protected ProgramWithOutputFilesResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
-        File stdoutFile = (File) executionContext.get(KEY_STDOUT);
-        File stderrFile = (File) executionContext.get(KEY_STDERR);
-        int exitCode = getExitCode(task, executionContext);
-        ProgramWithOutputFilesResult result = new ProgramWithOutputFilesResult(exitCode, stdoutFile, stderrFile);
+    protected ProgramWithOutputFilesResult produceResultFromExecutedTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        @SuppressWarnings("unchecked")
+        ProcessResult<File, File> pr = (ProcessResult<File, File>) task.getProcessResultOrNull();
+        checkState(pr != null, "process result not available; task not yet executed or not yet finished, probably");
+        File stdoutFile = pr.getOutput().getStdout();
+        File stderrFile = pr.getOutput().getStderr();
+        ProgramWithOutputFilesResult result = new ProgramWithOutputFilesResult(pr.getExitCode(), stdoutFile, stderrFile);
         return result;
+    }
+
+    Supplier<File> getStdoutFileSupplier() {
+        return stdoutFileSupplier;
+    }
+
+    Supplier<File> getStderrFileSupplier() {
+        return stderrFileSupplier;
     }
 
     public static class TempDirCreationException extends RuntimeException {

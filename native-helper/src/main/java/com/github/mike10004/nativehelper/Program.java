@@ -25,7 +25,7 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProgramFuture.CountdownLatchSet;
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
-import org.apache.tools.ant.taskdefs.ExecTask;
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.base.Charsets;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -40,8 +40,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.types.Environment;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -63,6 +61,7 @@ import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -80,7 +79,8 @@ import static java.util.Objects.requireNonNull;
  * @author mchaberski
  */
 public abstract class Program<R extends ProgramResult> {
-    
+
+    @SuppressWarnings("unused")
     public static final String RESULT_PROPERTY_NAME = Program.class.getName() + ".exitCode";
     
     private final String executable;
@@ -124,15 +124,6 @@ public abstract class Program<R extends ProgramResult> {
             return NONE;
         }
 
-        public void apply(ExecTask task) {
-            if (memory != null) {
-                task.setInputString(memory);
-            }
-            if (disk != null) {
-                task.setInput(disk);
-            }
-        }
-
         public String toString() {
             if (disk != null) {
                 return disk.getAbsolutePath();
@@ -145,6 +136,16 @@ public abstract class Program<R extends ProgramResult> {
 
         public boolean isNone() {
             return disk == null && memory == null;
+        }
+
+        @Nullable
+        File getDisk() {
+            return disk;
+        }
+
+        @Nullable
+        String getMemory() {
+            return memory;
         }
     }
 
@@ -258,29 +259,12 @@ public abstract class Program<R extends ProgramResult> {
         return future;
     }
 
-    private static Environment.Variable newVariable(String name, String value) {
-        Environment.Variable variable = new Environment.Variable();
-        variable.setKey(name);
-        variable.setValue(value);
-        return variable;
-    }
-
-    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
-        task.setFailonerror(false);
-        task.setResultProperty(RESULT_PROPERTY_NAME);
-        task.setExecutable(executable);
-        standardInputSource.apply(task);
-        task.setDir(workingDirectory);
-        for (String variableName : environment.keySet()) {
-            String variableValue = environment.get(variableName);
-            task.addEnv(newVariable(variableName, variableValue));
-        }
-        for (String argument : arguments) {
-            task.createArg().setValue(argument);
-        }
+    @SuppressWarnings("unused")
+    protected final void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        task.configure(this);
     }
     
-    protected abstract R produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext);
+    protected abstract R produceResultFromExecutedTask(ExposedExecTask task, Map<String, Object> executionContext);
     
     protected static class SimpleProgram extends Program<ProgramResult> {
         
@@ -289,9 +273,10 @@ public abstract class Program<R extends ProgramResult> {
         }
 
         @Override
-        protected ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
-            int exitCode = getExitCode(task, executionContext);
-            return new ExitCodeProgramResult(exitCode);
+        protected ProgramResult produceResultFromExecutedTask(ExposedExecTask task, Map<String, Object> executionContext) {
+            ProcessResult<?, ?> result = task.getProcessResultOrNull();
+            checkState(result != null, "task not yet executed or not yet finished");
+            return new ExitCodeProgramResult(result.getExitCode());
         }
         
     }
@@ -300,7 +285,6 @@ public abstract class Program<R extends ProgramResult> {
         @Override
         public ExposedExecTask get() {
             ExposedExecTask task = new ExposedExecTask();
-            task.setProject(new Project()); // do not call Project.init()
             return task;
         }
     }
@@ -391,6 +375,7 @@ public abstract class Program<R extends ProgramResult> {
          * Clears the argument list of this builder.
          * @return this builder instance
          */
+        @SuppressWarnings("unused")
         public Builder clearArgs() {
             this.arguments.clear();
             return this;
@@ -479,6 +464,7 @@ public abstract class Program<R extends ProgramResult> {
          * @param charset the charset
          * @return the program
          */
+        @SuppressWarnings("unused")
         public ProgramWithOutputStrings outputToStrings(Charset charset) {
             return new ProgramWithOutputStrings(executable, stdin, workingDirectory, environment, arguments, taskFactory, charset);
         }
@@ -506,15 +492,6 @@ public abstract class Program<R extends ProgramResult> {
         return new Builder(executable);
     }
     
-    protected int getExitCode(ExecTask task, Map<String, Object> executionContext) {
-        String resultPropertyStr = task.getProject().getProperty(RESULT_PROPERTY_NAME);
-        if (resultPropertyStr == null) {
-            throw new IllegalStateException("result property not set (maybe failonerror=false?) or task not yet executed");
-        }
-        int exitCode = Integer.parseInt(resultPropertyStr);
-        return exitCode;
-    }
-
     protected static class ExitCodeProgramResult implements ProgramResult {
 
         protected final int exitCode;

@@ -72,8 +72,8 @@ public class ProgramWithOutputStringsTest {
         ProgramWithOutputStringsResult result = program.execute();
         System.out.println(result);
         assertEquals("exitCode", expectedExitCode, result.getExitCode());
-        assertEquals("stdout", expectedStdout, result.getStdoutString());
-        assertEquals("stderr", expectedStderr, result.getStderrString());
+        assertEquals("stdout", expectedStdout, result.getStdoutString().trim());
+        assertEquals("stderr", expectedStderr, result.getStderrString().trim());
     }
 
     @Test
@@ -83,7 +83,7 @@ public class ProgramWithOutputStringsTest {
         ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(Executors.newSingleThreadExecutor());
         ProgramWithOutputStringsResult result = future.get();
         System.out.println("program result: " + result);
-        assertEquals("hello", result.getStdoutString());
+        assertEquals("stdout", "hello", result.getStdoutString().trim());
     }
     
     @Test(timeout = 1000L)
