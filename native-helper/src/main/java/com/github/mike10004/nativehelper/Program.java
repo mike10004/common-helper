@@ -39,7 +39,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tools.ant.BuildException;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -416,6 +415,7 @@ public abstract class Program<R extends ProgramResult> {
             return this;
         }
 
+        @SuppressWarnings("unused")
         protected Builder usingTaskFactory(Supplier<? extends ExposedExecTask> taskFactory) {
             this.taskFactory = checkNotNull(taskFactory, "taskFactory");
             return this;

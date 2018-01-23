@@ -24,18 +24,14 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.Program.TaskStage;
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.tools.ant.BuildException;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -43,7 +39,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;

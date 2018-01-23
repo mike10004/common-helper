@@ -17,8 +17,6 @@
  */
 package com.github.mike10004.nativehelper.subprocess;
 
-import org.apache.tools.ant.util.FileUtils;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -109,7 +107,7 @@ class BlockingStreamPumper implements Runnable {
             }
         } finally {
             if (closeWhenExhausted) {
-                FileUtils.close(os);
+                AntFileUtils.close(os);
             }
             finished = true;
             finish = false;

@@ -24,7 +24,6 @@
 package com.github.mike10004.nativehelper;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import org.apache.tools.ant.BuildException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;

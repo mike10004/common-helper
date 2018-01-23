@@ -14,7 +14,6 @@ import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharSource;
 import com.google.common.util.concurrent.ListenableFuture;
-import org.apache.tools.ant.BuildException;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -26,7 +25,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -38,8 +36,8 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * Task that runs a program in an external process and echos output. Provides 
  * hooks to read output as it arrives on the process's standard output and 
- * error streams. Uses a custom {@link EchoableRedirector Redirector} that
- * creates a {@link EchoingPumpStreamHandler stream handler} that provides a 
+ * error streams. Uses a custom {@code EchoableRedirector Redirector} that
+ * creates a {@code EchoingPumpStreamHandler stream handler} that provides a
  * hook to hear output as it arrives. Allows a task to be aborted 
  * prematurely, if the {@code destructible} flag is true.
  * 
@@ -318,7 +316,4 @@ public class ExposedExecTask {
         return null;
     }
 
-    public EchoableRedirector getRedirector() {
-        throw new UnsupportedOperationException();
-    }
 }

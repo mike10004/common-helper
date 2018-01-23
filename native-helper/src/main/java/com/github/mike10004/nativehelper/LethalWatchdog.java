@@ -3,20 +3,15 @@
  */
 package com.github.mike10004.nativehelper;
 
-import org.apache.tools.ant.taskdefs.ExecuteWatchdog;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-
 /**
  * Class that represents a watchdog providing a method to kill the process
  * it is watching. That method performs the same actions as the superclass's
- * {@link ExecuteWatchdog#timeoutOccured(org.apache.tools.ant.util.Watchdog) }
+ * {@code ExecuteWatchdog#timeoutOccured(org.apache.tools.ant.util.Watchdog) }
  * method.
  * @author mchaberski
  * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead

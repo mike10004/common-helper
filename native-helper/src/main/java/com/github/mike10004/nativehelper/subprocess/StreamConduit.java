@@ -19,9 +19,6 @@
  */
 package com.github.mike10004.nativehelper.subprocess;
 
-import org.apache.tools.ant.taskdefs.PumpStreamHandler;
-import org.apache.tools.ant.util.FileUtils;
-
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,7 +26,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * A customized version of {@link org.apache.tools.ant.taskdefs.PumpStreamHandler}.
+ * A customized version of {@code org.apache.tools.ant.taskdefs.PumpStreamHandler}.
  */
 class StreamConduit {
 
@@ -83,7 +80,7 @@ class StreamConduit {
         if (input != null) {
             inputThread = createPump(input, os, true);
         } else {
-            FileUtils.close(os);
+            AntFileUtils.close(os);
         }
     }
 
@@ -131,7 +128,7 @@ class StreamConduit {
 
     /**
      * Waits for a thread to finish while trying to make it finish
-     * quicker by stopping the pumper (if the thread is a {@link
+     * quicker by stopping the pumper (if the thread is a {@code
      * PumpStreamHandler.ThreadWithPumper ThreadWithPumper} instance) or interrupting
      * the thread.
      *
@@ -210,7 +207,7 @@ class StreamConduit {
      * @param os the output stream to copy to.
      * @param closeWhenExhausted if true close the inputstream.
      * @return a thread object that does the pumping, subclasses
-     * should return an instance of {@link PumpStreamHandler.ThreadWithPumper
+     * should return an instance of {@code PumpStreamHandler.ThreadWithPumper
      * ThreadWithPumper}.
      */
     private Thread createPump(InputStream is, OutputStream os,

@@ -24,7 +24,6 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import org.apache.tools.ant.taskdefs.ExecTask;
 
 import java.io.File;
 import java.nio.charset.Charset;

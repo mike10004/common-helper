@@ -25,7 +25,6 @@ package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.base.Suppliers;
-import org.apache.tools.ant.taskdefs.ExecTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +43,9 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputFilesResult> {
 
+    @SuppressWarnings("unused")
     private static final String KEY_STDERR = ProgramWithOutputFiles.class.getName() + ".stderrFile";
+    @SuppressWarnings("unused")
     private static final String KEY_STDOUT = ProgramWithOutputFiles.class.getName() + ".stdoutFile";
 
     private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
@@ -74,6 +75,7 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
         return stderrFileSupplier;
     }
 
+    @SuppressWarnings("unused")
     public static class TempDirCreationException extends RuntimeException {
 
         public TempDirCreationException() {
@@ -92,7 +94,8 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
         }
         
     }
-    
+
+    @SuppressWarnings("unused")
     public static class TempFileCreationException extends RuntimeException {
         public TempFileCreationException(Path parentDirectory, Throwable cause) {
             this("failed to create file in parent directory " + parentDirectory, cause);
@@ -114,7 +117,8 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
         }
         
     }
-    
+
+    @SuppressWarnings("unused")
     public static class TempDirSupplier implements Supplier<Path> {
 
         private final Path parent;
