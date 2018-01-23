@@ -18,6 +18,7 @@ import org.apache.tools.ant.taskdefs.PumpStreamHandler;
  * or  {@link #setStderrEcho(OutputStreamEcho) stderrEcho} 
  * fields in order to hear the output.
  *  @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class EchoingPumpStreamHandler extends PumpStreamHandler {
 

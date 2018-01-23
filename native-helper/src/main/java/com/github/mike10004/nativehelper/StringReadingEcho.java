@@ -16,6 +16,7 @@ import java.nio.charset.Charset;
  * {@link #flush() } must be called in order to get the remaining contents
  * of the buffer.
  *  @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public abstract class StringReadingEcho implements OutputStreamEcho, Flushable {
 

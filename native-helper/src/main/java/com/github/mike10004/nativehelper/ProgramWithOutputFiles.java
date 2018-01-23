@@ -40,6 +40,7 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * Class representing a program whose output is written to file.
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputFilesResult> {
 

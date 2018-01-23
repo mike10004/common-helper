@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
  * Interface whose method is invoked when output from an output stream
  * is echoed. 
  *  @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public interface OutputStreamEcho {
     void writeEchoed(byte[] b, int off, int len);

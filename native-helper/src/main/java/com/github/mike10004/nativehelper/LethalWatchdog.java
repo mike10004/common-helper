@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkState;
  * {@link ExecuteWatchdog#timeoutOccured(org.apache.tools.ant.util.Watchdog) }
  * method.
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class LethalWatchdog {
 

@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Class that represents the result of a program whose output was captured as strings.
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
     

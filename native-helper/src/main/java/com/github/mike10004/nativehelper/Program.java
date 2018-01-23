@@ -77,7 +77,9 @@ import static java.util.Objects.requireNonNull;
  *    System.out.println(output); // "hello"
  * </pre>
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
+@Deprecated
 public abstract class Program<R extends ProgramResult> {
 
     @SuppressWarnings("unused")

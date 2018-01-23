@@ -49,6 +49,7 @@ import static com.google.common.base.Preconditions.checkState;
  * to override the class's setter methods to obtain visible references to 
  * them. 
  *   @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class ExposedExecTask {
 

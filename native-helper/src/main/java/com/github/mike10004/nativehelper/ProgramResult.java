@@ -28,7 +28,9 @@ package com.github.mike10004.nativehelper;
  * At minimum, a program that finishes executing returns an 
  * exit code.
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
+@Deprecated
 public interface ProgramResult {
     
     /**

@@ -35,6 +35,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @see Program.Builder#outputToFiles(java.io.File, java.io.File) 
  * @see Program.Builder#outputToTempFiles(java.nio.file.Path) 
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class ProgramWithOutputFilesResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
     

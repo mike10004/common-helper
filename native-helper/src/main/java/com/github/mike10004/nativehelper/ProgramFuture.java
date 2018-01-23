@@ -24,7 +24,9 @@ import static java.util.Objects.requireNonNull;
 /**
  * Future that represents aynchronous execution of a program.
  * @param <T>
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
+@Deprecated
 public class ProgramFuture<T> extends SimpleForwardingListenableFuture<T> {
 
     private static final Logger log = Logger.getLogger(ProgramFuture.class.getName());

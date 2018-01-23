@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
  * Class that provides a method to echo whatever data is written to the 
  * underlying stream.
  *  @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class EchoingOutputStream extends FilterOutputStream {
 

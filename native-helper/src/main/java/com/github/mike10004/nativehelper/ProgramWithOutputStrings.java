@@ -37,6 +37,7 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * Class that represents a program whose output is captured in memory as strings.
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutputStringsResult> {
 

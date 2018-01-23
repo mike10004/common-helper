@@ -7,6 +7,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
+/**
+ *
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
+ */
 public class Processes {
     private static final Logger log = Logger.getLogger(Processes.class.getName());
     private static final int EXPECTED_SIGTERM_EXIT_CODE = 128 + 15;
@@ -59,6 +63,10 @@ public class Processes {
         }
     }
 
+    /**
+     *
+     * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
+     */
     public enum DestroyStatus {
 
         /**

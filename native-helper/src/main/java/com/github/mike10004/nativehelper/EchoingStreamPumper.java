@@ -10,6 +10,7 @@ import org.apache.tools.ant.taskdefs.StreamPumper;
 /**
  * Class that 
  *  @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class EchoingStreamPumper extends StreamPumper {
 

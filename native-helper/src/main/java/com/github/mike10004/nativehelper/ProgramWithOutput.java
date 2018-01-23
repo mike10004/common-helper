@@ -31,6 +31,7 @@ import java.util.function.Supplier;
  * Abstract superclass for programs whose output is captured.
  * @author mchaberski
  * @see ProgramWithOutputResult
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
 

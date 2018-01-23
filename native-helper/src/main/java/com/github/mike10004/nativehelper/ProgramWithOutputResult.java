@@ -29,6 +29,7 @@ import com.google.common.io.ByteSource;
  * Interface for classes that represent the results of programs whose
  * output was captured.
  * @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public interface ProgramWithOutputResult extends ProgramResult {
     

@@ -13,6 +13,7 @@ import java.io.File;
  * Class that implements a redirector that can be configured to echo the data
  * being redirected.
  *  @author mchaberski
+ * @deprecated use {@link com.github.mike10004.nativehelper.subprocess.Subprocess} API instead
  */
 public class EchoableRedirector extends Redirector {
 
