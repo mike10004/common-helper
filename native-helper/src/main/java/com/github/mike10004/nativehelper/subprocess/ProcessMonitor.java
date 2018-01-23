@@ -13,9 +13,11 @@ import java.util.function.Supplier;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Class that represents a prcoess monitor. A process monitor is returned by
+ * Class that represents a process monitor. A process monitor is returned by
  * {@link Subprocess#launch(ProcessTracker, StreamContext)} or
- * {@link Launcher#launch()}.
+ * {@link Launcher#launch()}. Process execution is inherently asynchronous, so
+ * launching a monitor returns an object that allows you to decide how to
+ * handle changes (or lack thereof) in the process's state.
  * @param <SO> type of captured standard output contents
  * @param <SE> type of captured standard error contents
  */

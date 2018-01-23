@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 /**
  * Interface defining methods for obtaining the captured content of
- * standard output and error streams of a process
+ * standard output and error streams of a process.
  * @param <SO> type of captured standard output contents
  * @param <SE> type of captured standard error contents
  */

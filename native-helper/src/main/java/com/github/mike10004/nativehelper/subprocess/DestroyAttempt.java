@@ -2,23 +2,65 @@ package com.github.mike10004.nativehelper.subprocess;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Interface that represents an attempt to destroy a process. Destroying
+ * a process is inherently asynchronous. The {@link ProcessDestructor}
+ * {@code sendXXXSignal()} methods return instances of this class, whose
+ * extensions {@link TermAttempt} and {@link KillAttempt} allow a client
+ * to wait until a process is actually destroyed.
+ */
 @SuppressWarnings("unused")
 public interface DestroyAttempt {
 
+    /**
+     * Gets the result of the attempt.
+     * @return the result
+     */
     DestroyResult result();
 
+    /**
+     * Interface that represents an attempt to destroy a process non-forcibly.
+     * @see Process#destroy()
+     */
     interface TermAttempt extends DestroyAttempt {
         TermAttempt await() throws InterruptedException;
         TermAttempt timeout(long duration, TimeUnit unit);
         KillAttempt kill();
     }
 
+    /**
+     * Interface that represents an attempt to destroy a process forcibly.
+     * @see Process#destroyForcibly()
+     */
     interface KillAttempt extends DestroyAttempt {
+        /**
+         * Awaits termination of the process, blocking on this thread.
+         */
         void awaitKill() throws InterruptedException;
+
+        /**
+         * Awaits termination of the process, blocking on this thread but with a timeout.
+         * @param duration the duration to wait
+         * @param timeUnit the time unit of the duration value
+         * @return true if the process terminated before the timeout elapsed
+         */
         boolean timeoutKill(long duration, TimeUnit timeUnit);
+
+        /**
+         * Awaits termination of the process, blocking on this thread and throwing an
+         * exception if the timeout is exceeded.
+         * @param duration the duration to wait
+         * @param timeUnit the time unit of the duration value
+         * @throws ProcessStillAliveException if the process is not terminated after the
+         * timeout elapses
+         */
         void timeoutOrThrow(long duration, TimeUnit timeUnit) throws ProcessStillAliveException;
     }
 
+    /**
+     * Exception thrown when an attempt is made to kill a process within a
+     * timeout but the process is still alive after the timeout elapses.
+     */
     class ProcessStillAliveException extends ProcessException {
 
         public ProcessStillAliveException() {
