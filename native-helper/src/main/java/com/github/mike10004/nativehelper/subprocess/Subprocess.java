@@ -53,7 +53,12 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Class that represents a subprocess to be executed. Instances of this class
- * are immutable and may be reused.
+ * are immutable and may be reused. This API adheres to an asynchronous model,
+ * so after you launch a process, you receive a {@link ProcessMonitor monitor}
+ * instance that allows you to wait for the result on the current thread or
+ * attach a listener notified when the process terminates.
+ *
+ * <p>To launch a process and ignore the output:</p>
  * @since 7.1.0
  */
 public class Subprocess {
@@ -64,15 +69,13 @@ public class Subprocess {
     private final File workingDirectory;
     private final ImmutableMap<String, String> environment;
     private final Supplier<? extends ListeningExecutorService> launchExecutorServiceFactory;
-    private final Supplier<? extends ListeningExecutorService> killExecutorServiceFactory;
 
     protected Subprocess(String executable, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments) {
         this.executable = requireNonNull(executable, "executable");
         this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);
         this.environment = ImmutableMap.copyOf(environment);
-        launchExecutorServiceFactory = ExecutorServices.newSingleThreadExecutorServiceFactory();
-        killExecutorServiceFactory = ExecutorServices.newSingleThreadExecutorServiceFactory();
+        launchExecutorServiceFactory = ExecutorServices.newSingleThreadExecutorServiceFactory("subprocess-launch");
     }
 
     /**
@@ -81,21 +84,22 @@ public class Subprocess {
      * @return a future representing the computation
      */
     public <C extends StreamControl, SO, SE> ProcessMonitor<SO, SE> launch(ProcessTracker processTracker, StreamContext<C, SO, SE> streamContext) throws ProcessException {
-        ListeningExecutorService launchExecutorService = launchExecutorServiceFactory.get();
-        C outputContext;
+        C streamControl;
         try {
-            outputContext = streamContext.produceControl();
+            streamControl = streamContext.produceControl();
         } catch (IOException e) {
             throw new ProcessLaunchException("failed to produce output context", e);
         }
-        ProcessMissionControl.Execution execution = new ProcessMissionControl(this, processTracker, launchExecutorService)
-                .launch(outputContext);
-        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture()
-                .transform(exitCode -> {
-                    StreamContent<SO, SE> output = streamContext.transform(exitCode, outputContext);
-                    return ProcessResult.direct(exitCode, output);
-                }, launchExecutorService);
-        ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture, killExecutorServiceFactory);
+        // a one-time use executor service; it is shutdown immediately after exactly one task is submitted
+        ListeningExecutorService launchExecutorService = launchExecutorServiceFactory.get();
+        ProcessMissionControl.Execution<SO, SE> execution = new ProcessMissionControl(this, processTracker, launchExecutorService)
+                .launch(streamControl, exitCode -> {
+                    StreamContent<SO, SE> content = streamContext.transform(exitCode, streamControl);
+                    return ProcessResult.direct(exitCode, content);
+                });
+        ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture();
+        launchExecutorService.shutdown(); // previously submitted tasks are executed
+        ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture, processTracker);
         return monitor;
     }
 
