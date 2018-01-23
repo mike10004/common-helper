@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.google.common.base.Preconditions.checkState;
 
 @VisibleForTesting
-public class ShutdownHookProcessTracker implements ProcessTracker {
+class ShutdownHookProcessTracker implements ProcessTracker {
 
     private static final Logger log = LoggerFactory.getLogger(ShutdownHookProcessTracker.class);
 

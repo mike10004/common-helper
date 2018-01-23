@@ -70,6 +70,18 @@ Want the pathname of the directory where system configuration files are?
 ...prints `/etc` on Linux and value of `%ProgramData%` environment variable on 
 Windows.
 
+Want to launch a subprocess and capture the output as strings?
+
+    ProcessMonitor<String, String> monitor = Subprocess.running("echo")
+            .arg("hello, world")
+            .build()
+            .launcher(ProcessTracker.create())
+            .outputStrings(Charset.defaultCharset())
+            .launch();
+    // <String, String> parameters refer to type of captured stdout and stderr data
+    ProcessResult<String, String> result = monitor.await();
+    System.out.println(result.content().stdout());
+
 # How do I build it?
 
 ## Prerequisites

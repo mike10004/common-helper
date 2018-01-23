@@ -59,6 +59,60 @@ import static java.util.Objects.requireNonNull;
  * attach a listener notified when the process terminates.
  *
  * <p>To launch a process and ignore the output:</p>
+ * <pre>
+ * {@code
+ *     ProcessMonitor<?, ?> monitor = Subprocess.running("true").build()
+ *             .launcher(ProcessTracker.create())
+ *             .launch();
+ *     ProcessResult<?, ?> result = monitor.await();
+ *     System.out.println("exit with status " + result.exitCode()); // exit with status 0
+ * }
+ * </pre>
+ *
+ * <p>To launch a process and capture the output as strings:</p>
+ * <pre>
+ * {@code
+ *     ProcessMonitor<String, String> monitor = Subprocess.running("echo")
+ *             .arg("hello, world")
+ *             .build()
+ *             .launcher(ProcessTracker.create())
+ *             .outputStrings(Charset.defaultCharset())
+ *             .launch();
+ *     ProcessResult<String, String> result = monitor.await();
+ *     System.out.println(result.content().stdout()); // hello, world
+ * }
+ * </pre>
+ *
+ * <p>To launch a process and capture the output in files:</p>
+ * <pre>
+ * {@code
+ *     ProcessMonitor<File, File> monitor = Subprocess.running("echo")
+ *             .arg("this is in a file")
+ *             .build()
+ *             .launcher(ProcessTracker.create())
+ *             .outputTempFiles(new File(System.getProperty("java.io.tmpdir")).toPath())
+ *             .launch();
+ *     ProcessResult<File, File> result = monitor.await();
+ *     System.out.println("printed:");
+ *     java.nio.file.Files.copy(result.content().stdout().toPath(), System.out); // this is in a file
+ * }
+ * </pre>
+ *
+ * <p>To launch a process and send it data on standard input:</p>
+ * <pre>
+ * {@code
+ *     ByteSource input = Files.asByteSource(new File("/etc/passwd"));
+ *     ProcessMonitor<String, String> monitor = Subprocess.running("grep")
+ *             .arg("root")
+ *             .build()
+ *             .launcher(ProcessTracker.create())
+ *             .outputStrings(Charset.defaultCharset(), input)
+ *             .launch();
+ *     ProcessResult<String, String> result = monitor.await();
+ *     System.out.println("printed " + result.content().stdout()); // root:x:0:0:root:/root:/bin/bash
+ * }
+ * </pre>
+ *
  * @since 7.1.0
  */
 public class Subprocess {
