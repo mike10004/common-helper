@@ -42,6 +42,7 @@ import java.util.Map;
  * @author mchaberski
  * @see ProgramWithOutputResult
  */
+@Deprecated
 public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
 
     protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments) {

@@ -60,6 +60,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -139,15 +140,22 @@ public abstract class Program<R extends ProgramResult> {
     protected abstract SubprocessBridge<?> buildSubprocessBridge();
     
     private static class TaskAbortingFuture<R> extends SimpleForwardingListenableFuture<R> {
-        
-        public TaskAbortingFuture(ListenableFuture<R> wrapped) {
+
+        private final AtomicReference<ProcessMonitor<?, ?>> processMonitorRef;
+
+        public TaskAbortingFuture(AtomicReference<ProcessMonitor<?, ?>> processMonitorRef, ListenableFuture<R> wrapped) {
             super(wrapped);
-            throw new UnsupportedOperationException("not yet implemented");
+            this.processMonitorRef = processMonitorRef;
         }
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            return super.cancel(mayInterruptIfRunning);
+            super.cancel(false);
+            @Nullable ProcessMonitor<?, ?> pm = processMonitorRef.get();
+            if (pm != null) {
+                pm.destructor().sendTermSignal().kill();
+            }
+            return isCancelled();
         }
 
     }
@@ -166,11 +174,16 @@ public abstract class Program<R extends ProgramResult> {
      */
     public ListenableFuture<R> executeAsync(ExecutorService executorService) {
         ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
+        AtomicReference<ProcessMonitor<?, ?>> monitorRef = new AtomicReference<>();
         Callable<R> callable = () -> {
-            return execute();
+            SubprocessBridge bridge = buildSubprocessBridge();
+            ProcessMonitor<?, ?> pm = bridge.launch();
+            monitorRef.set(pm);
+            ProcessResult rslt = pm.await();
+            return (R) bridge.buildResult(rslt);
         };
         ListenableFuture<R> innerFuture = listeningService.submit(callable);
-        return new TaskAbortingFuture<>(innerFuture);
+        return new TaskAbortingFuture<R>(monitorRef, innerFuture);
     }
 
     protected Subprocess buildSubprocess() {

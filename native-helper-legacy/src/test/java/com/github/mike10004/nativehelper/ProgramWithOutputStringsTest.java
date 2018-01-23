@@ -67,7 +67,7 @@ public class ProgramWithOutputStringsTest {
         ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(Executors.newSingleThreadExecutor());
         ProgramWithOutputStringsResult result = future.get();
         System.out.println("program result: " + result);
-        assertEquals("hello", result.getStdoutString());
+        assertEquals("stdout", "hello", result.getStdoutString().trim());
     }
     
     @Test(timeout = 1000L)

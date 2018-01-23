@@ -44,6 +44,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Class that represents a program whose output is captured in memory as strings.
  * @author mchaberski
  */
+@Deprecated
 public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutputStringsResult> {
 
     @Deprecated

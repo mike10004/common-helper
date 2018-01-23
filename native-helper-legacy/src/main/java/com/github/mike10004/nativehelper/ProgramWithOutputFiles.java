@@ -47,10 +47,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Class representing a program whose output is written to file.
  * @author mchaberski
  */
+@Deprecated
 public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputFilesResult> {
-
-    private static final String KEY_STDERR = ProgramWithOutputFiles.class.getName() + ".stderrFile";
-    private static final String KEY_STDOUT = ProgramWithOutputFiles.class.getName() + ".stdoutFile";
 
     private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
     

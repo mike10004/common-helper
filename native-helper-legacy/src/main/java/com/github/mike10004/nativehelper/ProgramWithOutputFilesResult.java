@@ -36,6 +36,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @see Program.Builder#outputToTempFiles(java.nio.file.Path) 
  * @author mchaberski
  */
+@Deprecated
 public class ProgramWithOutputFilesResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
     
     private final File stdoutFile;

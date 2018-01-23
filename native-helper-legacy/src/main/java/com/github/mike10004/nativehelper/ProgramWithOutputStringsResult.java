@@ -35,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
  * Class that represents the result of a program whose output was captured as strings.
  * @author mchaberski
  */
+@Deprecated
 public class ProgramWithOutputStringsResult extends ExitCodeProgramResult implements ProgramWithOutputResult {
     
     public static final int DEFAULT_STRING_ABBREVIATION_LENGTH = 256;
