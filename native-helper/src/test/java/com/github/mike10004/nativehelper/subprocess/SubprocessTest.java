@@ -274,30 +274,40 @@ public class SubprocessTest extends SubprocessTestBase {
 
     @Test(timeout = 5000L)
     public void awaitWithTimeout() throws Exception {
-        ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
-                .build().launcher(CONTEXT).launch();
-        ProcessResult<?, ?> result = null;
         try {
-            result = monitor.await(100, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException ignore) {
+            System.out.println("awaitWithTimeout");
+            ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
+                    .build().launcher(CONTEXT).launch();
+            ProcessResult<?, ?> result = null;
+            try {
+                result = monitor.await(100, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException ignore) {
+            }
+            assertNull("result should not have been assigned", result);
+            DestroyAttempt term = monitor.destructor().sendTermSignal().await();
+            assertEquals("term result", DestroyResult.TERMINATED, term.result());
+        } catch (UnsupportedOperationException e) {
+            System.err.println("awaitWithTimeout: UnsupportedOperationException");
+            e.printStackTrace(System.err);
+            throw e;
         }
-        assertNull("result should not have been assigned", result);
-        DestroyAttempt term = monitor.destructor().sendTermSignal().await();
-        assertEquals("term result", DestroyResult.TERMINATED, term.result());
     }
 
     @Test
     public void killRemovesFromTracker() throws Exception {
+        System.out.println("killRemovesFromTracker");
         Map<Process, Boolean> processes = Collections.synchronizedMap(new HashMap<>());
 
         ProcessTracker localContext = new ProcessTracker() {
             @Override
             public void add(Process process) {
+                System.out.format("localContext: add %s%n", process);
                 processes.put(process, true);
             }
 
             @Override
             public boolean remove(Process process) {
+                System.out.format("localContext: remove %s%n", process);
                 return processes.put(process, false) != null;
             }
 
