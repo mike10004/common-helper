@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static com.google.common.base.Preconditions.checkState;
@@ -297,18 +298,25 @@ public class SubprocessTest extends SubprocessTestBase {
     public void killRemovesFromTracker() throws Exception {
         System.out.println("killRemovesFromTracker");
         Map<Process, Boolean> processes = Collections.synchronizedMap(new HashMap<>());
-
+        AtomicBoolean neverTracked = new AtomicBoolean(false);
         ProcessTracker localContext = new ProcessTracker() {
             @Override
             public void add(Process process) {
-                System.out.format("localContext: add %s%n", process);
+                System.out.format("localContext.add(%s)%n", process);
                 processes.put(process, true);
             }
 
             @Override
             public boolean remove(Process process) {
-                System.out.format("localContext: remove %s%n", process);
-                return processes.put(process, false) != null;
+                Boolean previous = processes.put(process, false);
+                if (previous == null) {
+                    System.out.format("localContext.remove(%s) (never tracked)%n", process);
+                    neverTracked.set(true);
+                    return false;
+                }
+                boolean alreadyRemoved = !previous.booleanValue();
+                System.out.format("localContext: remove %s (already removed? %s)%n", process, alreadyRemoved);
+                return !alreadyRemoved;
             }
 
             @Override
@@ -338,6 +346,6 @@ public class SubprocessTest extends SubprocessTestBase {
         checkState(!process.isAlive(), "process still alive");
         assertEquals("all count", 1, localContext.count());
         assertEquals("active count", 0, localContext.activeCount());
-
+        assertEquals("neverTracked", false, neverTracked.get());
     }
 }
