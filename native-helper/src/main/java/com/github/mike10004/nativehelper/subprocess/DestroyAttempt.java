@@ -23,8 +23,31 @@ public interface DestroyAttempt {
      * @see Process#destroy()
      */
     interface TermAttempt extends DestroyAttempt {
-        TermAttempt await() throws InterruptedException;
+
+        /**
+         * Awaits termination of the process, blocking on the current thread.
+         * Unless the waiting is interrupted, the process will be terminated
+         * when this method returns.
+         * @return a termination attempt instance
+         */
+        TermAttempt await();
+
+        /**
+         * Awaits termination of the process up until a timeout, blocking on the
+         * current thread. This method returns when the process terminates, the
+         * timeout elapses, or the current thread is interrupted. In the latter
+         * two cases, the process may not have terminated.
+         * @param duration the timeout duration
+         * @param unit the timeout duration unit
+         * @return a termination attempt instance
+         */
         TermAttempt timeout(long duration, TimeUnit unit);
+
+        /**
+         * Attempts to destroy the process forcibly.
+         * @return a kill attempt instance
+         * @see Process#destroyForcibly()
+         */
         KillAttempt kill();
     }
 

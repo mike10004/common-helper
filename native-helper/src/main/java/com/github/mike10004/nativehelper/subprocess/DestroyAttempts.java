@@ -47,6 +47,13 @@ class DestroyAttempts {
         }
     }
 
+    /**
+     * Gets an immutable instance that represents an attempt where the process is already terminated.
+     * This attempt's {@link DestroyAttempt#result() result()} method will return
+     * {@link DestroyResult#TERMINATED TERMINATED}.
+     * @param <A> kill or term attempt type
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public static <A extends DestroyAttempt.KillAttempt & DestroyAttempt.TermAttempt> A terminated() {
         return (A) ALREADY_TERMINATED;
@@ -55,39 +62,6 @@ class DestroyAttempts {
     private static final AlreadyTerminated ALREADY_TERMINATED = new AlreadyTerminated();
 
     private DestroyAttempts() {}
-
-    static class KillAttemptImpl extends AbstractDestroyAttempt implements DestroyAttempt.KillAttempt {
-
-        @SuppressWarnings("unused")
-        private static final Logger log = LoggerFactory.getLogger(KillAttemptImpl.class);
-
-        public KillAttemptImpl(DestroyResult result, Process process) {
-            super(result, process);
-        }
-
-        @Override
-        public void timeoutOrThrow(long duration, TimeUnit timeUnit) throws ProcessStillAliveException {
-            boolean succeeded = timeoutKill(duration, timeUnit);
-            if (!succeeded) {
-                throw new ProcessStillAliveException();
-            }
-        }
-
-        @Override
-        public void awaitKill() throws InterruptedException {
-            process.waitFor();
-        }
-
-        @Override
-        public boolean timeoutKill(long duration, TimeUnit unit) {
-            try {
-                return process.waitFor(duration, unit);
-            } catch (InterruptedException e) {
-                log.info("interrupted: " + e);
-                return false;
-            }
-        }
-    }
 
     static class TermAttemptImpl extends AbstractDestroyAttempt implements DestroyAttempt.TermAttempt {
 
@@ -140,4 +114,38 @@ class DestroyAttempts {
         }
 
     }
+
+    static class KillAttemptImpl extends AbstractDestroyAttempt implements DestroyAttempt.KillAttempt {
+
+        @SuppressWarnings("unused")
+        private static final Logger log = LoggerFactory.getLogger(KillAttemptImpl.class);
+
+        public KillAttemptImpl(DestroyResult result, Process process) {
+            super(result, process);
+        }
+
+        @Override
+        public void timeoutOrThrow(long duration, TimeUnit timeUnit) throws ProcessStillAliveException {
+            boolean succeeded = timeoutKill(duration, timeUnit);
+            if (!succeeded) {
+                throw new ProcessStillAliveException();
+            }
+        }
+
+        @Override
+        public void awaitKill() throws InterruptedException {
+            process.waitFor();
+        }
+
+        @Override
+        public boolean timeoutKill(long duration, TimeUnit unit) {
+            try {
+                return process.waitFor(duration, unit);
+            } catch (InterruptedException e) {
+                log.info("interrupted: " + e);
+                return false;
+            }
+        }
+    }
+
 }
