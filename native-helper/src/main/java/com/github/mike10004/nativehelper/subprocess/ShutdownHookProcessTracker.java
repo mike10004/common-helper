@@ -279,9 +279,8 @@ class ShutdownHookProcessTracker implements ProcessTracker {
          */
         public List<Process> destroyAll(long timeoutPerProcess, TimeUnit unit) {
             synchronized (processes) {
-                List<Process> processes = ImmutableList.copyOf(this.processes);
                 List<Process> undestroyed = new ArrayList<>();
-                Iterator<Process> processIterator = processes.iterator();
+                Iterator<Process> processIterator = ImmutableList.copyOf(this.processes).iterator();
                 while (processIterator.hasNext()) {
                     Process p = processIterator.next();
                     p.destroy();
@@ -303,7 +302,7 @@ class ShutdownHookProcessTracker implements ProcessTracker {
                         log.error("failed to terminated process " + p);
                         undestroyed.add(p);
                     } else {
-                        processes.remove(p);
+                        this.processes.remove(p);
                     }
                 }
                 return undestroyed;
