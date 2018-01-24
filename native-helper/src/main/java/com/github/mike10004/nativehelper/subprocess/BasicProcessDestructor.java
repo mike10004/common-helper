@@ -1,6 +1,5 @@
 package com.github.mike10004.nativehelper.subprocess;
 
-import com.github.mike10004.nativehelper.subprocess.AbstractDestroyAttempt.ProcessWaiter;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.KillAttempt;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempt.TermAttempt;
 import com.github.mike10004.nativehelper.subprocess.DestroyAttempts.KillAttemptImpl;
@@ -26,6 +25,14 @@ class BasicProcessDestructor implements ProcessDestructor {
         this.processTracker = requireNonNull(processTracker);
     }
 
+    DestroyResult trackCurrentResult() {
+        DestroyResult result = isAlreadyTerminated() ? DestroyResult.TERMINATED : DestroyResult.STILL_ALIVE;
+        if (result == DestroyResult.TERMINATED) {
+            processTracker.remove(process);
+        }
+        return result;
+    }
+
     @Override
     public TermAttempt sendTermSignal() {
         if (isAlreadyTerminated()) {
@@ -33,10 +40,6 @@ class BasicProcessDestructor implements ProcessDestructor {
         }
         sendSignal(Process::destroy);
         return createTermAttempt();
-    }
-
-    private DestroyResult makeCurrentResult() {
-        return isAlreadyTerminated() ? DestroyResult.TERMINATED : DestroyResult.STILL_ALIVE;
     }
 
     private boolean isAlreadyTerminated() {
@@ -48,24 +51,20 @@ class BasicProcessDestructor implements ProcessDestructor {
         }
     }
 
-    private ProcessWaiter waiter() {
-        return AbstractDestroyAttempt.ProcessWaiter.jre(process);
-    }
-
-    protected TermAttempt createTermAttempt() {
-        DestroyResult result = makeCurrentResult();
+    private TermAttempt createTermAttempt() {
+        DestroyResult result = trackCurrentResult();
         if (result == DestroyResult.TERMINATED) {
             return DestroyAttempts.terminated();
         }
-        return new TermAttemptImpl(this, waiter(), result);
+        return new TermAttemptImpl(this, process, result);
     }
 
-    protected KillAttempt createKillAttempt() {
-        DestroyResult result = makeCurrentResult();
+    private KillAttempt createKillAttempt() {
+        DestroyResult result = trackCurrentResult();
         if (result == DestroyResult.TERMINATED) {
             return DestroyAttempts.terminated();
         }
-        return new KillAttemptImpl(result, waiter());
+        return new KillAttemptImpl(result, process);
     }
 
     @Override

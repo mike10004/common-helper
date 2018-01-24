@@ -38,7 +38,7 @@ class DestroyAttempts {
         }
 
         @Override
-        public void timeoutOrThrow(long duration, TimeUnit timeUnit) throws ProcessStillAliveException {
+        public void timeoutOrThrow(long duration, TimeUnit timeUnit) {
         }
 
         @Override
@@ -61,8 +61,8 @@ class DestroyAttempts {
         @SuppressWarnings("unused")
         private static final Logger log = LoggerFactory.getLogger(KillAttemptImpl.class);
 
-        public KillAttemptImpl(DestroyResult result, ProcessWaiter waiter) {
-            super(result, waiter);
+        public KillAttemptImpl(DestroyResult result, Process process) {
+            super(result, process);
         }
 
         @Override
@@ -75,13 +75,13 @@ class DestroyAttempts {
 
         @Override
         public void awaitKill() throws InterruptedException {
-            waiter.waitFor();
+            process.waitFor();
         }
 
         @Override
         public boolean timeoutKill(long duration, TimeUnit unit) {
             try {
-                return waiter.waitFor(duration, unit);
+                return process.waitFor(duration, unit);
             } catch (InterruptedException e) {
                 log.info("interrupted: " + e);
                 return false;
@@ -94,10 +94,10 @@ class DestroyAttempts {
         @SuppressWarnings("unused")
         private static final Logger log = LoggerFactory.getLogger(TermAttemptImpl.class);
 
-        private final ProcessDestructor destructor;
+        private final BasicProcessDestructor destructor;
 
-        public TermAttemptImpl(ProcessDestructor destructor, ProcessWaiter waiter, DestroyResult result) {
-            super(result, waiter);
+        public TermAttemptImpl(BasicProcessDestructor destructor, Process process, DestroyResult result) {
+            super(result, process);
             this.destructor = requireNonNull(destructor);
         }
 
@@ -107,12 +107,12 @@ class DestroyAttempts {
                 return this;
             }
             try {
-                waiter.waitFor();
+                process.waitFor();
             } catch (InterruptedException e) {
                 log.debug("interrupted while waiting on process termination: " + e);
             }
-            DestroyResult result = waiter.isAlive() ? DestroyResult.STILL_ALIVE : DestroyResult.TERMINATED;
-            return new TermAttemptImpl(destructor, waiter, result);
+            DestroyResult result = destructor.trackCurrentResult();
+            return new TermAttemptImpl(destructor, process, result);
         }
 
         @Override
@@ -121,7 +121,7 @@ class DestroyAttempts {
                 return this;
             }
             try {
-                boolean finished = waiter.waitFor(duration, unit);
+                boolean finished = process.waitFor(duration, unit);
                 if (finished) {
                     return DestroyAttempts.terminated();
                 }
