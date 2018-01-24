@@ -296,18 +296,17 @@ public class SubprocessTest extends SubprocessTestBase {
 
     @Test
     public void killRemovesFromTracker() throws Exception {
-        System.out.println("killRemovesFromTracker");
         Map<Process, Boolean> processes = Collections.synchronizedMap(new HashMap<>());
         AtomicBoolean neverTracked = new AtomicBoolean(false);
         ProcessTracker localContext = new ProcessTracker() {
             @Override
-            public void add(Process process) {
+            public synchronized void add(Process process) {
                 System.out.format("localContext.add(%s)%n", process);
                 processes.put(process, true);
             }
 
             @Override
-            public boolean remove(Process process) {
+            public synchronized boolean remove(Process process) {
                 Boolean previous = processes.put(process, false);
                 if (previous == null) {
                     System.out.format("localContext.remove(%s) (never tracked)%n", process);
@@ -320,18 +319,19 @@ public class SubprocessTest extends SubprocessTestBase {
             }
 
             @Override
-            public int count() {
+            public synchronized int count() {
                 return processes.size();
             }
 
             @Override
-            public int activeCount() {
+            public synchronized int activeCount() {
                 return Ints.checkedCast(processes.entrySet().stream().filter(Entry::getValue).count());
             }
 
         };
         ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
                 .build().launcher(localContext).launch();
+        System.out.format("killRemovesFromTracker: %s%n", monitor.process());
         ProcessResult<?, ?> result = null;
         try {
             result = monitor.await(100, TimeUnit.MILLISECONDS);
