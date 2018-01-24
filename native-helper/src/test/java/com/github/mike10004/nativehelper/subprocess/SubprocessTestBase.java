@@ -52,6 +52,9 @@ public abstract class SubprocessTestBase {
             } else {
                 assertEquals(active + " processes are still active but should have finished or been killed after " + description, 0, active);
             }
+        } catch (RuntimeException e) {
+            System.err.println("SubprocessTestBase.checkProcesses runtime exception");
+            e.printStackTrace(System.err);
         } finally {
             ((ShutdownHookProcessTracker)CONTEXT).destroyAll(5, TimeUnit.SECONDS);
         }
