@@ -55,6 +55,7 @@ public abstract class SubprocessTestBase {
         } catch (RuntimeException e) {
             System.err.println("SubprocessTestBase.checkProcesses runtime exception");
             e.printStackTrace(System.err);
+            throw e;
         } finally {
             ((ShutdownHookProcessTracker)CONTEXT).destroyAll(5, TimeUnit.SECONDS);
         }
