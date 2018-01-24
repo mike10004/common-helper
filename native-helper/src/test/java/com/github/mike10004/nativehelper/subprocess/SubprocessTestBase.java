@@ -10,6 +10,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
@@ -42,13 +43,17 @@ public abstract class SubprocessTestBase {
 
     @After
     public final void checkProcesses() {
-        int active = CONTEXT.activeCount();
-        if (testFailed) {
-            if (active > 0) {
-                System.err.format("%d active processes; ignoring because test failed%n", active);
+        try {
+            int active = CONTEXT.activeCount();
+            if (testFailed) {
+                if (active > 0) {
+                    System.err.format("%d active processes; ignoring because test failed%n", active);
+                }
+            } else {
+                assertEquals(active + " processes are still active but should have finished or been killed after " + description, 0, active);
             }
-        } else {
-            assertEquals(active + " processes are still active but should have finished or been killed after " + description, 0, active);
+        } finally {
+            ((ShutdownHookProcessTracker)CONTEXT).destroyAll(5, TimeUnit.SECONDS);
         }
     }
 
