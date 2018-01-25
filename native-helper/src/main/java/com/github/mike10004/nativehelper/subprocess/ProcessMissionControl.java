@@ -105,6 +105,7 @@ class ProcessMissionControl {
             throw new InvalidWorkingDirectoryException(workingDirectory);
         }
         final Process process = createProcess(getCommandLine());
+        processTracker.add(process);
         return process;
     }
 
@@ -141,7 +142,6 @@ class ProcessMissionControl {
     @VisibleForTesting
     @Nullable
     Integer follow(Process process, StreamControl outputContext) throws IOException {
-        processTracker.add(process);
         boolean terminated = false;
         @Nullable Integer exitVal;
         OutputStream processStdin = null;
