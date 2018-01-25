@@ -117,7 +117,7 @@ public abstract class LazyJdbcConnectionSource extends JdbcConnectionSource {
     
     /**
      * Invokes prepare and initialize methods.
-     * @throws SQLException 
+     * @throws SQLException if there is a database error
      * @see #prepare() 
      * @see #initialize() 
      */

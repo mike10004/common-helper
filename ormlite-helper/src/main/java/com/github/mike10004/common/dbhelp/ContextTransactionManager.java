@@ -28,11 +28,12 @@ public interface ContextTransactionManager {
 	 * 
 	 * @param callable
 	 *            Callable to execute inside of the transaction.
+	 * @param <T> callable return type
 	 * @return The object returned by the callable.
 	 * @throws SQLException
 	 *             If the callable threw an exception then the transaction is rolled back and a SQLException wraps the
 	 *             callable exception and is thrown by this method.
 	 */
-    public <T> T callInTransaction(Callable<T> callable) throws SQLException;
+    <T> T callInTransaction(Callable<T> callable) throws SQLException;
     
 }

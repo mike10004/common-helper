@@ -6,8 +6,8 @@ import java.util.function.Supplier;
 
 /**
  * Interface that defines methods for manipulating process output.
- * @param <SO>
- * @param <SE>
+ * @param <SO> type of captured standard output content
+ * @param <SE> type of captured standard error content
  */
 public interface StreamContext<C extends StreamControl, SO, SE> {
 
@@ -15,6 +15,7 @@ public interface StreamContext<C extends StreamControl, SO, SE> {
      * Produces the byte sources and byte sinks to be attached to the process
      * standard output, error, and input streams.
      * @return an output context
+     * @throws IOException if something goes awry
      */
     C produceControl() throws IOException;
 
@@ -53,15 +54,20 @@ public interface StreamContext<C extends StreamControl, SO, SE> {
     }
 
     /**
-     * Process output control whose captured standard output and error content is
-     * the same type
+     * Interface that represents a stream context whose captured standard output and error
+     * content has the same type.
      * @param <S> type of the captured standard output and standard error contents
+     * @param <C> type of the stream control
      */
     interface UniformStreamContext<C extends StreamControl, S> extends StreamContext<C, S, S> {
 
         /**
          * Wraps a process output control whose standard error and output type
          * in an object that satisfies this interface.
+         * @param homogenous the uniform stream context
+         * @param <C> stream control type
+         * @param <S> type of captured standard output and standard error content
+         * @return a new uniform stream context
          */
         static <C extends StreamControl, S> UniformStreamContext<C, S> wrap(StreamContext<C, S, S> homogenous) {
             return new UniformStreamContext<C, S>() {
@@ -78,6 +84,10 @@ public interface StreamContext<C extends StreamControl, SO, SE> {
         }
 
         /**
+         * Maps this stream context to one whose output is a different type.
+         * @param stmap the map function
+         * @param <T> the different type
+         * @return the mapped context
          * @see StreamContext#map(Function, Function)
          */
         default <T> UniformStreamContext<C, T> map(Function<? super S, T> stmap) {
@@ -97,19 +107,46 @@ public interface StreamContext<C extends StreamControl, SO, SE> {
         }
     }
 
-    static <C extends StreamControl, SO, SE> StreamContext<C, SO, SE> predefinedAndOutputIgnored(C ctx) {
-        return predefined(ctx, StreamContexts::noOutput);
+    /**
+     * Creates a new stream context that ignores process output.
+     * @param streamControl  the stream control to use
+     * @param <C> stream control type
+     * @param <SO> type of captured standard output content
+     * @param <SE> type of captured standard error content
+     * @return the new context
+     */
+    static <C extends StreamControl, SO, SE> StreamContext<C, SO, SE> predefinedAndOutputIgnored(C streamControl) {
+        return predefined(streamControl, StreamContexts::noOutput);
     }
 
-    static <C extends StreamControl, SO, SE> StreamContext<C, SO, SE> predefined(C outputContext, Supplier<SO> stdoutProvider, Supplier<SE> stderrProvider) {
-        return predefined(outputContext, () -> StreamContent.direct(stdoutProvider.get(), stderrProvider.get()));
+    /**
+     * Creates a new stream context whose output content is supplied by the given suppliers.
+     * @param streamControl the stream control
+     * @param stdoutProvider the standard output content supplier
+     * @param stderrProvider the standard error content supplier
+     * @param <C> stream control type
+     * @param <SO> type of captured standard output content
+     * @param <SE> type of captured standard error content
+     * @return the new context
+     */
+    static <C extends StreamControl, SO, SE> StreamContext<C, SO, SE> predefined(C streamControl, Supplier<? extends SO> stdoutProvider, Supplier<? extends SE> stderrProvider) {
+        return predefined(streamControl, () -> StreamContent.direct(stdoutProvider.get(), stderrProvider.get()));
     }
 
-    static <C extends StreamControl, SO, SE> StreamContext<C, SO, SE> predefined(C outputContext, Supplier<StreamContent<SO, SE>> outputter) {
+    /**
+     * Creates a new stream context whose output is supplied by the given supplier.
+     * @param streamControl the stream control
+     * @param outputter the standard output and error content supplier
+     * @param <C> stream control type
+     * @param <SO> type of captured standard output content
+     * @param <SE> type of captured standard error content
+     * @return the new context
+     */
+    static <C extends StreamControl, SO, SE> StreamContext<C, SO, SE> predefined(C streamControl, Supplier<? extends StreamContent<SO, SE>> outputter) {
         return new StreamContext<C, SO, SE>() {
             @Override
             public C produceControl() {
-                return outputContext;
+                return streamControl;
             }
 
             @Override

@@ -58,11 +58,14 @@ public interface DestroyAttempt {
     interface KillAttempt extends DestroyAttempt {
         /**
          * Awaits termination of the process, blocking on this thread.
+         * @throws InterruptedException if waiting is interrupted
          */
         void awaitKill() throws InterruptedException;
 
         /**
          * Awaits termination of the process, blocking on this thread but with a timeout.
+         * Interrupted exceptions are ignored and treated as though the timeout elapsed
+         * before the kill completed.
          * @param duration the duration to wait
          * @param timeUnit the time unit of the duration value
          * @return true if the process terminated before the timeout elapsed

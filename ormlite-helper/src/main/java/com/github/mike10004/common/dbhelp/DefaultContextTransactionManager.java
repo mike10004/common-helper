@@ -38,7 +38,7 @@ public class DefaultContextTransactionManager implements ContextTransactionManag
 
     /**
      * Constructs an instance for the given connection source.
-     * @param connectionSource 
+     * @param connectionSource the connection source
      */
     public DefaultContextTransactionManager(ConnectionSource connectionSource) {
         this.connectionSource = Preconditions.checkNotNull(connectionSource, "connectionSource");

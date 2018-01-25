@@ -36,7 +36,7 @@ public abstract class LazyJdbcPooledConnectionSource extends JdbcPooledConnectio
     
     /**
      * Prepares for initialization. Must set the {@code url} field at minimum.
-     * @throws SQLException 
+     * @throws SQLException on database error
      */
     protected abstract void prepare() throws SQLException;
     
@@ -114,7 +114,7 @@ public abstract class LazyJdbcPooledConnectionSource extends JdbcPooledConnectio
     
     /**
      * Invokes prepare and initialize methods.
-     * @throws SQLException 
+     * @throws SQLException on database error
      * @see #prepare() 
      * @see #initialize() 
      */

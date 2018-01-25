@@ -133,9 +133,15 @@ public class Subprocess {
     }
 
     /**
-     * Launches a subprocess. It's probably easier to use {@link #launcher(ProcessTracker)}
-     * to build a launcher and then invoke {@link Launcher#launch()}.
-     * @return a future representing the computation
+     * Launches a subprocess. Use {@link #launcher(ProcessTracker)} to build a launcher
+     * and invoke {@link Launcher#launch()} for a more fluent way of executing this method.
+     * @param processTracker process tracker to use
+     * @param streamContext stream context
+     * @param <C> stream control type
+     * @param <SO> type of captured standard output content
+     * @param <SE> type of captured standard error content
+     * @return a process monitor
+     * @throws ProcessException if the process cannot be launched
      */
     public <C extends StreamControl, SO, SE> ProcessMonitor<SO, SE> launch(ProcessTracker processTracker, StreamContext<C, SO, SE> streamContext) throws ProcessException {
         C streamControl;
@@ -323,67 +329,164 @@ public class Subprocess {
             this.streamContext = requireNonNull(streamContext);
         }
 
+        /**
+         * Return a new uniform launcher that uses the given stream context.
+         * @param streamContext the stream context of the new launcher
+         * @param <S> type of captured standard output and standard error
+         * @return a new launcher instance
+         */
         public <S> UniformLauncher<S> output(UniformStreamContext<?, S> streamContext) {
             return uniformOutput(streamContext);
         }
 
+        /**
+         * Return a new uniform launcher that uses the given stream context.
+         * @param streamContext the stream context of the new launcher
+         * @param <S> type of captured standard output and standard error
+         * @return a new launcher instance
+         */
         public <S> UniformLauncher<S> uniformOutput(StreamContext<?, S, S> streamContext) {
             return new UniformLauncher<S>(processTracker, streamContext) {};
         }
 
+        /**
+         * Return a new launcher that uses the given stream context.
+         * @param streamContext the stream context of the new launcher
+         * @param <SO2> type of standard output content captured by the new launcher
+         * @param <SE2> type of standard error content captured by the new launcher
+         * @return a new launcher instance
+         */
         public <SO2, SE2> Launcher<SO2, SE2> output(StreamContext<?, SO2, SE2> streamContext) {
             return new Launcher<SO2, SE2>(processTracker, streamContext) {};
         }
 
+        /**
+         * Launches the process.
+         * @return the process monitor
+         * @throws ProcessException  if there is an error that prevents the process from being launched
+         */
         public ProcessMonitor<SO, SE> launch() throws ProcessException {
             return Subprocess.this.launch(processTracker, streamContext);
         }
 
+        /**
+         * Returns a new launcher that maps this launcher's output.
+         * @param stdoutMap function that maps standard output content
+         * @param stderrMap function that maps standard error content
+         * @param <SO2> type of mapped standard output content
+         * @param <SE2> type of mapped standard error content
+         * @return a new launcher instance
+         */
         public <SO2, SE2> Launcher<SO2, SE2> map(Function<? super SO, SO2> stdoutMap, Function<? super SE, SE2> stderrMap) {
             return output(streamContext.map(stdoutMap, stderrMap));
         }
 
+        /**
+         * Returns a new launcher that captures process standard output and error as strings.
+         * The specified characer encoding is used to decode the bytes collected from the
+         * process standard output and standard error streams.
+         * @param charset encoding of bytes on the process standard output and error streams
+         * @return a new launcher instance
+         * @see #outputStrings(Charset, ByteSource)
+         */
         public UniformLauncher<String> outputStrings(Charset charset) {
             requireNonNull(charset, "charset");
             return outputStrings(charset, null);
         }
 
+        /**
+         * Returns a new launcher that captures process standard output and error as strings.
+         * The specified characer encoding is used to decode the bytes collected from the
+         * process standard output and standard error streams.
+         * @param charset encoding of bytes on the process standard output and error streams
+         * @param stdin source providing bytes to be written on process standard input stream; may be null
+         * @return a new launcher instance
+         */
         public UniformLauncher<String> outputStrings(Charset charset, @Nullable ByteSource stdin) {
             requireNonNull(charset, "charset");
             return output(StreamContexts.strings(charset, stdin));
         }
 
+        /**
+         * Returns a new launcher that captures process standard output and error as byte arrays.
+         * @return a new launcher instance
+         * @see #outputInMemory(ByteSource)
+         */
         @SuppressWarnings("unused")
         public UniformLauncher<byte[]> outputInMemory() {
             return outputInMemory(null);
         }
 
+        /**
+         * Returns a new launcher that captures process standard output and error as byte arrays.
+         * @param stdin source providing bytes to be written on process standard input stream; may be null
+         * @return a new launcher instance
+         */
         public UniformLauncher<byte[]> outputInMemory(@Nullable ByteSource stdin) {
             UniformStreamContext<?, byte[]> m = StreamContexts.byteArrays(stdin);
             return output(m);
         }
 
+        /**
+         * Returns a new launcher that pipes process output to the JVM standard output and errors streams and
+         * pipes input from the JVM standard input stream to the process standard input stream.
+         * @return a new launcher instance
+         */
         @SuppressWarnings("unused")
         public Launcher<Void, Void> inheritAllStreams() {
             return output(StreamContexts.inheritAll());
         }
 
+        /**
+         * Returns a new launcher that pipes process output to the JVM standard output and errors streams
+         * but does not write anything on the process standard input stream.
+         * @return a new launcher instance
+         */
         public Launcher<Void, Void> inheritOutputStreams() {
             return output(StreamContexts.inheritOutputs());
         }
 
+        /**
+         * Returns a new launcher that captures the process standard output and error content
+         * in files.
+         * @param stdoutFile the file to which standard output content is to be written
+         * @param stderrFile the file to which standard error content is to be written
+         * @param stdin source providing bytes to be written on process standard input stream; may be null
+         * @return a new launcher instance
+         */
         public UniformLauncher<File> outputFiles(File stdoutFile, File stderrFile, @Nullable ByteSource stdin) {
             return output(StreamContexts.outputFiles(stdoutFile, stderrFile, stdin));
         }
 
+        /**
+         * Returns a new launcher that captures the process standard output and error content
+         * in files.
+         * @param stdoutFile the file to which standard output content is to be written
+         * @param stderrFile the file to which standard error content is to be written
+         * @return a new launcher instance
+         * @see #outputFiles(File, File, ByteSource)
+         */
         public UniformLauncher<File> outputFiles(File stdoutFile, File stderrFile) {
             return outputFiles(stdoutFile, stderrFile, null);
         }
 
+        /**
+         * Returns a new launcher that captures the process standard output and error content
+         * in new, uniquely-named files created in the given directory.
+         * @param directory pathname of a existing directory in which files are to be created
+         * @return a new launcher instance
+         */
         public UniformLauncher<File> outputTempFiles(Path directory) {
             return outputTempFiles(directory, null);
         }
 
+        /**
+         * Returns a new launcher that captures the process standard output and error content
+         * in new, uniquely-named files created in the given directory.
+         * @param directory pathname of a existing directory in which files are to be created
+         * @param stdin source providing bytes to be written on process standard input stream; may be null
+         * @return a new launcher instance
+         */
         public UniformLauncher<File> outputTempFiles(Path directory, @Nullable ByteSource stdin) {
             return output(StreamContexts.outputTempFiles(directory, stdin));
         }
@@ -391,7 +494,7 @@ public class Subprocess {
 
     /**
      * Class that represents a launcher using a uniform output control.
-     * @param <S>
+     * @param <S> type of captured standard output and standard error content
      */
     public abstract class UniformLauncher<S> extends Launcher<S, S> {
 
@@ -399,6 +502,13 @@ public class Subprocess {
             super(processTracker, streamContext);
         }
 
+        /**
+         * Returns a new launcher that maps captured standard output and standard error
+         * content to a different type.
+         * @param mapper map function
+         * @param <T> destination type
+         * @return a new launcher instance
+         */
         public <T> UniformLauncher<T> map(Function<? super S, T> mapper) {
             UniformStreamContext<?, S> u = UniformStreamContext.wrap(this.streamContext);
             UniformStreamContext<?, T> t = u.map(mapper);

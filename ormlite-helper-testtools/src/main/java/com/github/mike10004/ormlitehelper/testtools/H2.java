@@ -134,8 +134,8 @@ public class H2 {
          * @param username the username to use, or null for none
          * @param password the password to use, or null for none
          * @param outputH2SqlFile pathname of the file to write
-         * @throws IOException
-         * @throws SQLException
+         * @throws IOException on I/O error
+         * @throws SQLException on database error
          */
         public synchronized void dump(String url, @Nullable String username, @Nullable String password, File outputH2SqlFile) throws IOException, SQLException {
             Preconditions.checkNotNull(outputH2SqlFile);
@@ -173,6 +173,11 @@ public class H2 {
     /**
      * Exports the contents of a database at a given JDBC URL to another JDBC URL.
      * Uses a temp directory to write an intermediate
+     * @param fromUrl the source JDBC URL
+     * @param toJdbcUrl the destination JDBC URL
+     * @param tempDir directory to use for temp files
+     * @throws IOException on I/O error
+     * @throws SQLException on database error
      */
     public static void transfer(String fromUrl, String toJdbcUrl, File tempDir) throws IOException, SQLException {
         Charset charset = StandardCharsets.UTF_8;

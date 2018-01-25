@@ -68,7 +68,7 @@ public interface DatabaseContext {
      * @param swallowClosingException true if an exception thrown from 
      * invoking the {@code close} method on an open connection should be
      * suppressed, false if it should be re-thrown
-     * @throws SQLException 
+     * @throws SQLException on database error
      */
     void closeConnections(boolean swallowClosingException) throws SQLException;
     
