@@ -46,6 +46,7 @@ public interface SqlSupplier<T> {
             this.delegate = checkNotNull(delegate, "delegate");
         }
 
+        @SuppressWarnings("Duplicates")
         @Override
         public T get() throws SQLException {
             // A 2-field variant of Double Checked Locking.
