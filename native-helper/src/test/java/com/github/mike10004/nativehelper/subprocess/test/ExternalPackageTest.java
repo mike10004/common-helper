@@ -40,7 +40,7 @@ public class ExternalPackageTest {
 
     @Before
     public void setUp() {
-        CONTEXT = processContextRule.getContext();
+        CONTEXT = processContextRule.getTracker();
     }
 
     @Test

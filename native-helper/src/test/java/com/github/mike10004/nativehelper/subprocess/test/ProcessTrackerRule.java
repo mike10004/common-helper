@@ -14,7 +14,7 @@ public class ProcessTrackerRule extends ExternalResource {
 
     private final TestWatcher watcher;
     private final AtomicBoolean passage;
-    private ProcessTracker processContext;
+    private ProcessTracker processTracker;
 
     public ProcessTrackerRule() {
         passage = new AtomicBoolean(false);
@@ -34,12 +34,12 @@ public class ProcessTrackerRule extends ExternalResource {
 
     @Override
     protected void before() {
-        processContext = ProcessTracker.create();
+        processTracker = ProcessTracker.create();
     }
 
     @Override
     protected void after() {
-        ProcessTracker processContext = this.processContext;
+        ProcessTracker processContext = this.processTracker;
         if (processContext != null) {
             boolean testPassed = passage.get();
             if (testPassed) {
@@ -52,7 +52,7 @@ public class ProcessTrackerRule extends ExternalResource {
         }
     }
 
-    public ProcessTracker getContext() {
-        return processContext;
+    public ProcessTracker getTracker() {
+        return processTracker;
     }
 }

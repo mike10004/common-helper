@@ -23,7 +23,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public abstract class SubprocessTestBase {
 
-    protected static final ProcessTracker CONTEXT = ProcessTracker.create();
+    protected static final ProcessTracker TRACKER = ProcessTracker.create();
 
     private volatile boolean testFailed;
     private volatile Description description;
@@ -41,10 +41,14 @@ public abstract class SubprocessTestBase {
         }
     };
 
+    private ShutdownHookProcessTracker getTracker() {
+        return (ShutdownHookProcessTracker) TRACKER;
+    }
+
     @After
     public final void checkProcesses() {
         try {
-            int active = CONTEXT.activeCount();
+            int active = getTracker().activeCount();
             if (testFailed) {
                 if (active > 0) {
                     System.err.format("%d active processes; ignoring because test failed%n", active);
@@ -57,7 +61,7 @@ public abstract class SubprocessTestBase {
             e.printStackTrace(System.err);
             throw e;
         } finally {
-            ((ShutdownHookProcessTracker)CONTEXT).destroyAll(5, TimeUnit.SECONDS);
+            ((ShutdownHookProcessTracker) TRACKER).destroyAll(5, TimeUnit.SECONDS);
         }
     }
 

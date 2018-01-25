@@ -31,7 +31,7 @@ public class SubprocessKillTest extends SubprocessTestBase {
     public void destroyWithSigKill() throws Exception {
         File pidFile = File.createTempFile("SubprocessKillTest", ".pid");
         ProcessMonitor<?, ?> monitor = signalProgram(true, pidFile)
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .inheritOutputStreams()
                 .launch();
         System.out.println("waiting for pid to be printed...");
@@ -51,7 +51,7 @@ public class SubprocessKillTest extends SubprocessTestBase {
     public void destroyWithSigTerm() throws Exception {
         File pidFile = File.createTempFile("SubprocessKillTest", ".pid");
         ProcessMonitor<?, ?> monitor = signalProgram(false, pidFile)
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .inheritOutputStreams()
                 .launch();
         System.out.println("waiting for pid to be printed...");

@@ -153,7 +153,7 @@ public class Subprocess {
                 });
         ListenableFuture<ProcessResult<SO, SE>> fullResultFuture = execution.getFuture();
         launchExecutorService.shutdown(); // previously submitted tasks are executed
-        ProcessMonitor<SO, SE> monitor = new ProcessMonitor<>(execution.getProcess(), fullResultFuture, processTracker);
+        ProcessMonitor<SO, SE> monitor = new BasicProcessMonitor<>(execution.getProcess(), fullResultFuture, processTracker);
         return monitor;
     }
 
@@ -295,11 +295,11 @@ public class Subprocess {
      * created does not specify that output is to be captured. Use the
      * {@code Launcher} methods to specify how input is to be sent to the process and how
      * output is to be captured.
-     * @param context the process context
+     * @param processTracker the process context
      * @return the launcher
      */
-    public Launcher<Void, Void> launcher(ProcessTracker context) {
-        return toSinkhole(context);
+    public Launcher<Void, Void> launcher(ProcessTracker processTracker) {
+        return toSinkhole(processTracker);
     }
 
     private Launcher<Void, Void> toSinkhole(ProcessTracker processTracker) {

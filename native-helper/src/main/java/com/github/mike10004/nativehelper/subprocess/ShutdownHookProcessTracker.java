@@ -1,21 +1,24 @@
 package com.github.mike10004.nativehelper.subprocess;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * Process tracker that adds a shutdown hook to terminate processes that
+ * are still alive when the JVM exits. This is backed by the {@code ProcessDestroyer}
+ * from Apache Ant, which I vaguely trust, mostly because it's been around and
+ * heavily used for so long.
+ */
 @VisibleForTesting
 class ShutdownHookProcessTracker implements ProcessTracker {
 
@@ -23,39 +26,27 @@ class ShutdownHookProcessTracker implements ProcessTracker {
 
     private final AntProcessDestroyer destroyer = new AntProcessDestroyer();
 
-    private final AtomicInteger allCount = new AtomicInteger();
-    private final AtomicInteger activeCount = new AtomicInteger();
-
     @Override
     public synchronized void add(Process process) {
-        boolean added = destroyer.add(process);
-        checkState(added, "add failed");
-        allCount.incrementAndGet();
-        activeCount.incrementAndGet();
+        destroyer.add(process);
     }
 
     @Override
     public synchronized boolean remove(Process process) {
         boolean removed = destroyer.remove(process);
-        if (removed) {
-            activeCount.decrementAndGet();
+        if (!removed) {
+            log.debug("not removed (probably not still in processes set): {}", process);
         }
         return removed;
     }
 
-    @Override
-    public synchronized int count() {
-        return allCount.get();
-    }
-
-    @Override
     public synchronized int activeCount() {
-        return activeCount.get();
+        return destroyer.processes.size();
     }
 
     @VisibleForTesting
-    public List<Process> destroyAll(long timeout, TimeUnit duration) {
-        return destroyer.destroyAll(timeout, duration);
+    List<Process> destroyAll(long timeout, TimeUnit unit) {
+        return destroyer.destroyAll(timeout, unit);
     }
 
     /*
@@ -274,37 +265,14 @@ class ShutdownHookProcessTracker implements ProcessTracker {
         }
 
         /**
-         *
+         * Invokes {@link ProcessTracker#destroyAll(Iterable, long, TimeUnit)} and
+         * stops tracking the destroyed processes.
          * @return undestroyed processes
          */
         public List<Process> destroyAll(long timeoutPerProcess, TimeUnit unit) {
             synchronized (processes) {
-                List<Process> undestroyed = new ArrayList<>();
-                Iterator<Process> processIterator = ImmutableList.copyOf(this.processes).iterator();
-                while (processIterator.hasNext()) {
-                    Process p = processIterator.next();
-                    p.destroy();
-                    boolean terminated = false;
-                    try {
-                        terminated = p.waitFor(timeoutPerProcess, unit);
-                    } catch (InterruptedException e) {
-                        log.warn("interrupted while waiting for process to terminate by destroy()");
-                    }
-                    if (!terminated) {
-                        p.destroyForcibly();
-                        try {
-                            p.waitFor(timeoutPerProcess, unit);
-                        } catch (InterruptedException e) {
-                            log.warn("interrupted while waiting for process to terminate by destroyForcibly()");
-                        }
-                    }
-                    if (p.isAlive()) {
-                        log.error("failed to terminated process " + p);
-                        undestroyed.add(p);
-                    } else {
-                        this.processes.remove(p);
-                    }
-                }
+                List<Process> undestroyed = ProcessTracker.destroyAll(processes, timeoutPerProcess, unit);
+                processes.retainAll(undestroyed); // I think this is the first time I've used this method
                 return undestroyed;
             }
         }

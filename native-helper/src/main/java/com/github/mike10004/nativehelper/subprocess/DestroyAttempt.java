@@ -80,15 +80,4 @@ public interface DestroyAttempt {
         void timeoutOrThrow(long duration, TimeUnit timeUnit) throws ProcessStillAliveException;
     }
 
-    /**
-     * Exception thrown when an attempt is made to kill a process within a
-     * timeout but the process is still alive after the timeout elapses.
-     */
-    class ProcessStillAliveException extends ProcessException {
-
-        public ProcessStillAliveException() {
-            super("kill failed");
-        }
-    }
-
 }

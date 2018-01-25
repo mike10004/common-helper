@@ -43,7 +43,7 @@ public class SubprocessTest extends SubprocessTestBase {
     @Test
     public void launch_true() throws Exception {
         int exitCode = running(pyTrue()).build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .launch().await().exitCode();
         assertEquals("exit code", 0, exitCode);
     }
@@ -54,7 +54,7 @@ public class SubprocessTest extends SubprocessTestBase {
         int exitCode = running(pyExit())
                 .arg(String.valueOf(expected))
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .launch().await().exitCode();
         assertEquals("exit code", expected, exitCode);
     }
@@ -76,7 +76,7 @@ public class SubprocessTest extends SubprocessTestBase {
         String arg = "hello";
         ProcessResult<String, String> processResult = running(pyEcho())
                 .arg(arg).build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .outputStrings(US_ASCII)
                 .launch().await();
         int exitCode = processResult.exitCode();
@@ -104,7 +104,7 @@ public class SubprocessTest extends SubprocessTestBase {
                 running(Tests.getPythonFile("nht_stereo.py"))
                 .args(args)
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .outputStrings(US_ASCII)
                 .launch().await();
         String actualStdout = result.content().stdout();
@@ -124,7 +124,7 @@ public class SubprocessTest extends SubprocessTestBase {
         ProcessResult<byte[], byte[]> result =
                 running(Tests.pyCat())
                         .build()
-                        .launcher(CONTEXT)
+                        .launcher(TRACKER)
                         .outputInMemory(ByteSource.wrap(bytes))
                         .launch().await();
         System.out.println(result);
@@ -145,7 +145,7 @@ public class SubprocessTest extends SubprocessTestBase {
                 running(Tests.pyCat())
                         .arg(dataFile.getAbsolutePath())
                         .build()
-                        .launcher(CONTEXT)
+                        .launcher(TRACKER)
                         .outputInMemory(ByteSource.wrap(bytes))
                         .launch().await();
         System.out.println(result);
@@ -162,7 +162,7 @@ public class SubprocessTest extends SubprocessTestBase {
         String expected = String.format("foo%nbar%n");
         ProcessResult<String, String> result = running(Tests.pyReadInput())
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .outputStrings(US_ASCII, CharSource.wrap(expected + System.lineSeparator()).asByteSource(US_ASCII))
                 .launch().await();
         System.out.println(result);
@@ -180,7 +180,7 @@ public class SubprocessTest extends SubprocessTestBase {
         int exitCode = Subprocess.running(pyEcho())
                 .arg("hello, world")
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .inheritOutputStreams()
                 .launch().await().exitCode();
         checkState(exitCode == 0);
@@ -200,7 +200,7 @@ public class SubprocessTest extends SubprocessTestBase {
             result = Subprocess.running(Tests.getPythonFile("nht_stereo.py"))
                     .args("foo", "bar")
                     .build()
-                    .launcher(CONTEXT)
+                    .launcher(TRACKER)
                     .inheritOutputStreams()
                     .launch().await();
             assertEquals("exit code", 0, result.exitCode());
@@ -222,7 +222,7 @@ public class SubprocessTest extends SubprocessTestBase {
     @Test(expected = ProcessLaunchException.class)
     public void launch_notAnExecutable() throws Exception {
         String executable  = "e" + alphanumeric().retainFrom(UUID.randomUUID().toString());
-        Subprocess.running(executable).build().launcher(CONTEXT).launch();
+        Subprocess.running(executable).build().launcher(TRACKER).launch();
     }
 
     private static final String homeVarName = Platforms.getPlatform().isWindows() ? "UserProfile" : "HOME";
@@ -261,7 +261,7 @@ public class SubprocessTest extends SubprocessTestBase {
         ProcessResult<String, String> result = Subprocess.running(Tests.getPythonFile("nht_env.py"))
                 .env(env)
                 .args(varnames)
-                .build().launcher(CONTEXT).outputStrings(Charset.defaultCharset()).launch().await();
+                .build().launcher(TRACKER).outputStrings(Charset.defaultCharset()).launch().await();
         System.out.format("result: %s%n", result);
         List<String> lines = Splitter.on(System.lineSeparator()).omitEmptyStrings().splitToList(result.content().stdout());
         assertEquals("exit code", 0, result.exitCode());
@@ -278,7 +278,7 @@ public class SubprocessTest extends SubprocessTestBase {
         try {
             System.out.println("awaitWithTimeout");
             ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
-                    .build().launcher(CONTEXT).launch();
+                    .build().launcher(TRACKER).launch();
             ProcessResult<?, ?> result = null;
             try {
                 result = monitor.await(100, TimeUnit.MILLISECONDS);
@@ -319,11 +319,6 @@ public class SubprocessTest extends SubprocessTestBase {
             }
 
             @Override
-            public synchronized int count() {
-                return processes.size();
-            }
-
-            @Override
             public synchronized int activeCount() {
                 return Ints.checkedCast(processes.entrySet().stream().filter(Entry::getValue).count());
             }
@@ -344,7 +339,6 @@ public class SubprocessTest extends SubprocessTestBase {
         checkState(pset.size() == 1);
         Process process = pset.iterator().next();
         checkState(!process.isAlive(), "process still alive");
-        assertEquals("all count", 1, localContext.count());
         assertEquals("active count", 0, localContext.activeCount());
         assertEquals("neverTracked", false, neverTracked.get());
     }

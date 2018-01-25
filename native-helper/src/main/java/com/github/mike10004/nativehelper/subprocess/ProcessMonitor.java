@@ -5,12 +5,9 @@ import com.github.mike10004.nativehelper.subprocess.Subprocess.ProcessExecutionE
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Class that represents a process monitor. A process monitor is returned by
@@ -24,53 +21,62 @@ import static java.util.Objects.requireNonNull;
  * @param <SO> type of captured standard output contents
  * @param <SE> type of captured standard error contents
  */
-public class ProcessMonitor<SO, SE> {
+public interface ProcessMonitor<SO, SE> {
 
-    private final Process process;
-    private final ListenableFuture<ProcessResult<SO, SE>> future;
-    private final ProcessTracker processTracker;
+    /**
+     * Gets the underlying future corresponding to this monitor.
+     * @return the result future
+     */
+    ListenableFuture<ProcessResult<SO, SE>> future();
 
-    ProcessMonitor(Process process, ListenableFuture<ProcessResult<SO, SE>> future, ProcessTracker processTracker) {
-        this.future = requireNonNull(future);
-        this.process = requireNonNull(process);
-        this.processTracker = requireNonNull(processTracker);
-    }
+    /**
+     * Gets a destructor that acts upon the process being monitored.
+     * @return a destructor instance
+     */
+    ProcessDestructor destructor();
 
-    public ListenableFuture<ProcessResult<SO, SE>> future() {
-        return future;
-    }
+    /**
+     * Gets the process being monitored.
+     * @return the process
+     */
+    Process process();
 
-    public ProcessDestructor destructor() {
-        return new BasicProcessDestructor(process, processTracker);
-    }
+    /**
+     * Gets the process tracker instance that was used to launch the process.
+     * @return the process tracker
+     * @see Subprocess#launch(ProcessTracker, StreamContext)
+     * @see Subprocess#launcher(ProcessTracker)
+     */
+    @SuppressWarnings("unused")
+    ProcessTracker tracker();
 
-    public Process process() {
-        return process;
-    }
-
-    public static class ProcessExecutionInnerException extends ProcessExecutionException {
+    /**
+     * Exception that wraps an execution exception when acquiring an asynchronous result.
+     * @see java.util.concurrent.Future#get()
+     * @see java.util.concurrent.ExecutionException
+     */
+    class ProcessExecutionInnerException extends ProcessExecutionException {
         public ProcessExecutionInnerException(Throwable cause) {
             super(cause);
         }
     }
 
-    public ProcessResult<SO, SE> await(long timeout, TimeUnit unit) throws TimeoutException, InterruptedException {
-        try {
-            boolean ok = process.waitFor(timeout, unit);
-            if (!ok) {
-                throw new TimeoutException("process.waitFor timeout elapsed");
-            }
-            return future().get();
-        } catch (ExecutionException e) {
-            throw new ProcessExecutionInnerException(e.getCause());
-        }
-    }
+    /**
+     * Blocks on this thread, waiting for the process to finish or the given timeout to elapse.
+     * @param timeout the timeout
+     * @param unit the timeout duration unit
+     * @return the process result
+     * @throws TimeoutException if the timeout elapses before the process finishes
+     * @throws InterruptedException if the waiting is interrupted
+     * @throws ProcessExecutionInnerException if there is an execution exception in the process execution thread
+     */
+    ProcessResult<SO, SE> await(long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, ProcessExecutionInnerException;
 
-    public ProcessResult<SO, SE> await() throws ProcessException, InterruptedException {
-        try {
-            return future().get();
-        } catch (ExecutionException e) {
-            throw new ProcessExecutionInnerException(e.getCause());
-        }
-    }
+    /**
+     * Blocks on this thread, waiting for the process to finish.
+     * @return the process result
+     * @throws ProcessException if there is an execution exception in the process execution thread
+     * @throws InterruptedException if the waiting is interrupted
+     */
+    ProcessResult<SO, SE> await() throws ProcessException, InterruptedException;
 }

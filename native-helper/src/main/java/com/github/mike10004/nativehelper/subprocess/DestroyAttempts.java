@@ -128,7 +128,7 @@ class DestroyAttempts {
         public void timeoutOrThrow(long duration, TimeUnit timeUnit) throws ProcessStillAliveException {
             boolean succeeded = timeoutKill(duration, timeUnit);
             if (!succeeded) {
-                throw new ProcessStillAliveException();
+                throw new ProcessStillAliveException("kill failed");
             }
         }
 

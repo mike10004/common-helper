@@ -29,7 +29,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         StreamPipeSource pipe = new StreamPipeSource();
         ProcessMonitor<String, String> monitor = running(Tests.pyReadInput())
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .outputStrings(charset, pipe.asByteSource())
                 .launch();
         List<String> lines = Arrays.asList("foo", "bar", "baz", "");
@@ -76,7 +76,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyCat())
                 .arg(wastelandFile.getAbsolutePath())
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .output(outputControl)
                 .launch();
         Charset charset = Charset.defaultCharset();
@@ -111,7 +111,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
         StreamContext<?, Void, String> outputControl = StreamContext.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
         ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyReadInput())
                 .build()
-                .launcher(CONTEXT)
+                .launcher(TRACKER)
                 .output(outputControl)
                 .launch();
         Charset charset = Charset.defaultCharset();
