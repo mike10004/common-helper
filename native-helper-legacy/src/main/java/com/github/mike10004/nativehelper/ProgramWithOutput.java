@@ -23,60 +23,19 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.subprocess.StreamControl;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CharSource;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-
-import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Abstract superclass for programs whose output is captured.
  * @author mchaberski
  * @see ProgramWithOutputResult
  */
-@Deprecated
 public abstract class ProgramWithOutput<R extends ProgramWithOutputResult> extends Program<R> {
 
-    protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments) {
-        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments);
+    protected ProgramWithOutput(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
     }
 
-    protected static class ExecTaskStreamControl implements StreamControl {
-
-        private final ImmutablePair<String, File> standardInputSource;
-
-        ExecTaskStreamControl(ImmutablePair<String, File> standardInputSource) {
-            this.standardInputSource = standardInputSource;
-        }
-
-        @Override
-        public OutputStream openStdoutSink() throws IOException {
-            return ByteStreams.nullOutputStream();
-        }
-
-        @Override
-        public OutputStream openStderrSink() throws IOException {
-            return ByteStreams.nullOutputStream();
-        }
-
-        @Nullable
-        @Override
-        public InputStream openStdinSource() throws IOException {
-            if (standardInputSource.getLeft() != null) {
-                return CharSource.wrap(standardInputSource.getLeft()).asByteSource(Charset.defaultCharset()).openStream();
-            } else if (standardInputSource.getRight() != null) {
-                return new FileInputStream(standardInputSource.getRight());
-            } else {
-                return null;
-            }
-        }
-    }
 }

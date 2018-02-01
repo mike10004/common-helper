@@ -23,19 +23,11 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.StreamContent;
-import com.github.mike10004.nativehelper.subprocess.StreamContext;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
-import com.github.mike10004.nativehelper.subprocess.Subprocess.Launcher;
 import com.google.common.base.Suppliers;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.tools.ant.taskdefs.ExecTask;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -47,15 +39,37 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Class representing a program whose output is written to file.
  * @author mchaberski
  */
-@Deprecated
 public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputFilesResult> {
+
+    private static final String KEY_STDERR = ProgramWithOutputFiles.class.getName() + ".stderrFile";
+    private static final String KEY_STDOUT = ProgramWithOutputFiles.class.getName() + ".stdoutFile";
 
     private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
     
-    protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
-        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments);
+    protected ProgramWithOutputFiles(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory::get);
         this.stdoutFileSupplier = Suppliers.memoize(stdoutFileSupplier::get);
         this.stderrFileSupplier = Suppliers.memoize(stderrFileSupplier::get);
+    }
+
+    @Override
+    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        super.configureTask(task, executionContext);
+        File stdoutFile = stdoutFileSupplier.get();
+        File stderrFile = stderrFileSupplier.get();
+        executionContext.put(KEY_STDOUT, stdoutFile);
+        executionContext.put(KEY_STDERR, stderrFile);
+        task.setOutput(stdoutFile);
+        task.setError(stderrFile);
+    }
+    
+    @Override
+    protected ProgramWithOutputFilesResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
+        File stdoutFile = (File) executionContext.get(KEY_STDOUT);
+        File stderrFile = (File) executionContext.get(KEY_STDERR);
+        int exitCode = getExitCode(task, executionContext);
+        ProgramWithOutputFilesResult result = new ProgramWithOutputFilesResult(exitCode, stdoutFile, stderrFile);
+        return result;
     }
 
     public static class TempDirCreationException extends RuntimeException {
@@ -145,58 +159,5 @@ public class ProgramWithOutputFiles extends ProgramWithOutput<ProgramWithOutputF
             return tempFile;
         }
         
-    }
-
-    private static class FilesStreamControl extends ExecTaskStreamControl {
-
-        private final Supplier<File> stdoutFileSupplier, stderrFileSupplier;
-
-        public FilesStreamControl(ImmutablePair<String, File> standardInputSource, Supplier<File> stdoutFileSupplier, Supplier<File> stderrFileSupplier) {
-            super(standardInputSource);
-            this.stdoutFileSupplier = stdoutFileSupplier;
-            this.stderrFileSupplier = stderrFileSupplier;
-        }
-
-        @Override
-        public OutputStream openStdoutSink() throws IOException {
-            return new FileOutputStream(stdoutFileSupplier.get());
-        }
-
-        @Override
-        public OutputStream openStderrSink() throws IOException {
-            return new FileOutputStream(stderrFileSupplier.get());
-        }
-    }
-
-    private class FileOutputStreamContext implements StreamContext<FilesStreamControl, File, File> {
-
-        private FileOutputStreamContext() {
-        }
-
-        @Override
-        public FilesStreamControl produceControl() throws IOException {
-            return new FilesStreamControl(getStandardInput(), stdoutFileSupplier, stderrFileSupplier);
-        }
-
-        @Override
-        public StreamContent<File, File> transform(int exitCode, FilesStreamControl context) {
-            return StreamContent.direct(context.stdoutFileSupplier.get(), context.stderrFileSupplier.get());
-        }
-    }
-
-    @Override
-    protected SubprocessBridge<?> buildSubprocessBridge() {
-        return new SubprocessBridge<File>() {
-            @Override
-            public Launcher<File, File> buildLauncher(Subprocess subprocess, ProcessTracker tracker) {
-                return subprocess.launcher(tracker)
-                        .output(new FileOutputStreamContext());
-            }
-
-            @Override
-            public ProgramWithOutputFilesResult buildResult(ProcessResult<File, File> subprocessResult) {
-                return new ProgramWithOutputFilesResult(subprocessResult.exitCode(), subprocessResult.content().stdout(), subprocessResult.content().stderr());
-            }
-        };
     }
 }

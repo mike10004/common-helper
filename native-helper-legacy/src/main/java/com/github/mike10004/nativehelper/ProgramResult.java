@@ -29,7 +29,6 @@ package com.github.mike10004.nativehelper;
  * exit code.
  * @author mchaberski
  */
-@Deprecated
 public interface ProgramResult {
     
     /**

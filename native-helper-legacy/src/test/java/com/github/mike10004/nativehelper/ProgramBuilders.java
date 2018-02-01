@@ -23,6 +23,9 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.test.Platform;
+import com.github.mike10004.nativehelper.test.Platforms;
+
 /**
  * Static utility methods.
  * @author mchaberski

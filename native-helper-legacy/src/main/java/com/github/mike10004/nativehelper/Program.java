@@ -24,11 +24,6 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.ProgramWithOutputFiles.TempFileSupplier;
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
-import com.github.mike10004.nativehelper.subprocess.Subprocess.Launcher;
 import com.google.common.base.Charsets;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -45,6 +40,10 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.taskdefs.ExecTask;
+import org.apache.tools.ant.types.Environment;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -52,6 +51,7 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +60,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -79,83 +79,68 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * </pre>
  * @author mchaberski
  */
-@Deprecated
 public abstract class Program<R extends ProgramResult> {
-
-    @Deprecated
+    
     public static final String RESULT_PROPERTY_NAME = Program.class.getName() + ".exitCode";
     
     private final String executable;
     private final ImmutablePair<String, File> standardInput;
     private final ImmutableList<String> arguments;
     private final @Nullable File workingDirectory;
+    private final Supplier<? extends ExposedExecTask> taskFactory;
     private final ImmutableMap<String, String> environment;
 
-    protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments) {
+    protected Program(String executable, @Nullable String standardInput, @Nullable File standardInputFile, @Nullable File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
         this.executable = checkNotNull(executable);
         this.standardInput = ImmutablePair.of(standardInput, standardInputFile);
         checkArgument(standardInput == null || standardInputFile == null, "can't set both standard input string and file");
         this.workingDirectory = workingDirectory;
         this.arguments = ImmutableList.copyOf(arguments);
+        this.taskFactory = checkNotNull(taskFactory);
         this.environment = ImmutableMap.copyOf(environment);
     }
 
     /**
      * Launches the external process, blocking on the same thread until complete.
      * @return the execution result
+     * @throws BuildException if the program fails to execute, for example because 
+     * the executable is not found 
      */
-    public R execute() {
-        return buildSubprocessBridge().execute();
+    public R execute() throws BuildException {
+        ExposedExecTask task = taskFactory.get();
+        return execute(task);
     }
-
-    protected static final ProcessTracker GLOBAL_CONTEXT = ProcessTracker.create();
-
-    protected abstract class SubprocessBridge<T> {
-
-        public abstract Subprocess.Launcher<T, T> buildLauncher(Subprocess subprocess, ProcessTracker tracker);
-        public abstract R buildResult(ProcessResult<T, T> subprocessResult);
-
-        public R execute() {
-            ProcessResult<T, T> result;
-            try {
-                result = launch().await();
-            } catch (InterruptedException e) {
-                throw new ProcessWaitInterruptedException(e);
+    
+    protected R execute(ExposedExecTask task) throws BuildException {
+        Map<String, Object> localContext = new HashMap<>();
+        configureTask(task, localContext);
+        task.execute();
+        R result = produceResultFromExecutedTask(task, localContext);
+        return result;
+    }
+    
+    protected Callable<R> newExecutingCallable(final ExposedExecTask task) {
+        return new Callable<R>(){
+            @Override
+            public R call() throws BuildException {
+                return execute(task);
             }
-            return buildResult(result);
-        }
-
-        protected ProcessMonitor<T, T> launch() {
-            Subprocess.Launcher<T, T> launcher = buildLauncher(buildSubprocess(), GLOBAL_CONTEXT);
-            return launcher.launch();
-        }
+        };
     }
-
-    public static class ProcessWaitInterruptedException extends RuntimeException {
-        public ProcessWaitInterruptedException(Throwable cause) {
-            super(cause);
-        }
-    }
-
-    protected abstract SubprocessBridge<?> buildSubprocessBridge();
     
     private static class TaskAbortingFuture<R> extends SimpleForwardingListenableFuture<R> {
+        
+        private final ExposedExecTask task;
 
-        private final AtomicReference<ProcessMonitor<?, ?>> processMonitorRef;
-
-        public TaskAbortingFuture(AtomicReference<ProcessMonitor<?, ?>> processMonitorRef, ListenableFuture<R> wrapped) {
+        public TaskAbortingFuture(ExposedExecTask task, ListenableFuture<R> wrapped) {
             super(wrapped);
-            this.processMonitorRef = processMonitorRef;
+            this.task = task;
         }
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            super.cancel(false);
-            @Nullable ProcessMonitor<?, ?> pm = processMonitorRef.get();
-            if (pm != null) {
-                pm.destructor().sendTermSignal().kill();
-            }
-            return isCancelled();
+            task.abort();
+            return super.cancel(mayInterruptIfRunning);
         }
 
     }
@@ -174,47 +159,63 @@ public abstract class Program<R extends ProgramResult> {
      */
     public ListenableFuture<R> executeAsync(ExecutorService executorService) {
         ListeningExecutorService listeningService = MoreExecutors.listeningDecorator(executorService);
-        AtomicReference<ProcessMonitor<?, ?>> monitorRef = new AtomicReference<>();
-        Callable<R> callable = () -> {
-            SubprocessBridge bridge = buildSubprocessBridge();
-            ProcessMonitor<?, ?> pm = bridge.launch();
-            monitorRef.set(pm);
-            ProcessResult rslt = pm.await();
-            return (R) bridge.buildResult(rslt);
-        };
-        ListenableFuture<R> innerFuture = listeningService.submit(callable);
-        return new TaskAbortingFuture<R>(monitorRef, innerFuture);
+        ExposedExecTask task = taskFactory.get();
+        ListenableFuture<R> innerFuture = listeningService.submit(newExecutingCallable(task));
+        TaskAbortingFuture<R> future = new TaskAbortingFuture<>(task, innerFuture);
+        return future;
     }
 
-    protected Subprocess buildSubprocess() {
-        Subprocess.Builder b = Subprocess.running(executable)
-                .args(arguments)
-                .env(environment);
-        if (workingDirectory != null) {
-            b.from(workingDirectory);
+    private static Environment.Variable newVariable(String name, String value) {
+        Environment.Variable variable = new Environment.Variable();
+        variable.setKey(name);
+        variable.setValue(value);
+        return variable;
+    }
+
+    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        task.setDestructible(true);
+        task.setFailonerror(false);
+        task.setResultProperty(RESULT_PROPERTY_NAME);
+        task.setExecutable(executable);
+        if (standardInput.getLeft() != null) {
+            task.setInputString(standardInput.getLeft());
+        } else if (standardInput.getRight() != null) {
+            task.setInput(standardInput.getRight());
+        } else if (standardInput.getLeft() != null && standardInput.getRight() != null) {
+            throw new IllegalStateException("stdin misconfiguration");
         }
-        return b.build();
+        task.setDir(workingDirectory);
+        for (String variableName : environment.keySet()) {
+            String variableValue = environment.get(variableName);
+            task.addEnv(newVariable(variableName, variableValue));
+        }
+        for (String argument : arguments) {
+            task.createArg().setValue(argument);
+        }
     }
-
+    
+    protected abstract R produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext);
+    
     protected static class SimpleProgram extends Program<ProgramResult> {
         
-        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments) {
-            super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments);
+        public SimpleProgram(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory) {
+            super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         }
 
         @Override
-        protected SubprocessBridge<?> buildSubprocessBridge() {
-            return new SubprocessBridge<Void>() {
-                @Override
-                public Launcher<Void, Void> buildLauncher(Subprocess subprocess, ProcessTracker tracker) {
-                    return subprocess.launcher(tracker);
-                }
-
-                @Override
-                public ProgramResult buildResult(ProcessResult<Void, Void> subprocessResult) {
-                    return new ExitCodeProgramResult(subprocessResult.exitCode());
-                }
-            };
+        protected ProgramResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
+            int exitCode = getExitCode(task, executionContext);
+            return new ExitCodeProgramResult(exitCode);
+        }
+        
+    }
+    
+    protected static class DefaultTaskFactory implements Supplier<ExposedExecTask> {
+        @Override
+        public ExposedExecTask get() {
+            ExposedExecTask task = new ExposedExecTask();
+            task.setProject(new Project()); // do not call Project.init()
+            return task;
         }
     }
     
@@ -232,6 +233,7 @@ public abstract class Program<R extends ProgramResult> {
         protected String standardInput;
         protected File standardInputFile;
         protected File workingDirectory;
+        protected Supplier<? extends ExposedExecTask> taskFactory;
         protected final List<String> arguments;
         protected final Map<String, String> environment;
 
@@ -243,6 +245,7 @@ public abstract class Program<R extends ProgramResult> {
             this.executable = checkNotNull(executable);
             checkArgument(!executable.isEmpty(), "executable must be non-empty string");
             arguments = new ArrayList<>();
+            taskFactory = new DefaultTaskFactory();
             environment = new LinkedHashMap<>();
         }
         
@@ -281,7 +284,6 @@ public abstract class Program<R extends ProgramResult> {
          * @param environment map of variables to set
          * @return this builder instance
          */
-        @SuppressWarnings("unused")
         public Builder env(Map<String, String> environment) {
             this.environment.putAll(environment);
             return this;
@@ -302,7 +304,6 @@ public abstract class Program<R extends ProgramResult> {
          * Clears the argument list of this builder.
          * @return this builder instance
          */
-        @SuppressWarnings("unused")
         public Builder clearArgs() {
             this.arguments.clear();
             return this;
@@ -340,13 +341,18 @@ public abstract class Program<R extends ProgramResult> {
             return this;
         }
 
+        protected Builder usingTaskFactory(Supplier<? extends ExposedExecTask> taskFactory) {
+            this.taskFactory = checkNotNull(taskFactory, "taskFactory");
+            return this;
+        }
+
         /**
          * Constructs a program whose output is ignored. Use this if you only care
          * about the process exit code.
          * @return the program
          */
         public Program<ProgramResult> ignoreOutput() {
-            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, environment, arguments);
+            return new SimpleProgram(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         }
         
         /**
@@ -356,7 +362,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputFiles outputToFiles(File stdoutFile, File stderrFile) {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
+            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, Suppliers.ofInstance(checkNotNull(stdoutFile)), Suppliers.ofInstance(checkNotNull(stderrFile)));
         }
         
         /**
@@ -366,7 +372,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputFiles outputToTempFiles(Path directory) {
-            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
+            return new ProgramWithOutputFiles(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, new TempFileSupplier("ProgramWithOutputFiles_stdout", ".tmp", directory.toFile()), new TempFileSupplier("ProgramWithOutputFiles_stderr", ".tmp", directory.toFile()));
         }
         
         /**
@@ -374,7 +380,7 @@ public abstract class Program<R extends ProgramResult> {
          * @return the program
          */
         public ProgramWithOutputStrings outputToStrings() {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, DEFAULT_STRING_OUTPUT_CHARSET);
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, DEFAULT_STRING_OUTPUT_CHARSET);
         }
 
         /**
@@ -385,9 +391,8 @@ public abstract class Program<R extends ProgramResult> {
          * @param charset the charset
          * @return the program
          */
-        @SuppressWarnings("unused")
         public ProgramWithOutputStrings outputToStrings(Charset charset) {
-            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, charset);
+            return new ProgramWithOutputStrings(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory, charset);
         }
     }
     
@@ -398,7 +403,6 @@ public abstract class Program<R extends ProgramResult> {
      * @return a builder instance
      * @throws IllegalArgumentException if {@link File#canExecute() } is false
      */
-    @SuppressWarnings("unused")
     public static Builder running(File executable) {
         checkArgument(executable.canExecute(), "executable.canExecute");
         return running(executable.getPath());
@@ -414,6 +418,15 @@ public abstract class Program<R extends ProgramResult> {
         return new Builder(executable);
     }
     
+    protected int getExitCode(ExecTask task, Map<String, Object> executionContext) {
+        String resultPropertyStr = task.getProject().getProperty(RESULT_PROPERTY_NAME);
+        if (resultPropertyStr == null) {
+            throw new IllegalStateException("result property not set (maybe failonerror=false?) or task not yet executed");
+        }
+        int exitCode = Integer.parseInt(resultPropertyStr);
+        return exitCode;
+    }
+
     protected static class ExitCodeProgramResult implements ProgramResult {
 
         protected final int exitCode;
@@ -434,23 +447,19 @@ public abstract class Program<R extends ProgramResult> {
         
     }
 
-    @SuppressWarnings("unused")
-    public final String getExecutable() {
+    protected String getExecutable() {
         return executable;
     }
 
-    public final ImmutablePair<String, File> getStandardInput() {
+    protected ImmutablePair<String, File> getStandardInput() {
         return standardInput;
     }
 
-    @SuppressWarnings("unused")
-    public final ImmutableList<String> getArguments() {
+    protected ImmutableList<String> getArguments() {
         return arguments;
     }
 
-    @SuppressWarnings("unused")
-    @Nullable
-    public final File getWorkingDirectory() {
+    protected @Nullable File getWorkingDirectory() {
         return workingDirectory;
     }
 

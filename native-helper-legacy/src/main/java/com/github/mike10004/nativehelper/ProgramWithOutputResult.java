@@ -30,7 +30,6 @@ import com.google.common.io.ByteSource;
  * output was captured.
  * @author mchaberski
  */
-@Deprecated
 public interface ProgramWithOutputResult extends ProgramResult {
     
     /**

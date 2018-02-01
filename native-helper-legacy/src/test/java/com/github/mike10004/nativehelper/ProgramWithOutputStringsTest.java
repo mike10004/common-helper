@@ -23,7 +23,9 @@
  */
 package com.github.mike10004.nativehelper;
 
+import com.github.mike10004.nativehelper.test.Platforms;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.apache.tools.ant.BuildException;
 import org.junit.Test;
 
 import java.util.concurrent.Executors;
@@ -49,15 +51,15 @@ public class ProgramWithOutputStringsTest {
         testExecute("echo goodbye>&2", 0, "", expectedStderr);
     }
     
-    private void testExecute(String shellCommand, int expectedExitCode, String expectedStdout, String expectedStderr) {
+    private void testExecute(String shellCommand, int expectedExitCode, String expectedStdout, String expectedStderr) throws BuildException {
         Program.Builder builder = ProgramBuilders.shell();
         System.out.println("executing command: " + shellCommand);
         ProgramWithOutputStrings program = builder.arg(shellCommand).outputToStrings();
         ProgramWithOutputStringsResult result = program.execute();
         System.out.println(result);
         assertEquals("exitCode", expectedExitCode, result.getExitCode());
-        assertEquals("stdout", expectedStdout, result.getStdoutString().trim());
-        assertEquals("stderr", expectedStderr, result.getStderrString().trim());
+        assertEquals("stdout", expectedStdout, result.getStdoutString());
+        assertEquals("stderr", expectedStderr, result.getStderrString());
     }
 
     @Test
@@ -67,7 +69,7 @@ public class ProgramWithOutputStringsTest {
         ListenableFuture<ProgramWithOutputStringsResult> future = program.executeAsync(Executors.newSingleThreadExecutor());
         ProgramWithOutputStringsResult result = future.get();
         System.out.println("program result: " + result);
-        assertEquals("stdout", "hello", result.getStdoutString().trim());
+        assertEquals("hello", result.getStdoutString());
     }
     
     @Test(timeout = 1000L)

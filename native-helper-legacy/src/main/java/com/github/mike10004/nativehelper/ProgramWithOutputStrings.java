@@ -23,20 +23,12 @@
  */
 package com.github.mike10004.nativehelper;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.StreamContent;
-import com.github.mike10004.nativehelper.subprocess.StreamContext;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
-import com.github.mike10004.nativehelper.subprocess.Subprocess.Launcher;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.tools.ant.taskdefs.ExecTask;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -44,75 +36,32 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Class that represents a program whose output is captured in memory as strings.
  * @author mchaberski
  */
-@Deprecated
 public class ProgramWithOutputStrings extends ProgramWithOutput<ProgramWithOutputStringsResult> {
 
-    @Deprecated
     public static final String STDOUT_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stdout";
-    @Deprecated
     public static final String STDERR_PROPERTY_NAME = ProgramWithOutputStrings.class.getName() + ".stderr";
     
     private final Charset charset;
     
-    protected ProgramWithOutputStrings(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Charset charset) {
-        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments);
+    protected ProgramWithOutputStrings(String executable, String standardInput, File standardInputFile, File workingDirectory, Map<String, String> environment, Iterable<String> arguments, Supplier<? extends ExposedExecTask> taskFactory, Charset charset) {
+        super(executable, standardInput, standardInputFile, workingDirectory, environment, arguments, taskFactory);
         this.charset = checkNotNull(charset);
     }
 
     @Override
-    protected SubprocessBridge<?> buildSubprocessBridge() {
-        return new SubprocessBridge<String>() {
-            @Override
-            public Launcher<String, String> buildLauncher(Subprocess subprocess, ProcessTracker tracker) {
-                return subprocess.launcher(tracker)
-                        .output(new StringOutputStreamContext());
-            }
-
-            @Override
-            public ProgramWithOutputStringsResult buildResult(ProcessResult<String, String> subprocessResult) {
-                return new ProgramWithOutputStringsResult(subprocessResult.exitCode(), subprocessResult.content().stdout(), subprocessResult.content().stderr(), charset);
-            }
-        };
-
+    protected void configureTask(ExposedExecTask task, Map<String, Object> executionContext) {
+        super.configureTask(task, executionContext);
+        task.setOutputproperty(STDOUT_PROPERTY_NAME);
+        task.setErrorProperty(STDERR_PROPERTY_NAME);
+    }
+    
+    @Override
+    protected ProgramWithOutputStringsResult produceResultFromExecutedTask(ExecTask task, Map<String, Object> executionContext) {
+        String stdout = task.getProject().getProperty(STDOUT_PROPERTY_NAME);
+        String stderr = task.getProject().getProperty(STDERR_PROPERTY_NAME);
+        int exitCode = getExitCode(task, executionContext);
+        ProgramWithOutputStringsResult result = new ProgramWithOutputStringsResult(exitCode, stdout, stderr, charset);
+        return result;
     }
 
-    private class StringOutputStreamContext implements StreamContext<StringsStreamControl, String, String> {
-
-        private StringOutputStreamContext() {
-        }
-
-        @Override
-        public StringsStreamControl produceControl() throws IOException {
-            return new StringsStreamControl(getStandardInput());
-        }
-
-        @Override
-        public StreamContent<String, String> transform(int exitCode, StringsStreamControl context) {
-            return context.toOutput(Charset.defaultCharset());
-        }
-    }
-
-    static class StringsStreamControl extends ExecTaskStreamControl {
-        private final ByteArrayOutputStream stdoutCollector, stderrCollector;
-        public StringsStreamControl(ImmutablePair<String, File> standardInputSource) {
-            super(standardInputSource);
-            stdoutCollector = new ByteArrayOutputStream(256);
-            stderrCollector = new ByteArrayOutputStream(256);
-        }
-
-        @Override
-        public OutputStream openStdoutSink() throws IOException {
-            return stdoutCollector;
-        }
-
-        @Override
-        public OutputStream openStderrSink() throws IOException {
-            return stderrCollector;
-        }
-
-        public StreamContent<String, String> toOutput(Charset charset) {
-            byte[] stdout = stdoutCollector.toByteArray();
-            byte[] stderr = stderrCollector.toByteArray();
-            return StreamContent.direct(new String(stdout, charset), new String(stderr, charset));
-        }
-    }}
+}
