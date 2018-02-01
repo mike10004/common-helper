@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.mike10004</groupId>
     <artifactId>common-helper</artifactId>
-    <version>8.0.1</version>
+    <version>8.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>common-helper</name>
     <description>Helper library for common computing tasks</description>
