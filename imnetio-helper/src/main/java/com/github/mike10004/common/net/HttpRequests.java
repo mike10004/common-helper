@@ -4,12 +4,17 @@
 package com.github.mike10004.common.net;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.base.Strings;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
@@ -24,6 +29,8 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
@@ -40,6 +47,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 /**
  * Class that provides utilities relating to HTTP requests. Primarily 
@@ -127,7 +135,19 @@ public class HttpRequests {
         public ResponseData(URI requestUri, int code, Multimap<String, String> headers, Exception exception) {
             this(requestUri, code, new byte[0], headers, checkNotNull(exception));
         }
-        
+
+        private ResponseData(Builder builder) throws IOException {
+            headers = ImmutableMultimap.copyOf(builder.headers);
+            requestUri = builder.requestUri;
+            code = builder.code;
+            data = builder.data.read();
+            exception = null;
+        }
+
+        public static Builder builder(URI requestUri, int statusCode) {
+            return new Builder(statusCode, requestUri);
+        }
+
         @Override
         public String toString() {
             return "ResponseData{" 
@@ -154,15 +174,21 @@ public class HttpRequests {
             return headerValues;
         }
 
-        public java.util.Optional<String> getFirstHeaderValue(String headerName) {
+        /**
+         * Gets the first header value for which the header name matches the argument.
+         * Matches case-insensitively.
+         * @param headerName the header name to match
+         * @return the value, or empty
+         */
+        public Optional<String> getFirstHeaderValue(String headerName) {
             checkNotNull(headerName, "headerName");
             for (String possibleHeaderName : headers.keySet()) {
                 if (headerName.equalsIgnoreCase(possibleHeaderName)) {
-                    String value = headers.get(headerName).iterator().next();
-                    return java.util.Optional.of(value);
+                    String value = headers.get(possibleHeaderName).iterator().next();
+                    return Optional.of(value);
                 }
             }
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
 
         /*
@@ -207,7 +233,7 @@ public class HttpRequests {
          * @throws IOException if an error occurs reading the input stream
          * @throws UnsupportedCharsetException Thrown when the named entity's charset is not available in
          * this instance of the Java virtual machine and no defaultCharset is provided.
-         * @see org.apache.http.util.EntityUtils#toString(HttpEntity, Charset)
+         * @see EntityUtils#toString(HttpEntity, Charset)
          */
         private static String toString(byte[] bytes, final @Nullable String contentTypeHeaderValue, final Charset defaultCharset) throws IOException {
             checkNotNull(bytes, "bytes");
@@ -243,6 +269,68 @@ public class HttpRequests {
             @Nullable String contentTypeHeaderValue = getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
             return toString(data, contentTypeHeaderValue, fallbackCharset);
         }
+
+        /**
+         * Builder class for responses for which no exceptions were thrown
+         */
+        public static final class Builder {
+
+            private Multimap<String, String> headers = ArrayListMultimap.create();
+            private final URI requestUri;
+            private final int code;
+            private ByteSource data = ByteSource.empty();
+
+            private Builder(int statusCode, URI requestUri) {
+                this.code = statusCode;
+                this.requestUri = requireNonNull(requestUri);
+            }
+
+            public Builder clearHeaders() {
+                headers.clear();
+                return this;
+            }
+
+            /**
+             * Adds all of the headers in the given map into this builder's headers multimap.
+             * Use {@link #clearHeaders()} first if you want to replace previously set
+             * headers.
+             * @param val some headers
+             * @return this instance
+             */
+            public Builder headers(ImmutableMultimap<String, String> val) {
+                this.headers.putAll(val);
+                return this;
+            }
+
+            /**
+             * Adds a single header to this builder.
+             * @param name header name
+             * @param value header value
+             * @return this instance
+             */
+            public Builder header(String name, String value) {
+                this.headers.put(name, value);
+                return this;
+            }
+
+            public Builder data(byte[] val) {
+                return data(ByteSource.wrap(val));
+            }
+
+            public Builder data(ByteSource byteSource) {
+                data = requireNonNull(byteSource);
+                return this;
+            }
+
+            /**
+             * Builds a response data object.
+             * @return a new response data object
+             * @throws IOException if reading the data byte source throws an exception
+             */
+            public ResponseData build() throws IOException {
+                return new ResponseData(this);
+            }
+        }
     }
  
     /**
@@ -260,7 +348,7 @@ public class HttpRequests {
         
         public static ImmutableMultimap<String, String> buildHeaders(Header[] headers) {
             checkNotNull(headers);
-            ImmutableMultimap.Builder<String, String> b = ImmutableMultimap.builder();
+            Builder<String, String> b = ImmutableMultimap.builder();
             for (Header header : headers) {
                 b.put(header.getName(), Strings.nullToEmpty(header.getValue()));
             }
@@ -397,7 +485,7 @@ public class HttpRequests {
             public HttpUriRequest createRequest(URI uri, Multimap<String, String> requestHeaders) {
                 checkNotNull(requestHeaders, "requestHeaders");
                 HttpRequestBase request = createRequestBase(uri);
-                for (Map.Entry<String, String> entry : requestHeaders.entries()) {
+                for (Entry<String, String> entry : requestHeaders.entries()) {
                     request.addHeader(entry.getKey(), entry.getValue());
                 }
                 request.setConfig(requestConfigFactory.get());
