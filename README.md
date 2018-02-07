@@ -72,15 +72,18 @@ Windows.
 
 Want to launch a subprocess and capture the output as strings?
 
-    ProcessMonitor<String, String> monitor = Subprocess.running("echo")
-            .arg("hello, world")
-            .build()
-            .launcher(ProcessTracker.create())
-            .outputStrings(Charset.defaultCharset())
-            .launch();
     // <String, String> parameters refer to type of captured stdout and stderr data
-    ProcessResult<String, String> result = monitor.await();
-    System.out.println(result.content().stdout());
+    ProcessResult<String, String> result;
+    try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
+        result = Subprocess.running("echo")
+                .arg("hello, world")
+                .build()
+                .launcher(processTracker)
+                .outputStrings(Charset.defaultCharset())
+                .launch()
+                .await();
+    }
+    System.out.println(result.content().stdout()); // prints "hello, world"
 
 # How do I build it?
 

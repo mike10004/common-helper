@@ -3,6 +3,7 @@ package com.github.mike10004.nativehelper.subprocess.test;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
+import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
@@ -31,14 +32,18 @@ public class ReadmeExamples {
 
 public static void launchAndCaptureOutputAsStrings() throws Exception {
     System.out.println("launchAndCaptureOutputAsStrings");
-    ProcessMonitor<String, String> monitor = Subprocess.running("echo")
-            .arg("hello, world")
-            .build()
-            .launcher(ProcessTracker.create())
-            .outputStrings(Charset.defaultCharset())
-            .launch();
-    ProcessResult<String, String> result = monitor.await();
-    System.out.println(result.content().stdout());
+    // <String, String> parameters refer to type of captured stdout and stderr data
+    ProcessResult<String, String> result;
+    try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
+        result = Subprocess.running("echo")
+                .arg("hello, world")
+                .build()
+                .launcher(processTracker)
+                .outputStrings(Charset.defaultCharset())
+                .launch()
+                .await();
+    }
+    System.out.println(result.content().stdout()); // prints "hello, world"
 }
 
 public static void launchAndCaptureOutputInFiles() throws Exception {
