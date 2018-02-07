@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>8.0.3-SNAPSHOT</version>
+        <version>8.0.3</version>
     </parent>
     <artifactId>native-helper</artifactId>
     <name>native-helper</name>
