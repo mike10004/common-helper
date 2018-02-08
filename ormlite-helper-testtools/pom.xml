@@ -17,8 +17,19 @@
         <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
         <mysql-dist.artifactId>mariadb-dist</mysql-dist.artifactId>
         <mysql-dist.version>10.0.27</mysql-dist.version>
+        <failsafe.skip>true</failsafe.skip>
     </properties>
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <skipTests>${failsafe.skip}</skipTests>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -101,6 +112,7 @@
                         <configuration>
                             <port>${mysql.port}</port>
                             <data>${project.build.directory}/mysql-data</data>
+                            <skip>${failsafe.skip}</skip>
                         </configuration>
                     </execution>
                 </executions>
