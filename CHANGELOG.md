@@ -1,6 +1,11 @@
 common-helper Changelog
 =======================
 
+8.0.5
+-----
+
+* pom/dependency maintenance
+
 8.0.4
 -----
 
