@@ -4,16 +4,16 @@ environment:
   PYTHON: "C:\\Python36-x64"
 build_script:
 - cmd: >-
-    java -version
-
-    mvn --version
-
     python --version
 
     %PYTHON%\python.exe --version
 
-    echo "PATH=%PATH%"
+    echo "JAVA_HOME=%JAVA_HOME%"
 
     set JAVA_HOME=C:\Program Files\Java\jdk1.8.0
+
+    java -version
+
+    mvn --version
 
     mvn install --quiet --batch-mode
