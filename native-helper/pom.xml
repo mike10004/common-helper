@@ -12,6 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <surefire.skip>false</surefire.skip>
     </properties>
     <build>
         <pluginManagement>
@@ -19,7 +20,7 @@
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <configuration>
-                        <skipTests>true</skipTests>
+                        <skipTests>${surefire.skip}</skipTests>
                     </configuration>
                 </plugin>
             </plugins>

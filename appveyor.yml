@@ -1,7 +1,7 @@
 version: 1.0.{build}
+image: Visual Studio 2017
 environment:
-  matrix:
-    - PYTHON: "C:\\Python36-x64"
+  PYTHON: "C:\\Python36-x64"
 build_script:
 - cmd: >-
     java -version
@@ -9,6 +9,8 @@ build_script:
     mvn --version
 
     python --version
+
+    %PYTHON%\python.exe --version
 
     echo "PATH=%PATH%"
 

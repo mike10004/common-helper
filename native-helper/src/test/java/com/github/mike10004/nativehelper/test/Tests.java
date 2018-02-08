@@ -3,12 +3,12 @@ package com.github.mike10004.nativehelper.test;
 import com.github.mike10004.nativehelper.Platforms;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTrackerTest;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.github.mike10004.nativehelper.test.Poller.PollOutcome;
 import com.github.mike10004.nativehelper.test.Poller.StopReason;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Files;
+import joptsimple.internal.Strings;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,7 +83,7 @@ public class Tests {
 
     public static Subprocess.Builder runningPythonFile(File pythonFile) {
         if (isWindows.get()) {
-            return getPython3Builder()
+            return getPython3BuilderChecked()
                     .arg(pythonFile.getAbsolutePath());
         } else {
             checkArgument(pythonFile.canExecute(), "not executable: %s", pythonFile);
@@ -92,14 +92,24 @@ public class Tests {
     }
 
     private static Subprocess.Builder getPython3Builder() {
-        checkState(isWindows.get(), "this oughta be windows, or else just run the executable file directly");
-        checkState(isNakedPythonVersion3.get(), "python 3.x must be the version that bare `python` executes");
-        return Subprocess.running("python");
+        String pythonEnvValue = System.getenv("PYTHON");
+        if (Strings.isNullOrEmpty(pythonEnvValue)) {
+            return Subprocess.running("python");
+        } else {
+            File pythonExecutable = new File(pythonEnvValue, "python.exe");
+            return Subprocess.running(pythonExecutable);
+        }
+    }
+
+    private static Subprocess.Builder getPython3BuilderChecked() {
+        checkState(isWindows.get(), "this oughta be windows; if not, the file should be chmod'd as executable and executed as argv[0]");
+        checkState(isPython3BuilderReallyPython3.get(), "python 3.x must be the version that bare `python` executes");
+        return getPython3Builder();
     }
 
     // from __future__ import print_function; import sys; print(sys.version_info[0], end="");
-    private static Supplier<Boolean> isNakedPythonVersion3 = Suppliers.memoize(() -> {
-        Subprocess subprocess = Subprocess.running("python")
+    private static Supplier<Boolean> isPython3BuilderReallyPython3 = Suppliers.memoize(() -> {
+        Subprocess subprocess = getPython3Builder()
                 .arg("-c")
                 .arg("from __future__ import print_function; import sys; print(sys.version_info[0]);")
                 .build();
