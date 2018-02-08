@@ -1,6 +1,12 @@
 common-helper Changelog
 =======================
 
+8.0.4
+-----
+
+* fix appveyor build
+* add HttpRequests.ResponseData builder() method
+
 8.0.3
 -----
 
