@@ -2,6 +2,8 @@ version: 1.0.{build}
 image: Visual Studio 2017
 environment:
   PYTHON: "C:\\Python36-x64"
+skip_commits:
+  message: /\[(skip ci)|(ci skip)\]/
 build_script:
 - cmd: >-
     python --version
