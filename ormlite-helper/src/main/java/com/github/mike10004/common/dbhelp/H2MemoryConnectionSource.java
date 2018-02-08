@@ -25,6 +25,7 @@ public class H2MemoryConnectionSource extends H2ConnectionSource {
      * Matcher of characters allowed in a new unique schema. Used by
      * {@link #createUniqueSchema() }.
      */
+    @SuppressWarnings("deprecation")
     private static final CharMatcher allowedSchemaChars = CharMatcher.javaLetterOrDigit();
     
     private final String schema;

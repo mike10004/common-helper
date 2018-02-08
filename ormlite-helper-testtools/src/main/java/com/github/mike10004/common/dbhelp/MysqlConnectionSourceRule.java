@@ -61,9 +61,16 @@ public class MysqlConnectionSourceRule extends ExternalResource {
         checkState(connectionSource != null, "connectionSource not yet constructed");
         return connectionSource;
     }
-    
+
+    /**
+     * Matcher of characters allowed in a new unique schema. Used by
+     * {@link #newUniqueSchemaName()}.
+     */
+    @SuppressWarnings("deprecation")
+    private static final CharMatcher allowedSchemaChars = CharMatcher.javaLetterOrDigit();
+
     protected static String newUniqueSchemaName() {
-        return "u" + CharMatcher.javaLetterOrDigit().retainFrom(UUID.randomUUID().toString());
+        return "u" + allowedSchemaChars.retainFrom(UUID.randomUUID().toString());
     }
 
     protected void createSchema(ConnectionParams cp) throws SQLException {
