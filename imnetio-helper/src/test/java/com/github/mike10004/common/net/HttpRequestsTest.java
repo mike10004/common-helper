@@ -38,13 +38,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HttpRequestsTest {
-    
+
+    @SuppressWarnings("unchecked") // EasyMock.anyObject
     @Test
     public void HttpRequester_hostResolutionFailure() throws Exception {
         System.out.println("HttpRequester_hostResolutionFailure");
         final HttpClient client = EasyMock.createMock(HttpClient.class);
         EasyMock.expect(client.execute(EasyMock.anyObject(HttpUriRequest.class), EasyMock.anyObject(ResponseHandler.class))).andThrow(new UnknownHostException()).anyTimes();
-        HttpRequests.HttpRequester unknownHostThrowingRequester = new HttpRequests.DefaultHttpRequester(Functions.<HttpClient>constant(client), new HttpRequests.DefaultHttpRequester.HttpGetRequestFactory());
+        HttpRequests.HttpRequester unknownHostThrowingRequester = new HttpRequests.DefaultHttpRequester(Functions.constant(client), new HttpRequests.DefaultHttpRequester.HttpGetRequestFactory());
         EasyMock.replay(client);
         
         ResponseData responseData = unknownHostThrowingRequester.retrieve(URI.create("http://localhost:12522/some/file.txt"));

@@ -4,27 +4,34 @@
 package com.github.mike10004.common.dbhelp;
 
 import com.github.mike10004.common.dbhelp.AbstractH2FileConnectionSource.DefaultSchemaTransform;
-import java.util.function.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Resources;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
+import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
+import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
+import com.google.common.io.Resources;
+import org.apache.commons.io.FilenameUtils;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 import java.io.File;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.taskdefs.ExecTask;
-import org.apache.tools.ant.types.Environment;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -189,21 +196,7 @@ public class H2FileConnectionSourceTest {
         assertTrue("expect positive database file size, but is " + dbFile.length(), dbFile.length() > 0);
     }
     
-    static Environment.Variable env(String variableName, String value) {
-        Environment.Variable v = new Environment.Variable();
-        v.setKey(variableName);
-        v.setValue(value);
-        return v;
-    }
-    
-    static Environment.Variable env(String variableName, File value) {
-        Environment.Variable v = new Environment.Variable();
-        v.setKey(variableName);
-        v.setFile(value);
-        return v;
-    }
-    
-    @Test
+    @Test(timeout = 30000L)
     public void testMixedMode()  throws Exception {
         if (!isLinux()) {
             return; // hard to detect Maven home on other platforms
@@ -223,15 +216,21 @@ public class H2FileConnectionSourceTest {
         if (mavenHomeDirPathname != null) {
             parents.add(new File(mavenHomeDirPathname, "bin"));
         } else {
-            for (String possibleHome : new String[]{"/usr/share/maven3", 
-                                                   "/usr/share/maven2", 
-                                                   "/usr/share/maven"}) {
+            String[] possibleHomes = {
+                    "/usr/local/share/maven3",
+                    "/usr/local/share/maven2",
+                    "/usr/local/share/maven",
+                    "/usr/share/maven3",
+                    "/usr/share/maven2",
+                    "/usr/share/maven",
+            };
+            for (String possibleHome : possibleHomes) {
                 File binDir = new File(possibleHome, "bin");
                 parents.add(binDir);
             }
         }
-        Iterable<File> systemPathDirs = Iterables.transform(Splitter.on(File.pathSeparatorChar)
-                .split(System.getenv("PATH")), File::new);
+        List<File> systemPathDirs = Splitter.on(File.pathSeparatorChar).splitToList(System.getenv("PATH"))
+                .stream().map(File::new).collect(Collectors.toList());
         Iterables.addAll(parents, systemPathDirs);
         File mavenExecutable = null;
         for (File parent : parents) {
@@ -259,25 +258,25 @@ public class H2FileConnectionSourceTest {
             Resources.asByteSource(projectPomResource).copyTo(com.google.common.io.Files.asByteSink(pomFile));
             String jdbcUrl = cs.constructJdbcUrl();
             String sqlCommand = "'SELECT id, name, address FROM Customer WHERE 1'";
-            ProcessResult ae = execute(mavenExecutable, mavenHomeDir, jdbcUrl, sqlCommand, tmpDir);
+            ProcessResult<String, String> ae = execute(mavenExecutable, mavenHomeDir, jdbcUrl, sqlCommand, tmpDir);
             System.out.println("=======================================");
             System.out.println("======================================= STDOUT START");
             System.out.println("=======================================");
-            System.err.println(ae.getStdout());
+            System.out.println(ae.content().stdout());
             System.out.println("=======================================");
             System.out.println("======================================= STDOUT END");
             System.out.println("=======================================");
             System.out.println("=======================================");
             System.out.println("======================================= STDERR START");
             System.out.println("=======================================");
-            System.out.println(ae.getStderr());
+            System.out.println(ae.content().stderr());
             System.out.println("=======================================");
             System.out.println("======================================= STDERR END");
             System.out.println("=======================================");
-            Integer exitCode = ae.getResult();
+            int exitCode = ae.exitCode();
             System.out.println("exit code " + exitCode);
-            assertEquals(Integer.valueOf(0), exitCode);
-            String actualStdout = ae.getStdout();
+            assertEquals("exit code", 0, exitCode);
+            String actualStdout = ae.content().stdout();
             String expectedStdout = "1  | Jason | 123 Anywhere La";
             assertTrue("actual stdout must contain" + expectedStdout, 
                     actualStdout.contains(expectedStdout));
@@ -286,54 +285,31 @@ public class H2FileConnectionSourceTest {
         }
     }
     
-    protected static class ProcessResult {
-        
-        private Integer result;
-        private String stdout = "", stderr = "";
-
-        public Integer getResult() {
-            return result;
-        }
-
-        public String getStdout() {
-            return stdout;
-        }
-
-        public String getStderr() {
-            return stderr;
-        }
-        
-    }
-    
-    protected ProcessResult execute(File mavenExecutable, File mavenHomeDir, String jdbcUrl, String sqlCommand, File tmpDir) {
-        Project project = new Project();
-        ExecTask execTask = new ExecTask();
-        execTask.setProject(project);
-        execTask.setExecutable(mavenExecutable.getAbsolutePath());
-        for (String arg : new String[]{"exec:java", 
-                        "-Dexec.killAfter=-1",
-                        "-Dexec.mainClass=" + org.h2.tools.Shell.class.getName(), 
-                        "-Dexec.args=-url " + jdbcUrl + " -sql " + sqlCommand + ""}) {
-            execTask.createArg().setValue(arg);
-        }
+    private ProcessResult<String, String> execute(File mavenExecutable, File mavenHomeDir, String jdbcUrl, String sqlCommand, File tmpDir) {
+        String[] args = {
+                "exec:java",
+                "--batch-mode",
+                "-Dexec.killAfter=-1",
+                "-Dexec.mainClass=" + org.h2.tools.Shell.class.getName(),
+                "-Dexec.args=-url " + jdbcUrl + " -sql " + sqlCommand + ""
+        };
         String javaHomePath = System.getProperty("java.home");
         System.out.println("in Maven process environment, setting JAVA_HOME=" + javaHomePath);
-        execTask.addEnv(env("JAVA_HOME", new File(javaHomePath)));
-        execTask.addEnv(env("M2_HOME", mavenHomeDir));
-        execTask.setDir(tmpDir);
-//        execTask.setFailonerror(false);
-        execTask.setOutputproperty("stdout");
-        execTask.setErrorProperty("stderr");
-        execTask.setResultProperty("result");
-        execTask.execute();
-
-        ProcessResult result = new ProcessResult();
-        String resultStr = project.getProperty("result");
-        if (resultStr != null) {
-            result.result = Integer.parseInt(resultStr);
+        Subprocess subprocess = Subprocess.running(mavenExecutable)
+                .from(tmpDir)
+                .env("JAVA_HOME", javaHomePath)
+                .env("M2_HOME", mavenHomeDir.getAbsolutePath())
+                .args(Arrays.asList(args))
+                .build();
+        ProcessResult<String, String> result;
+        try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
+            result = subprocess.launcher(processTracker)
+                    .outputStrings(Charset.defaultCharset()) // whatever Maven uses on the platform
+                    .launch()
+                    .await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        result.stderr = project.getProperty("stderr");
-        result.stdout = project.getProperty("stdout");
         return result;
     }
 }
