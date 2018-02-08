@@ -4,16 +4,13 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>8.0.4</version>
+        <version>8.0.5</version>
     </parent>
     <artifactId>ormlite-helper-testtools</artifactId>
     <name>ormlite-helper-testtools</name>
     <packaging>jar</packaging>
     <description>Library that helps you use ORMLite in unit and integration tests</description>
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <jcabi-mysql-maven-plugin.version>0.8.1</jcabi-mysql-maven-plugin.version>
         <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
         <mysql-dist.artifactId>mariadb-dist</mysql-dist.artifactId>
         <mysql-dist.version>10.0.27</mysql-dist.version>
@@ -101,10 +98,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -118,6 +111,15 @@
             <artifactId>junit</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.googlecode.sarasvati.thirdparty.netbeans</groupId>
             <artifactId>org-openide-util</artifactId>
             <version>7.3</version>
@@ -126,27 +128,13 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.37</version>
+            <version>5.1.45</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>native-helper</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.mike10004</groupId>
-            <artifactId>imnetio-helper</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

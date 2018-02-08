@@ -26,7 +26,6 @@ import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.github.mike10004.common.io.IOSupplier;
 import org.h2.tools.RunScript;
 import org.junit.rules.TemporaryFolder;
 
@@ -57,13 +56,17 @@ public class H2FileDatabaseContextRule extends DatabaseContextRule {
         return forSource(dbFileByteSource, new IOSupplier<File>() {
 
             @Override
-            public File get() throws IOException {
+            public File get() {
                 return temporaryFolder.getRoot();
             }
         });
     }
 
-    public static Builder forSource(ByteSource dbFileByteSource, IOSupplier<File> parentDirSupplier) {
+    private interface IOSupplier<T> {
+        T get() throws IOException;
+    }
+
+    private static Builder forSource(ByteSource dbFileByteSource, IOSupplier<File> parentDirSupplier) {
         return forPathnameProvider(new FreshlyCopiedFilePathnameProvider(dbFileByteSource, parentDirSupplier));
     }
 
@@ -109,6 +112,7 @@ public class H2FileDatabaseContextRule extends DatabaseContextRule {
         return forPathnameProvider(new ConstantPathnameProvider(pathname));
     }
 
+    @SuppressWarnings("unused")
     @NotThreadSafe
     public static class Builder {
 
@@ -210,7 +214,7 @@ public class H2FileDatabaseContextRule extends DatabaseContextRule {
             System.out.println("=================================================================");
             System.out.print("-- ");
             System.out.print(H2FileDatabaseContextRule.class.getSimpleName());
-            System.out.format(" executing script on %s from %n", jdbcUrl, scriptSource);
+            System.out.format(" executing script on %s from %s%n", jdbcUrl, scriptSource);
             scriptSource.copyTo(System.out);
             System.out.println("=================================================================");
             System.out.println("=================================================================");
@@ -235,7 +239,7 @@ public class H2FileDatabaseContextRule extends DatabaseContextRule {
         super.after();
     }
 
-    public static interface PathnameProvider {
+    public interface PathnameProvider {
         File providePathname() throws IOException;
     }
 
@@ -248,7 +252,7 @@ public class H2FileDatabaseContextRule extends DatabaseContextRule {
         }
 
         @Override
-        public File providePathname() throws IOException {
+        public File providePathname() {
             return pathname;
         }
     }

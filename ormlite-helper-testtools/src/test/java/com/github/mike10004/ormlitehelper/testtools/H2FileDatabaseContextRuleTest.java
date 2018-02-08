@@ -39,6 +39,7 @@ public class H2FileDatabaseContextRuleTest {
             } finally {
                 rule.after();
             }
+            assertEquals("file", dbFile, ((H2FileDatabaseContextRule) rule).getDatabaseFile());
         }
     }
 }

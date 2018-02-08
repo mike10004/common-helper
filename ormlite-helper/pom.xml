@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>8.0.4</version>
+        <version>8.0.5</version>
     </parent>
     <artifactId>ormlite-helper</artifactId>
     <packaging>jar</packaging>
@@ -12,9 +12,6 @@
     <description>Library that helps you use ORMLite</description>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <h2.version>1.4.187</h2.version>
     </properties>
 
     <build>
@@ -77,14 +74,14 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>native-helper</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>native-helper</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

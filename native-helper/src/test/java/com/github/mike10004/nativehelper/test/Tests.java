@@ -6,9 +6,9 @@ import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.github.mike10004.nativehelper.test.Poller.PollOutcome;
 import com.github.mike10004.nativehelper.test.Poller.StopReason;
+import com.google.common.base.Strings;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Files;
-import joptsimple.internal.Strings;
 
 import java.io.File;
 import java.io.IOException;

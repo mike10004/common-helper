@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.mike10004</groupId>
     <artifactId>common-helper</artifactId>
-    <version>8.0.4</version>
+    <version>8.0.5</version>
     <packaging>pom</packaging>
     <name>common-helper</name>
     <description>Helper library for common computing tasks</description>
@@ -23,6 +23,7 @@
         <skip.failsafe.tests>false</skip.failsafe.tests>
         <ormlite.version>5.0</ormlite.version>
         <slf4j.version>1.7.25</slf4j.version>
+        <h2.version>1.4.190</h2.version> <!-- this is used by a ormlite-helper unit test -->
     </properties>
     <profiles>
         <profile>
@@ -270,11 +271,6 @@
                 <version>2.6</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.ant</groupId>
-                <artifactId>ant</artifactId>
-                <version>1.10.1</version>
-            </dependency>
-            <dependency>
                 <groupId>com.j256.ormlite</groupId>
                 <artifactId>ormlite-core</artifactId>
                 <version>${ormlite.version}</version>
@@ -287,7 +283,7 @@
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>1.4.190</version> <!-- do not raise to 1.4.196; weird errors occur -->
+                <version>${h2.version}</version> <!-- do not raise to 1.4.196; weird errors occur -->
             </dependency>
         </dependencies>
     </dependencyManagement>
