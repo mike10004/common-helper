@@ -32,10 +32,6 @@ import static java.net.HttpURLConnection.HTTP_OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-/**
- *
- * @author mchaberski
- */
 public class HttpRequests_WireMock_Test {
     
     @Rule
@@ -60,6 +56,7 @@ public class HttpRequests_WireMock_Test {
 
     private static final ImmutableMultimap<String, String> noHeaders = ImmutableMultimap.of();
 
+    @SuppressWarnings("UnusedReturnValue")
     private ResponseData expectAndVerify(String urlPath, byte[] responseBody, MediaType contentType, int httpStatus, HttpRequester requester) {
         return expectAndVerify(urlPath, noHeaders, responseBody, contentType, httpStatus, requester);
     }
@@ -98,7 +95,7 @@ public class HttpRequests_WireMock_Test {
     }
 
     @Test
-    public void sendWithHeaders() throws Exception {
+    public void sendWithHeaders() {
         HttpRequester requester = HttpRequests.newRequester();
         expectAndVerify("/some/path", ImmutableMultimap.of("X-Custom-Header", "foo"), "bar".getBytes(Charsets.UTF_8), MediaType.PLAIN_TEXT_UTF_8, HTTP_OK, requester);
     }

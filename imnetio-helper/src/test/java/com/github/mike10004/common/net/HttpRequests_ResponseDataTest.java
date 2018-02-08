@@ -1,16 +1,11 @@
 package com.github.mike10004.common.net;
 
 import com.github.mike10004.common.net.HttpRequests.ResponseData;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
-import org.apache.http.HttpStatus;
 import org.junit.Test;
 
 import java.net.URI;
@@ -24,15 +19,20 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.net.MediaType.PLAIN_TEXT_UTF_8;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class HttpRequests_ResponseDataTest {
 
     @Test
-    public void ResponseData_getHeaderValues() {
-        System.out.println("ResponseData_getHeaderValues");
-        ResponseData responseData = new HttpRequests.ResponseData(URI.create("http://example.com"), 200, new byte[0], ImmutableMultimap.of("some-header", "A", "Some-Header", "B", "another-header", "C"));
+    public void getHeaderValues() throws Exception {
+        System.out.println("getHeaderValues");
+        ResponseData responseData = ResponseData.builder(URI.create("http://example.com"), SC_OK)
+                .header("some-header", "A")
+                .header("Some-Header", "B")
+                .header("another-header", "C")
+                .build();
         Iterable<String> values = responseData.getHeaderValues("some-header");
         assertEquals(ImmutableSet.of("A", "B"), ImmutableSet.copyOf(values));
         assertEquals(0, Iterables.size(responseData.getHeaderValues("not-present")));
@@ -53,7 +53,10 @@ public class HttpRequests_ResponseDataTest {
     }
 
     private static List<String> toHexStrings(byte[] bytes) {
-        return Bytes.asList(bytes).stream().map(input -> UnsignedBytes.toString(input.byteValue(), 16)).collect(Collectors.toList());
+        return Bytes.asList(bytes).stream()
+                .map(input -> UnsignedBytes.toString(input.byteValue(), 16))
+                .map(code -> String.format("0x%s", code))
+                .collect(Collectors.toList());
     }
 
     private static Multimap<String, String> headers(String header1Name, String header1Value, String...others) {
@@ -108,7 +111,8 @@ public class HttpRequests_ResponseDataTest {
     private static final MediaType PLAIN_TEXT = PLAIN_TEXT_UTF_8.withoutParameters();
 
     @Test
-    public void ResponseData_getDataAsString() throws Exception {
+    public void getDataAsString() throws Exception {
+        System.out.println("getDataAsString");
         String EUR = "€";
         String UM = "ä";
         byte[] isoEuroBytes = UM.getBytes(ISO_8859_1);
@@ -149,21 +153,21 @@ public class HttpRequests_ResponseDataTest {
             String contentType = testCase.contentTypeHeaderValue;
             String expected = testCase.expected;
             System.out.format("%s with content-type: %s -> \"%s\"%n", toHexStrings(bytes), contentType, expected);
-            ResponseData responseData = new ResponseData(url, HttpStatus.SC_OK, bytes, headers(HttpHeaders.CONTENT_TYPE, contentType));
+            ResponseData responseData = new ResponseData(url, SC_OK, bytes, headers(HttpHeaders.CONTENT_TYPE, contentType));
             String actual = responseData.getDataAsString(testCase.fallbackCharset);
             assertEquals(testCase.toString(), expected, actual);
         }
     }
 
     @Test
-    public void absentHeaderGet() throws Exception {
+    public void getFirstHeaderValue_absent() throws Exception {
         ResponseData response = ResponseData.builder(URI.create("https://example.com/"), 200)
                 .build();
         assertFalse("content-length value", response.getFirstHeaderValue("content-length").isPresent());
     }
 
     @Test
-    public void caseInsensitiveHeaderGet() throws Exception {
+    public void getFirstHeaderValue_caseInsensitive() throws Exception {
         ResponseData response = ResponseData.builder(URI.create("https://example.com/"), 200)
                 .header("content-type", "text/plain")
                 .data("hello, world".getBytes(StandardCharsets.US_ASCII))
