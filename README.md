@@ -1,5 +1,5 @@
 [![Travis build status](https://img.shields.io/travis/mike10004/common-helper.svg)](https://travis-ci.org/mike10004/common-helper)
-[![AppVeyor build status](https://img.shields.io/appveyor/ci/mike10004/common-helper.svg)](https://ci.appveyor.com/project/mike10004/common-helper)
+[![AppVeyor status](https://ci.appveyor.com/api/projects/status/sklwcp67bi3lpp05?svg=true)](https://ci.appveyor.com/project/mike10004/common-helper)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.mike10004/common-helper.svg)](https://repo1.maven.org/maven2/com/github/mike10004/common-helper/)
 
 Common Helper Libraries
