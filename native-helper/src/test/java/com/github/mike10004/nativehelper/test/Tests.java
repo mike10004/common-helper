@@ -1,5 +1,10 @@
 package com.github.mike10004.nativehelper.test;
 
+import com.github.mike10004.nativehelper.Platforms;
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
+import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
+import com.github.mike10004.nativehelper.subprocess.ScopedProcessTrackerTest;
+import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.github.mike10004.nativehelper.test.Poller.PollOutcome;
 import com.github.mike10004.nativehelper.test.Poller.StopReason;
 import com.google.common.base.Suppliers;
@@ -8,10 +13,14 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 public class Tests {
@@ -65,6 +74,56 @@ public class Tests {
         return getPythonFile("nht_signal_listener.py");
     }
 
+    public static Subprocess.Builder runningPythonFile(String name) {
+        File pythonFile = getPythonFile(name);
+        return runningPythonFile(pythonFile);
+    }
+
+    private static final Supplier<Boolean> isWindows = Suppliers.memoize(() -> Platforms.getPlatform().isWindows());
+
+    public static Subprocess.Builder runningPythonFile(File pythonFile) {
+        if (isWindows.get()) {
+            return getPython3Builder()
+                    .arg(pythonFile.getAbsolutePath());
+        } else {
+            checkArgument(pythonFile.canExecute(), "not executable: %s", pythonFile);
+            return Subprocess.running(pythonFile);
+        }
+    }
+
+    private static Subprocess.Builder getPython3Builder() {
+        checkState(isWindows.get(), "this oughta be windows, or else just run the executable file directly");
+        checkState(isNakedPythonVersion3.get(), "python 3.x must be the version that bare `python` executes");
+        return Subprocess.running("python");
+    }
+
+    // from __future__ import print_function; import sys; print(sys.version_info[0], end="");
+    private static Supplier<Boolean> isNakedPythonVersion3 = Suppliers.memoize(() -> {
+        Subprocess subprocess = Subprocess.running("python")
+                .arg("-c")
+                .arg("from __future__ import print_function; import sys; print(sys.version_info[0]);")
+                .build();
+        ProcessResult<String, String> result;
+        try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
+            result = subprocess.launcher(processTracker)
+                    .outputStrings(Charset.defaultCharset())
+                    .launch()
+                    .await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+        if (result.exitCode() != 0) {
+            System.err.format("exit %d%n", result.exitCode());
+            System.err.println(result.content().stderr());
+            throw new IllegalStateException("nonzero exit from python");
+        }
+        String majorVersion = result.content().stdout().trim();
+        if (!"3".equals(majorVersion)) {
+            System.err.format("actual major version: %s%n", majorVersion);
+        }
+        return "3".equals(majorVersion);
+    });
+
     public static String readWhenNonempty(File file) throws InterruptedException {
         PollOutcome<String> outcome = new Poller<String>() {
 
@@ -85,5 +144,9 @@ public class Tests {
             return outcome.content;
         }
         throw new IllegalStateException("polling for nonempty file failed: " + file);
+    }
+
+    public static boolean isPlatformWindows() {
+        return isWindows.get();
     }
 }

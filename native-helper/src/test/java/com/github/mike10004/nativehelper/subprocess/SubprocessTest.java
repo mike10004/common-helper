@@ -4,8 +4,10 @@ import com.github.mike10004.nativehelper.Platforms;
 import com.github.mike10004.nativehelper.test.Tests;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
@@ -17,32 +19,22 @@ import org.junit.Test;
 import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
-import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class SubprocessTest extends SubprocessTestBase {
 
     @Test
     public void launch_true() throws Exception {
-        int exitCode = running(pyTrue()).build()
+        int exitCode = Tests.runningPythonFile(pyTrue()).build()
                 .launcher(TRACKER)
                 .launch().await().exitCode();
         assertEquals("exit code", 0, exitCode);
@@ -51,7 +43,7 @@ public class SubprocessTest extends SubprocessTestBase {
     @Test
     public void launch_exit_3() throws Exception {
         int expected = 3;
-        int exitCode = running(pyExit())
+        int exitCode = Tests.runningPythonFile(pyExit())
                 .arg(String.valueOf(expected))
                 .build()
                 .launcher(TRACKER)
@@ -74,7 +66,7 @@ public class SubprocessTest extends SubprocessTestBase {
     @Test
     public void launch_echo() throws Exception {
         String arg = "hello";
-        ProcessResult<String, String> processResult = running(pyEcho())
+        ProcessResult<String, String> processResult = Tests.runningPythonFile(pyEcho())
                 .arg(arg).build()
                 .launcher(TRACKER)
                 .outputStrings(US_ASCII)
@@ -101,7 +93,7 @@ public class SubprocessTest extends SubprocessTestBase {
             }
         }
         ProcessResult<String, String> result =
-                running(Tests.getPythonFile("nht_stereo.py"))
+                Tests.runningPythonFile(Tests.getPythonFile("nht_stereo.py"))
                 .args(args)
                 .build()
                 .launcher(TRACKER)
@@ -122,7 +114,7 @@ public class SubprocessTest extends SubprocessTestBase {
         byte[] bytes = new byte[LENGTH];
         random.nextBytes(bytes);
         ProcessResult<byte[], byte[]> result =
-                running(Tests.pyCat())
+                Tests.runningPythonFile(Tests.pyCat())
                         .build()
                         .launcher(TRACKER)
                         .outputInMemory(ByteSource.wrap(bytes))
@@ -142,7 +134,7 @@ public class SubprocessTest extends SubprocessTestBase {
         File dataFile = File.createTempFile("SubprocessTest", ".dat");
         Files.asByteSink(dataFile).write(bytes);
         ProcessResult<byte[], byte[]> result =
-                running(Tests.pyCat())
+                Tests.runningPythonFile(Tests.pyCat())
                         .arg(dataFile.getAbsolutePath())
                         .build()
                         .launcher(TRACKER)
@@ -160,7 +152,7 @@ public class SubprocessTest extends SubprocessTestBase {
     @Test
     public void launch_readInput_predefined() throws Exception {
         String expected = String.format("foo%nbar%n");
-        ProcessResult<String, String> result = running(Tests.pyReadInput())
+        ProcessResult<String, String> result = Tests.runningPythonFile(Tests.pyReadInput())
                 .build()
                 .launcher(TRACKER)
                 .outputStrings(US_ASCII, CharSource.wrap(expected + System.lineSeparator()).asByteSource(US_ASCII))
@@ -177,7 +169,7 @@ public class SubprocessTest extends SubprocessTestBase {
      */
     @Test
     public void launch_echo_inherit() throws Exception {
-        int exitCode = Subprocess.running(pyEcho())
+        int exitCode = Tests.runningPythonFile(pyEcho())
                 .arg("hello, world")
                 .build()
                 .launcher(TRACKER)
@@ -197,7 +189,7 @@ public class SubprocessTest extends SubprocessTestBase {
             PrintStream tempErr = new PrintStream(stderrBucket.openStream(), true)) {
             System.setOut(tempOut);
             System.setErr(tempErr);
-            result = Subprocess.running(Tests.getPythonFile("nht_stereo.py"))
+            result = Tests.runningPythonFile(Tests.getPythonFile("nht_stereo.py"))
                     .args("foo", "bar")
                     .build()
                     .launcher(TRACKER)
@@ -225,24 +217,51 @@ public class SubprocessTest extends SubprocessTestBase {
         Subprocess.running(executable).build().launcher(TRACKER).launch();
     }
 
-    private static final String homeVarName = Platforms.getPlatform().isWindows() ? "UserProfile" : "HOME";
+    private static final String homeVarName;
+    private static final String userVarName;
 
+    /**
+     * Returns the first environment variable name that is a case-insensitive match for the given string.
+     * Windows has super weird ways of dealing with the environment as supplied by the envp
+     * argument to {@link Runtime#exec(String, String[])}. Under almost all circumstances,
+     * when retrieving values corresponding to environment variable names, a case-insensitive
+     * name match is performed. However, when you supply additional variable definitions with
+     * {@link Runtime#exec(String, String[])}, inherited variables with names that are case-insensitively
+     * equal are not overridden; the alternate case-mismatching definition is appended to the
+     * environment. For a given build environment, to correctly override an inherited variable,
+     * we first have to find the exact match for its name.
+     */
+    private static String matchCaseInsensitiveEnvVariableName(String varname) {
+        return System.getenv().keySet().stream().filter(varname::equalsIgnoreCase).findFirst().orElseThrow(() -> new IllegalStateException("no match for " + varname));
+    }
+
+    static {
+        if (Platforms.getPlatform().isWindows()) {
+            homeVarName = matchCaseInsensitiveEnvVariableName("USERPROFILE");
+            userVarName = matchCaseInsensitiveEnvVariableName("USERNAME");
+        } else {
+            homeVarName = "HOME";
+            userVarName = "USER";
+        }
+    }
     @Test
     public void launch_env_noSupplements() throws Exception {
         String expectedUser = System.getProperty("user.name");
         String expectedHome = System.getProperty("user.home");
-        Map<String, String> result = launchEnv(ImmutableMap.of(), "USER", homeVarName);
-        assertEquals("user", expectedUser, result.get("USER"));
-        assertEquals("home", expectedHome, result.get(homeVarName));
+        Map<String, String> result = launchEnv(ImmutableMap.of(), userVarName, homeVarName);
+        assertCongruent(result, userVarName, homeVarName);
+        assertEquals(userVarName, expectedUser, result.get(userVarName));
+        assertEquals(homeVarName, expectedHome, result.get(homeVarName));
     }
 
     @Test
     public void launch_env_override() throws Exception {
         String expectedUser = System.getProperty("user.name");
         String expectedHome = FileUtils.getTempDirectory().getAbsolutePath();
-        Map<String, String> result = launchEnv(ImmutableMap.of(homeVarName, expectedHome), "USER", homeVarName);
-        assertEquals("user", expectedUser, result.get("USER"));
-        assertEquals("home", expectedHome, result.get(homeVarName));
+        Map<String, String> result = launchEnv(ImmutableMap.of(homeVarName, expectedHome), userVarName, homeVarName);
+        assertCongruent(result, userVarName, homeVarName);
+        assertEquals(userVarName, expectedUser, result.get(userVarName));
+        assertEquals(homeVarName, expectedHome, result.get(homeVarName));
     }
 
     @Test
@@ -250,34 +269,56 @@ public class SubprocessTest extends SubprocessTestBase {
         String expectedUser = System.getProperty("user.name");
         String expectedHome = System.getProperty("user.home");
         String expectedFoo = "bar";
-        Map<String, String> result = launchEnv(ImmutableMap.of("FOO", expectedFoo), "USER", homeVarName, "FOO");
-        assertEquals("user", expectedUser, result.get("USER"));
-        assertEquals("home", expectedHome, result.get(homeVarName));
-        assertEquals("foo", expectedFoo, result.get("FOO"));
+        Map<String, String> result = launchEnv(ImmutableMap.of("FOO", expectedFoo), userVarName, homeVarName, "FOO");
+        assertCongruent(result, userVarName, homeVarName, "FOO");
+        assertEquals(userVarName, expectedUser, result.get(userVarName));
+        assertEquals(homeVarName, expectedHome, result.get(homeVarName));
+        assertEquals("FOO", expectedFoo, result.get("FOO"));
     }
+
+    private static void assertCongruent(Map<String, String> printedEnv, String...varnamesArray) {
+        assertEquals("variable names", ImmutableSet.copyOf(varnamesArray), printedEnv.keySet());
+    }
+
+    private static final Splitter NHT_ENV_SPLITTER = Splitter.on('=').limit(2);
 
     private Map<String, String> launchEnv(Map<String, String> env, String...varnamesArray) throws InterruptedException {
         List<String> varnames = Arrays.asList(varnamesArray);
-        ProcessResult<String, String> result = Subprocess.running(Tests.getPythonFile("nht_env.py"))
+        String prog = "nht_env.py";
+        Subprocess subprocess = Tests.runningPythonFile(Tests.getPythonFile(prog))
                 .env(env)
                 .args(varnames)
-                .build().launcher(TRACKER).outputStrings(Charset.defaultCharset()).launch().await();
-        System.out.format("result: %s%n", result);
-        List<String> lines = Splitter.on(System.lineSeparator()).omitEmptyStrings().splitToList(result.content().stdout());
+                .build();
+        ProcessResult<String, String> result = subprocess.launcher(TRACKER)
+                .outputStrings(Charset.defaultCharset())
+                .launch().await();
+        System.out.format("%s exited %s%n", prog, result.exitCode());
+        System.out.format("%s stdout:%n%s%n", prog, result.content().stdout());
+        System.out.format("%s stderr:%n%s%n", prog, result.content().stderr());
+        List<String> lines = splitLines(result.content().stdout());
         assertEquals("exit code", 0, result.exitCode());
-        assertEquals("num lines in output", varnames.size(), lines.size());
-        Map<String, String> defs = new HashMap<>();
-        for (int i = 0; i < lines.size(); i++) {
-            defs.put(varnames.get(i), lines.get(i));
-        }
-        return defs;
+        return lines.stream().map(line -> Iterables.toArray(NHT_ENV_SPLITTER.split(line), String.class))
+                .collect(Collectors.toMap(a -> a[0], a -> a[1]));
+    }
+
+    private static List<String> splitLines(String text) {
+        return Splitter.on(System.lineSeparator()).omitEmptyStrings().splitToList(text);
+    }
+
+    @Test
+    public void test_splitLines() {
+        String line = "C:\\Users\\mchaberski";
+        String text = line + System.lineSeparator();
+        System.out.format("text = \"%s\"%n", StringEscapeUtils.escapeJava(text));
+        List<String> lines = splitLines(text);
+        assertEquals("lines", ImmutableList.of(line), lines);
     }
 
     @Test(timeout = 5000L)
     public void awaitWithTimeout() throws Exception {
         try {
             System.out.println("awaitWithTimeout");
-            ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
+            ProcessMonitor<?, ?> monitor = Tests.runningPythonFile(Tests.pySignalListener())
                     .build().launcher(TRACKER).launch();
             ProcessResult<?, ?> result = null;
             try {
@@ -324,7 +365,7 @@ public class SubprocessTest extends SubprocessTestBase {
             }
 
         };
-        ProcessMonitor<?, ?> monitor = Subprocess.running(Tests.pySignalListener())
+        ProcessMonitor<?, ?> monitor = Tests.runningPythonFile(Tests.pySignalListener())
                 .build().launcher(localContext).launch();
         System.out.format("killRemovesFromTracker: %s%n", monitor.process());
         ProcessResult<?, ?> result = null;
@@ -332,7 +373,7 @@ public class SubprocessTest extends SubprocessTestBase {
             result = monitor.await(100, TimeUnit.MILLISECONDS);
         } catch (TimeoutException ignore) {
         }
-        checkState(result == null);
+        checkState(result == null, "result should be null but isn't");
         DestroyAttempt term = monitor.destructor().sendTermSignal().await();
         checkState(DestroyResult.TERMINATED == term.result());
         Set<Process> pset = ImmutableSet.copyOf(processes.keySet());

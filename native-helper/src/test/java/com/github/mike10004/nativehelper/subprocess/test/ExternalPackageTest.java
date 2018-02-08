@@ -122,7 +122,7 @@ public class ExternalPackageTest {
 
         public Fixture() {
             String arg1 = "foo", arg2 = "bar";
-            subprocess = Subprocess.running(Tests.getPythonFile("nht_stereo.py"))
+            subprocess = Tests.runningPythonFile(Tests.getPythonFile("nht_stereo.py"))
                     .args(arg1, arg2)
                     .build();
             expectedStdout = String.format("%s%n", arg1);

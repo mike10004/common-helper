@@ -4,7 +4,7 @@ from __future__ import print_function
 import signal
 import os
 import sys
-
+import time
 
 """Program that listens for signals, swallowing some. 
 
@@ -17,6 +17,29 @@ send will be swallowed, specify --pidfile and poll that file until it is nonempt
 want the pid, poll until the file contains a terminal newline to make sure you don't 
 read a partial value, e.g. 1234 when the pid is 12345. 
 """
+
+class Pauser(object):
+
+    def __init__(self):
+        self.pause_available = 'pause' in signal.__dict__
+        self.state = 0
+        me = self
+        def handle_signal(s, f):
+            me.state += 1
+        signal.signal(signal.SIGINT, handle_signal)
+
+    def handle_signal(self, signalnum, frame):
+        self.state += 1
+
+    def pause(self):
+        if self.pause_available:
+            signal.pause()
+        else:
+            self.state = 0
+            while self.state == 0:
+                # of course we hate doing this, but you try finding an equivalent of signal.pause() on Windows
+                # https://stackoverflow.com/questions/9784972/python-signal-pause-equivalent-on-windows
+                time.sleep(1)
 
 
 def main():
@@ -42,8 +65,9 @@ def main():
         print("signal", signalnum, file=stdout)
     for swallowable in swallowed:
         signal.signal(swallowable, signal_handler)
+    pauser = Pauser()
     while True:
-        signal.pause()
+        pauser.pause()
 
 
 if __name__ == '__main__':

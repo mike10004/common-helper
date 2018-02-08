@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.github.mike10004.nativehelper.subprocess.Subprocess.running;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
@@ -27,7 +26,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
     public void launch_readInput_piped() throws Exception {
         Charset charset = UTF_8;
         StreamPipeSource pipe = new StreamPipeSource();
-        ProcessMonitor<String, String> monitor = running(Tests.pyReadInput())
+        ProcessMonitor<String, String> monitor = Tests.runningPythonFile(Tests.pyReadInput())
                 .build()
                 .launcher(TRACKER)
                 .outputStrings(charset, pipe.asByteSource())
@@ -73,7 +72,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
                 .noStdin() // read from file passed as argument
                 .build();
         StreamContext<?, Void, String> outputControl = StreamContext.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
-        ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyCat())
+        ProcessMonitor<Void, String> monitor = Tests.runningPythonFile(Tests.pyCat())
                 .arg(wastelandFile.getAbsolutePath())
                 .build()
                 .launcher(TRACKER)
@@ -109,7 +108,7 @@ public class SubprocessPipingTest extends SubprocessTestBase {
                 .stdin(stdinPipe.asByteSource())
                 .build();
         StreamContext<?, Void, String> outputControl = StreamContext.predefined(endpoints, nullSupplier(), () -> stderrBucket.decode(Charset.defaultCharset()));
-        ProcessMonitor<Void, String> monitor = Subprocess.running(Tests.pyReadInput())
+        ProcessMonitor<Void, String> monitor =Tests.runningPythonFile(Tests.pyReadInput())
                 .build()
                 .launcher(TRACKER)
                 .output(outputControl)

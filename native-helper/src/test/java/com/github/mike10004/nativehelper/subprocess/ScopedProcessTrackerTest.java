@@ -9,6 +9,7 @@ import org.junit.runners.Parameterized.Parameters;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
@@ -26,11 +27,16 @@ public class ScopedProcessTrackerTest {
     public void close() throws Exception {
         ProcessMonitor<?, ?> monitor;
         try (ScopedProcessTracker tracker = new ScopedProcessTracker()) {
-            Subprocess subprocess = Subprocess.running(Tests.pySignalListener()).build();
+            Subprocess subprocess = createSubprocessThatWaitsUntilDestroyed();
             monitor = subprocess.launcher(tracker).launch();
         }
         assertFalse("isAlive", monitor.process().isAlive());
         ProcessResult<?, ?> result = monitor.await(0, TimeUnit.MILLISECONDS);
+        System.out.format("exit code %d%n", result.exitCode());
         assertNotEquals("exit code", 0, result.exitCode());
+    }
+
+    private static Subprocess createSubprocessThatWaitsUntilDestroyed() {
+        return Tests.runningPythonFile(Tests.pySignalListener()).build();
     }
 }

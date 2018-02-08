@@ -54,7 +54,7 @@ public class ProcessMissionControlTest {
     @Test
     public void readStdin() throws Exception {
         byte[] input = { 1, 2, 3, 4 };
-        Subprocess subprocess = Subprocess.running(Tests.getPythonFile("nht_length.py"))
+        Subprocess subprocess = Tests.runningPythonFile("nht_length.py")
                 .build();
         ProcessMissionControl executor = new ProcessMissionControl(subprocess, CONTEXT, createExecutorService());
         ByteBucket stdoutBucket = ByteBucket.create();
