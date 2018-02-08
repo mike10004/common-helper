@@ -4,7 +4,7 @@ environment:
     - PYTHON: "C:\\Python36-x64"
 build_script:
 - cmd: >-
-    java --version
+    java -version
 
     mvn --version
 
