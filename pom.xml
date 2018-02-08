@@ -44,6 +44,21 @@
                 <skip.failsafe.tests>true</skip.failsafe.tests>
             </properties>
         </profile>
+        <profile>
+            <id>show-deprecated</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <artifactId>maven-compiler-plugin</artifactId>
+                            <configuration>
+                                <showDeprecation>true</showDeprecation>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
     </profiles>
     <inceptionYear>2015</inceptionYear>
     <licenses>
