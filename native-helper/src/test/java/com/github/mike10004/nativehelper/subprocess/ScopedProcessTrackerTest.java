@@ -6,8 +6,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -18,10 +21,22 @@ public class ScopedProcessTrackerTest {
 
     private static final int NUM_TRIALS = 50;
 
-    @Parameters
-    public static List<Object[]> trialPlaceholders() {
-        return Arrays.asList(new Object[NUM_TRIALS][0]);
+    private final int trial;
+
+    public ScopedProcessTrackerTest(int trial) {
+        this.trial = trial;
     }
+
+    @Parameters
+    public static List<Integer> trials() {
+        List<Integer> trials = new ArrayList<>();
+        for (int i = 0; i < NUM_TRIALS; i++) {
+            trials.add(i);
+        }
+        return trials;
+    }
+
+    private static final Set<Integer> exitCodes = new HashSet<>();
 
     @Test
     public void close() throws Exception {
@@ -32,7 +47,9 @@ public class ScopedProcessTrackerTest {
         }
         assertFalse("isAlive", monitor.process().isAlive());
         ProcessResult<?, ?> result = monitor.await(0, TimeUnit.MILLISECONDS);
-        System.out.format("exit code %d%n", result.exitCode());
+        if (exitCodes.add(result.exitCode())) {
+            System.out.format("[%d] exit code %d%n", trial, result.exitCode());
+        }
         assertNotEquals("exit code", 0, result.exitCode());
     }
 

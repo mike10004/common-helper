@@ -17,7 +17,7 @@
         <mysql-dist.groupId>com.github.mike10004</mysql-dist.groupId>
         <mysql-dist.artifactId>mariadb-dist</mysql-dist.artifactId>
         <mysql-dist.version>10.0.27</mysql-dist.version>
-        <failsafe.skip>true</failsafe.skip>
+        <failsafe.skip>false</failsafe.skip>
     </properties>
     <build>
         <pluginManagement>
@@ -167,6 +167,11 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
