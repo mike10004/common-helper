@@ -1,9 +1,7 @@
-version: 1.0.{build}
+version: "{build}"
 image: Visual Studio 2017
 environment:
   PYTHON: "C:\\Python36-x64"
-skip_commits:
-  message: "[skip appveyor]"
 build_script:
 - cmd: >-
     python --version
