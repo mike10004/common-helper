@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.db.DatabaseType;
+import com.j256.ormlite.db.H2DatabaseType;
 import com.j256.ormlite.field.DataPersister;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.DatabaseFieldConfig;
@@ -86,6 +87,7 @@ public class LocalDataPersisterTest {
         dao.create(recordWithWidget);
         assertEquals("count", 2L, dao.countOf());
         recordWithWidget = dao.queryForSameId(recordWithWidget);
+        //noinspection ConstantConditions
         assertTrue("instanceof Widget", recordWithWidget.widget instanceof Widget);
     }
     
@@ -101,6 +103,7 @@ public class LocalDataPersisterTest {
         String[] rawRecord = dao.queryRaw("SELECT * FROM `Foo` WHERE fooId = ?", foo.fooId.toString()).getFirstResult();
         assertEquals(LocalPersister.SERIALIZED_WIDGET, rawRecord[1]);
         Foo deserializedFoo = dao.queryForId(foo.fooId);
+        //noinspection ConstantConditions
         assertTrue(deserializedFoo.widget instanceof Widget);
     }
 
@@ -142,9 +145,10 @@ public class LocalDataPersisterTest {
             if (Foo.class.equals(clazz)) {
                 DatabaseTableConfig<T> dtc = getCachedTableConfig(clazz);
                 if (dtc == null) {
-                    String tableName = DatabaseTableConfig.extractTableName(clazz);
+                    DatabaseType databaseType = new H2DatabaseType(); // H2 is used in unit tests
+                    String tableName = DatabaseTableConfig.extractTableName(databaseType, clazz);
                     List<DatabaseFieldConfig> fieldConfigs = buildFieldConfigs(clazz, tableName);
-                    dtc = new DatabaseTableConfig<>(clazz, fieldConfigs);
+                    dtc = new DatabaseTableConfig<>(databaseType, clazz, fieldConfigs);
                     tableConfigs.put(clazz, dtc);
                 }
                 return dtc;
@@ -168,6 +172,7 @@ public class LocalDataPersisterTest {
         }
 
         private <T> List<DatabaseFieldConfig> buildFieldConfigs(Class<T> clazz, String tableName) throws SQLException {
+            @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
             Iterable<Pair<Field, DatabaseField>> fields = Iterables.transform(Arrays.asList(clazz.getFields()), input -> {
                 DatabaseField df = input.getAnnotation(DatabaseField.class);
                 if (df != null) {
@@ -249,151 +254,4 @@ public class LocalDataPersisterTest {
         public Widget widget;
     }
     
-    public static class PersisterPlaceholder implements DataPersister {
-
-        public static PersisterPlaceholder getSingleton() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public String getSqlOtherType() {
-            throw new UnsupportedOperationException("not implemented");
-        }
-
-        @Override
-        public Class<?>[] getAssociatedClasses() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public String[] getAssociatedClassNames() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object makeConfigObject(FieldType fieldType) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object convertIdNumber(Number number) {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isValidGeneratedType() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isValidForField(Field field) {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Class<?> getPrimaryClass() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isEscapedDefaultValue() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isEscapedValue() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isPrimitive() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isComparable() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isAppropriateId() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isArgumentHolderRequired() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isSelfGeneratedId() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object generateId() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public int getDefaultWidth() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean dataIsEqual(Object obj1, Object obj2) {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isValidForVersion() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object moveToNextValue(Object currentValue) {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object parseDefaultString(FieldType fieldType, String defaultStr) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object javaToSqlArg(FieldType fieldType, Object obj) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object resultToSqlArg(FieldType fieldType, DatabaseResults results, int columnPos) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object resultToJava(FieldType fieldType, DatabaseResults results, int columnPos) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object sqlArgToJava(FieldType fieldType, Object sqlArg, int columnPos) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public SqlType getSqlType() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public boolean isStreamType() {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-
-        @Override
-        public Object resultStringToJava(FieldType fieldType, String stringValue, int columnPos) throws SQLException {
-            throw new UnsupportedOperationException("Not implemented");
-        }
-        
-    }
 }
