@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>common-helper</artifactId>
-        <version>8.1.0</version>
+        <version>9.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ormlite-helper-testtools</artifactId>
     <name>ormlite-helper-testtools</name>
