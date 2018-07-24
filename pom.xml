@@ -22,7 +22,7 @@
         <skip.failsafe.tests>false</skip.failsafe.tests>
         <ormlite.version>5.1</ormlite.version>
         <slf4j.version>1.7.25</slf4j.version>
-        <h2.version>1.4.196</h2.version> <!-- this is used by a ormlite-helper unit test -->
+        <h2.version>1.4.196</h2.version> <!-- do not raise above 1.4.196; weird errors occur -->
     </properties>
     <profiles>
         <profile>
@@ -115,7 +115,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.19.1</version>
+                    <version>2.20.1</version>
                     <configuration>
                         <argLine>-Djava.awt.headless=true</argLine>
                         <skipTests>${skip.surefire.tests}</skipTests>
@@ -126,7 +126,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.19.1</version>
+                    <version>2.20.1</version>
                     <configuration>
                         <argLine>-Djava.awt.headless=true</argLine>
                         <skipTests>${skip.failsafe.tests}</skipTests>
@@ -282,7 +282,7 @@
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>${h2.version}</version> <!-- do not raise to 1.4.196; weird errors occur -->
+                <version>${h2.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
