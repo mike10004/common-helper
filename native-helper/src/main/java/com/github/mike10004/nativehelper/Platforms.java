@@ -18,7 +18,6 @@ import static java.lang.System.getenv;
  * Class that provides static methods relating to application 
  * deployment platforms.
  * 
- * @author mchaberski
  * @see Platform
  */
 public final class Platforms {
@@ -67,7 +66,7 @@ public final class Platforms {
             return WindowsServer2003.class;
         } else if (osName.startsWith("Windows Server 2008") || osName.startsWith("Windows 2008")) {
             return WindowsServer2008.class;
-        } else if (osName.startsWith("Windows Server 2008") || osName.startsWith("Windows 2008")) {
+        } else if (osName.startsWith("Windows Server 2012") || osName.startsWith("Windows 2012")) {
             return WindowsServer2012.class;
         } else if (osName.startsWith("Windows 7")) {
             return Windows7.class;
