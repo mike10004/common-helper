@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.google.common.collect.ImmutableList;
@@ -13,7 +5,6 @@ import java.util.Objects;
 
 /**
  * Plain old object that stores database connection parameters.
- * @author mchaberski
  */
 public class ConnectionParams {
     

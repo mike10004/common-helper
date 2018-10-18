@@ -10,16 +10,13 @@ import org.junit.Rule;
 
 /**
  * Test that confirms that we are using unique schemas on each @Test method.
- * @author mchaberski
  */
 public class MysqlConnectionSourceRuleIT {
     
     @Rule
     public MysqlConnectionSourceRule connectionSourceRule = new MysqlConnectionSourceRule(IntegrationTests.getMysqlPort());
+
     private DatabaseContext context;
-    
-    public MysqlConnectionSourceRuleIT() {
-    }
     
     @Before
     public void setUp() throws SQLException {

@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import java.util.function.Function;
@@ -18,8 +10,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- *
- * @author mchaberski
+ * Abstract superclass of connection source implementations that utilize an H2 file database.
  */
 public abstract class AbstractH2FileConnectionSource extends H2ConnectionSource {
     

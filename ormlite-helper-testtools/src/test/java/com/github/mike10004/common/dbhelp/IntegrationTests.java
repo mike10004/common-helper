@@ -1,9 +1,5 @@
 package com.github.mike10004.common.dbhelp;
 
-/**
- *
- * @author mchaberski
- */
 public class IntegrationTests {
     
     /**

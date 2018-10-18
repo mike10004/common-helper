@@ -307,7 +307,7 @@ public class SubprocessTest extends SubprocessTestBase {
 
     @Test
     public void test_splitLines() {
-        String line = "C:\\Users\\mchaberski";
+        String line = "C:\\Users\\jgarner";
         String text = line + System.lineSeparator();
         System.out.format("text = \"%s\"%n", StringEscapeUtils.escapeJava(text));
         List<String> lines = splitLines(text);

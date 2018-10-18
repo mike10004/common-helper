@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.google.common.base.CharMatcher;
@@ -16,8 +8,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Implementation of connection source for an H2 memory-only database.
- * 
- * @author mchaberski
  */
 public class H2MemoryConnectionSource extends H2ConnectionSource {
 

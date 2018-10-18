@@ -1,6 +1,3 @@
-/*
- * (c) 2016 Mike Chaberski
- */
 package com.github.mike10004.common.image;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,9 +23,9 @@ public class ImageFormatsTest {
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.pgm")), Optional.of(Format.PGM))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ppm")), Optional.of(Format.PPM))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ras")), Optional.of(Format.RAS))
-                .put(new byte[]{1, 2, 3, 4}, Optional.<Format>empty())
-                .put(new byte[0], Optional.<Format>empty())
-                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.<Format>empty())
+                .put(new byte[]{1, 2, 3, 4}, Optional.empty())
+                .put(new byte[0], Optional.empty())
+                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.empty())
                 .build();
         for (byte[] input : testCases.keySet()) {
             Optional<Format> expected = testCases.get(input);
@@ -36,7 +33,7 @@ public class ImageFormatsTest {
         }
     }
 
-    @org.junit.Ignore // TODO fix tiff format detection
+    @org.junit.Ignore("tiff format detection is not currently supported") // TODO fix tiff format detection
     @Test
     public void guessFormat_tiff() throws Exception {
         assertEquals("tiff", Format.TIFF, ImageFormats.guessFormat(Resources.toByteArray(getClass().getResource("/images/logo.tiff"))));
@@ -52,9 +49,9 @@ public class ImageFormatsTest {
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.pgm")), Optional.of(Format.PGM.getMimeType()))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ppm")), Optional.of(Format.PPM.getMimeType()))
                 .put(Resources.toByteArray(getClass().getResource("/images/logo.ras")), Optional.of(Format.RAS.getMimeType()))
-                .put(new byte[]{1, 2, 3, 4}, Optional.<String>empty())
-                .put(new byte[0], Optional.<String>empty())
-                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.<String>empty())
+                .put(new byte[]{1, 2, 3, 4}, Optional.empty())
+                .put(new byte[0], Optional.empty())
+                .put("not an image".getBytes(StandardCharsets.UTF_8), Optional.empty())
                 .build();
         for (byte[] input : testCases.keySet()) {
             Optional<String> expected = testCases.get(input);

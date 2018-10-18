@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.dao.Dao;
@@ -19,7 +11,6 @@ import java.sql.SQLException;
  * <p>To establish a database connection, you must configure the type of 
  * connection source to be created by providing an appropriate 
  * {@link ConnectionSource}.
- * @author mchaberski
  */
 public interface DatabaseContext {
 

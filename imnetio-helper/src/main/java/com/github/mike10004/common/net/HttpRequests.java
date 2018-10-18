@@ -1,11 +1,8 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.net;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Objects.requireNonNull;
-
+import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.HttpGetRequestFactory;
+import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.RequestConfigFactory;
+import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.SystemHttpClientFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -18,23 +15,6 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
-import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.HttpGetRequestFactory;
-import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.RequestConfigFactory;
-import com.github.mike10004.common.net.HttpRequests.DefaultHttpRequester.SystemHttpClientFactory;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.charset.UnsupportedCharsetException;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import javax.annotation.Nullable;
-
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -49,13 +29,30 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import javax.annotation.Nullable;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+
 /**
  * Class that provides utilities relating to HTTP requests. Primarily 
  * provides a simple HTTP client to make simple requests.
  * 
  * <p>Depends on Java 7, Google Guava 18, a JSR-305 implementation, and Apache HTTP Client 4.4ish.
- * @author mchaberski
+ *
+ * @deprecated this is going to be removed in favor of a client-agnostic API and implementation
  */
+@Deprecated
 public class HttpRequests {
  
     private HttpRequests() {}

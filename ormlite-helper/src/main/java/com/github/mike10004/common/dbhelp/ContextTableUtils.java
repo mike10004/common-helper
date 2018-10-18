@@ -1,7 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski 
- */
-
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.field.DatabaseField;
@@ -15,7 +11,7 @@ import java.util.List;
  * database context. This interface duplicates the functionality of 
  * {@link TableUtils} but doesn't require the connection source
  * parameter that those methods require.
- * @author mchaberski
+ *
  * @see TableUtils
  */
 public interface ContextTableUtils {

@@ -1,6 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.db.DatabaseType;
@@ -16,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Static utility methods relating to connection sources.
  * @see ConnectionSource
  *
- * @author mchaberski
  * @since 3.1.0
  */
 public class ConnectionSources {
@@ -106,6 +102,7 @@ public class ConnectionSources {
     
     public static class ConnectionSourceRuntimeException extends RuntimeException {
 
+        @SuppressWarnings("unused")
         public ConnectionSourceRuntimeException() {
         }
 

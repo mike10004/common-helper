@@ -13,9 +13,6 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.*;
 
-/**
- * Created by mchaberski on 2/1/16.
- */
 public class DropAllObjectsOperationTest {
 
     @Test

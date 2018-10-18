@@ -1,8 +1,6 @@
 package com.github.mike10004.nativehelper;
 
 import com.github.mike10004.nativehelper.Platforms.NullPlatform;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -12,23 +10,8 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-/**
- *
- * @author mchaberski
- */
 public class PlatformsTest {
     
-    public PlatformsTest() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void testLinux() {
         System.out.println("testLinux");

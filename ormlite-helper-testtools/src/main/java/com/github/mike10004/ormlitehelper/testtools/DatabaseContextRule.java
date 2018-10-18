@@ -1,6 +1,3 @@
-/**
- * (c) 2016 Mike Chaberski. Distributed under terms of the MIT License.
- */
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.google.common.collect.ImmutableList;
@@ -14,8 +11,7 @@ import java.util.logging.Logger;
 import org.junit.rules.ExternalResource;
 
 /**
- *
- * @author mchaberski
+ * Superclass for implementations of a rule that provides a fresh database context on each cycle.
  */
 public abstract class DatabaseContextRule extends ExternalResource {
 

@@ -15,7 +15,6 @@ import org.junit.rules.ExternalResource;
 /**
  * Connection source that creates a new unique schema on initialization and 
  * drops the schema on close.
- * @author mchaberski
  */
 public class MysqlConnectionSourceRule extends ExternalResource {
 

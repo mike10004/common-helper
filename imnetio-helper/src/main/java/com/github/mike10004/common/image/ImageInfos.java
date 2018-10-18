@@ -1,6 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.image;
 
 import com.google.common.io.ByteSource;
@@ -15,7 +12,7 @@ import javax.imageio.ImageIO;
 
 /**
  * Class that provides static utility methods relating to image info objects.
- * @author mchaberski
+
  * @see ImageInfo
  */
 public class ImageInfos {

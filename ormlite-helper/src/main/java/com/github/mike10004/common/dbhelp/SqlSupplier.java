@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import java.sql.SQLException;
@@ -14,7 +6,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Supplier that declares an SQL exception on the supply method.
- * @author mchaberski
  * @param <T> the type of object to be supplied
  */
 public interface SqlSupplier<T> {

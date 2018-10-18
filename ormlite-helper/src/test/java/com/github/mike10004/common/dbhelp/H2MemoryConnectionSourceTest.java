@@ -1,6 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.dao.Dao;
@@ -13,10 +10,6 @@ import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author mchaberski
- */
 public class H2MemoryConnectionSourceTest {
     
     @Test

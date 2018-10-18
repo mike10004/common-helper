@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import java.util.function.Function;
@@ -20,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Class that is the default implementation of a database context.
- * @author mchaberski
  */
 public class DefaultDatabaseContext implements DatabaseContext {
 

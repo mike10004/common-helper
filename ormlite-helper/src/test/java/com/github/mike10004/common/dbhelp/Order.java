@@ -1,7 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski 
- */
-
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.field.DatabaseField;
@@ -9,9 +5,7 @@ import com.j256.ormlite.table.DatabaseTable;
 import java.util.Objects;
 
 /**
- * Database entity representing a customer order, used for testing purposes
- * only.
- * @author mchaberski
+ * Database entity representing a customer order, used for testing purposes only.
  */
 @DatabaseTable
 public class Order {

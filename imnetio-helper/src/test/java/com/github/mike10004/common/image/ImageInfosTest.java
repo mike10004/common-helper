@@ -1,7 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
-
 package com.github.mike10004.common.image;
 
 import com.google.common.collect.ImmutableList;
@@ -16,10 +12,6 @@ import java.util.TreeSet;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author mchaberski
- */
 public class ImageInfosTest {
     
     private static final int minExpectedSuccesses = 10;

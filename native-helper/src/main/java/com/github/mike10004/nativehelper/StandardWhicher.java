@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
  * Class that provides a method of determining the pathname of
  * an executable. This class's functionality approximates that of the GNU
  * {@code which} program.
- * @author mchaberski
+ *
  * @since 3.1.0
  */
 public class StandardWhicher implements Whicher {

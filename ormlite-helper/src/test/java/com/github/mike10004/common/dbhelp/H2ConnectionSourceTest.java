@@ -1,42 +1,13 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.db.DatabaseType;
 import com.j256.ormlite.db.H2DatabaseType;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-/**
- *
- * @author mchaberski
- */
+import static org.junit.Assert.assertEquals;
+
 public class H2ConnectionSourceTest {
     
-    public H2ConnectionSourceTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void testForceGetDatabaseType() {
         

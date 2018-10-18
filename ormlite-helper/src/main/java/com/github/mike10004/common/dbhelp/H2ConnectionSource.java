@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -15,7 +7,6 @@ import java.sql.SQLException;
 
 /**
  * Abstract superclass for H2 connection source implementations.
- * @author mchaberski
  */
 public abstract class H2ConnectionSource extends LazyJdbcConnectionSource {
     

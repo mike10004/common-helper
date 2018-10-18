@@ -1,6 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.image;
 
 import javax.annotation.Nullable;
@@ -8,7 +5,7 @@ import java.io.ByteArrayInputStream;
 
 /**
  * Class that provides static utility methods relating to image formats.
- * @author mchaberski
+
  * @see ImageInfo.Format
  */
 public class ImageFormats {

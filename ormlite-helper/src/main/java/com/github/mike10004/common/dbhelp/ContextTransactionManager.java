@@ -1,7 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski 
- */
-
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.misc.TransactionManager;

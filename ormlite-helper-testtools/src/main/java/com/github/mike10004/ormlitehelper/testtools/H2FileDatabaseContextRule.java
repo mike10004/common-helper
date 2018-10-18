@@ -1,6 +1,3 @@
-/**
- * (c) 2016 Mike Chaberski. Distributed under terms of the MIT License.
- */
 package com.github.mike10004.ormlitehelper.testtools;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -31,8 +28,6 @@ import org.junit.rules.TemporaryFolder;
 
 /**
  * Rule that produces an H2 file database context for each test.
- *
- * @author mchaberski
  */
 public class H2FileDatabaseContextRule extends DatabaseContextRule {
 

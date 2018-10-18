@@ -24,7 +24,6 @@ import org.openide.util.RequestProcessor;
  * Test for MysqlConnectionSource class in core project. This test has 
  * to be in this package because it utilizes the MysqlConnectionSourceRule
  * class in the testtools project.
- * @author mchaberski
  */
 public class MysqlConnectionSourceIT {
     

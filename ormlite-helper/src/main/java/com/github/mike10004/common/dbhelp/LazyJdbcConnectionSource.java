@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.db.DatabaseType;
@@ -22,7 +14,6 @@ import java.sql.SQLException;
  * a connection source the first time it is needed. Subclasses must set JDBC
  * connection parameters, such as the JDBC URL, in the implementation of the 
  * {@link #prepare() prepare} method.
- * @author mchaberski
  */
 public abstract class LazyJdbcConnectionSource extends JdbcConnectionSource {
 

@@ -15,9 +15,6 @@ import java.util.Set;
 
 import static org.junit.Assert.*;
 
-/**
- * Created by mchaberski on 1/20/16.
- */
 public class H2DumperTest {
 
     @Rule

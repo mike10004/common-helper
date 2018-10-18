@@ -12,7 +12,7 @@ import java.util.Optional;
  * an executable. A given implementation could be a generic file resolver,
  * but the {@link #gnu()} implementation approximates the GNU {@code which}
  * program, which only finds existing files that are executable.
- * @author mchaberski
+ * 
  * @since 3.1.0
  */
 public interface Whicher {

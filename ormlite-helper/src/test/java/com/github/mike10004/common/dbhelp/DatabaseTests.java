@@ -1,6 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.google.common.collect.ImmutableList;
@@ -9,10 +6,6 @@ import java.sql.SQLException;
 import java.util.Collection;
 import static org.junit.Assert.assertEquals;
 
-/**
- *
- * @author mchaberski
- */
 public class DatabaseTests {
 
     private DatabaseTests() {

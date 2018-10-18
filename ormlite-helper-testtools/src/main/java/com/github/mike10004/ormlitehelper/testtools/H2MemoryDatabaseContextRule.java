@@ -1,6 +1,3 @@
-/*
- * (c) 2016 Mike Chaberski. Distributed under terms of the MIT License.
- */
 package com.github.mike10004.ormlitehelper.testtools;
 
 import com.github.mike10004.common.dbhelp.H2MemoryConnectionSource;
@@ -9,8 +6,7 @@ import javax.annotation.Nullable;
 import java.util.Optional;
 
 /**
- *
- * @author mchaberski
+ * Rule that creates a new H2 memory database on each test cycle.
  */
 public class H2MemoryDatabaseContextRule extends DatabaseContextRule {
 

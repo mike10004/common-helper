@@ -1,6 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.github.mike10004.common.dbhelp.AbstractH2FileConnectionSource.DefaultSchemaTransform;
@@ -33,14 +30,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- *
- * @author mchaberski
- */
 public class H2FileConnectionSourceTest {
-    
-    public H2FileConnectionSourceTest() {
-    }
     
     @BeforeClass
     public static void setUpClass() {

@@ -5,9 +5,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-/**
- * Created by mchaberski on 2/1/16.
- */
 public class H2MemoryDatabaseContextRuleTest {
 
     @Test

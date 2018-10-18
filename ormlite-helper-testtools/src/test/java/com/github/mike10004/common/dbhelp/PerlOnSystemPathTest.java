@@ -1,6 +1,3 @@
-/*
- * Copyright 2015 Mike Chaberski.
- */
 package com.github.mike10004.common.dbhelp;
 
 import java.io.File;
@@ -20,8 +17,6 @@ import static org.junit.Assert.*;
  * the actual problem. This unit test, which runs before the integration test,
  * will print a more helpful error message instructing the user to install
  * perl.
- * 
- * @author mchaberski
  */
 public class PerlOnSystemPathTest {
     

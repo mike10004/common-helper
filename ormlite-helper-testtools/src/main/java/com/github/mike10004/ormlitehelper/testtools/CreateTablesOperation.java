@@ -1,6 +1,3 @@
-/**
- * (c) 2016 Mike Chaberski. Distributed under terms of the MIT License.
- */
 package com.github.mike10004.ormlitehelper.testtools;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -9,8 +6,7 @@ import com.google.common.collect.Lists;
 import com.github.mike10004.common.dbhelp.DatabaseContext;
 
 /**
- * Database setup operation that creates
- * @author mchaberski
+ * Database setup operation that creates tables corresponding to entity classes.
  */
 public class CreateTablesOperation implements DatabaseContextRule.SetupOperation {
 

@@ -9,10 +9,6 @@ import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-/**
- *
- * @author mchaberski
- */
 public class H2FileDatabaseContextRuleTest {
 
     @Rule

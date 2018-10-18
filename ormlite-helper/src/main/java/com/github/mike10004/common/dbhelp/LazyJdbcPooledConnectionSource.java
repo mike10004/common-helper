@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.j256.ormlite.db.DatabaseType;
@@ -19,7 +11,6 @@ import java.sql.SQLException;
 
 /**
  * Class that supports lazy initialization of a JDBC connection source.
- * @author mchaberski
  */
 public abstract class LazyJdbcPooledConnectionSource extends JdbcPooledConnectionSource {
 

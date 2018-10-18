@@ -1,11 +1,3 @@
-/*
- * The MIT License
- *
- * (c) 2015 Mike Chaberski.
- *
- * See LICENSE in base directory for distribution terms.
- *
- */
 package com.github.mike10004.common.dbhelp;
 
 import com.google.common.base.MoreObjects;
@@ -15,8 +7,7 @@ import com.j256.ormlite.db.DatabaseTypeUtils;
 import java.sql.SQLException;
 
 /**
- *
- * @author mchaberski
+ * Implementation of a MySQL connection source.
  */
 public class MysqlConnectionSource extends LazyJdbcPooledConnectionSource {
 

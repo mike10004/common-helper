@@ -1,4 +1,5 @@
 package com.github.mike10004.nativehelper;
+
 import com.github.mike10004.nativehelper.Platforms.UnsupportedPlatformException;
 import java.io.File;
 
@@ -6,7 +7,6 @@ import java.io.File;
  * Interface for objects that represent a given deployment platform. Instances
  * of this class can provide information about properties of the system
  * that are platform-specific.
- * @author mchaberski
  */
 public interface Platform {
 

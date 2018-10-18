@@ -8,7 +8,6 @@ import java.sql.SQLException;
 
 /**
  * Operation that drops all objects in an H2 database.
- * @author mchaberski
  */
 public class DropAllObjectsOperation implements DatabaseContextRule.TeardownOperation {
 

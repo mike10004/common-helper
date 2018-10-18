@@ -7,10 +7,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/**
- *
- * @author mchaberski
- */
 public class WhicherTests {
 
     public static void testWhich_found(File temporaryDir) throws IOException {
@@ -25,7 +21,7 @@ public class WhicherTests {
         assertTrue("expect result isFile true", result.get().isFile());
     }
     
-    public static void testWhich_notFound(File temporaryDir) throws IOException {
+    public static void testWhich_notFound(File temporaryDir) {
         System.out.println("testWhich_NotFound");
         String absent = "thisFileProbablyDoesNotExist";
         File pathname = new File(temporaryDir, absent);

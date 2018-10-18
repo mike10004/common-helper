@@ -31,8 +31,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Static utility methods relating to H2 databases.
- *
- * @author mchaberski
  */
 public class H2 {
 
@@ -42,7 +40,7 @@ public class H2 {
     /**
      * Class that facilitates dumping H2 databases.
      */
-    @NotThreadSafe // it is somewhat thread-safe, but only for some multithreading circumstances
+    @NotThreadSafe // it is somewhat thread-safe, but only for some multithreading contexts
     public static class Dumper {
 
         public enum Compression {
@@ -114,6 +112,7 @@ public class H2 {
             return this;
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public synchronized Dumper setTables(String firstTable, String...otherTables) {
             tables = ImmutableSet.copyOf(Lists.asList(checkNotNull(firstTable), otherTables));
             return this;
@@ -123,6 +122,7 @@ public class H2 {
             return tables;
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public synchronized Dumper allTables() {
             tables = ImmutableSet.of();
             return this;
@@ -270,10 +270,12 @@ public class H2 {
             clauses = new LinkedHashSet<>();
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public H2FileUrlBuilder setOnlyOpenIfExists(boolean onlyOpenIfExists) {
             return addClause("IFEXISTS=" + onlyOpenIfExists);
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public H2FileUrlBuilder setAutoMixedMode(boolean autoMixedMode) {
             return addClause("AUTO_SERVER=" + autoMixedMode);
         }

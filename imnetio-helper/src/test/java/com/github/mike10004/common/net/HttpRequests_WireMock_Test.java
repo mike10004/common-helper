@@ -1,7 +1,3 @@
-/*
- * (c) 2015 Mike Chaberski
- */
-
 package com.github.mike10004.common.net;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
