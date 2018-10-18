@@ -1,31 +1,21 @@
-/*
- * (c) 2015 Mike Chaberski
- */
 package com.github.mike10004.common.io;
 
-import java.util.function.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.io.ByteProcessor;
-import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
-import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.List;
+import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Class that provides static utility methods relating to byte sources.
- * @author mchaberski
  * @see ByteSource
  */
 public class ByteSources {
@@ -118,81 +108,15 @@ public class ByteSources {
         };
     }
 
+    /**
+     * Returns an empty byte source.
+     * @deprecated use {@link ByteSource#empty()}
+     * @return an empty byte source
+     */
+    @Deprecated
     public static ByteSource empty() {
-        return emptyByteSourceInstance;
+        return ByteSource.empty();
     }
-
-    private static final byte[] emptyByteArray = new byte[0];
-    
-    private static class EmptyByteSource extends ByteSource {
-        
-        private final ByteSource delegate = ByteSource.wrap(emptyByteArray);
-        
-        private EmptyByteSource() {}
-
-        @Override
-        public InputStream openStream() throws IOException {
-            return delegate.openStream();
-        }
-
-        @Override
-        public boolean contentEquals(ByteSource other) throws IOException {
-            return other.isEmpty();
-        }
-
-        @Override
-        public HashCode hash(HashFunction hashFunction) throws IOException {
-            return delegate.hash(hashFunction);
-        }
-
-        @Override
-        public <T> T read(ByteProcessor<T> processor) throws IOException {
-            return delegate.read(processor);
-        }
-
-        @Override
-        public byte[] read() throws IOException {
-            return emptyByteArray;
-        }
-
-        @Override
-        public long copyTo(ByteSink sink) throws IOException {
-            return 0L;
-        }
-
-        @Override
-        public long copyTo(OutputStream output) throws IOException {
-            return 0L;
-        }
-
-        @Override
-        public long size() throws IOException {
-            return 0L;
-        }
-
-        @Override
-        public boolean isEmpty() throws IOException {
-            return true;
-        }
-
-        @Override
-        public ByteSource slice(long offset, long length) {
-            return delegate.slice(offset, length);
-        }
-
-        @Override
-        public CharSource asCharSource(Charset charset) {
-            return delegate.asCharSource(charset);
-        }
-
-        @Override
-        public String toString() {
-            return "ByteSources{EMPTY}";
-        }
-        
-    }
-
-    private static final ByteSource emptyByteSourceInstance = new EmptyByteSource();
 
     private static class GunzippingByteSource extends ByteSource {
 
