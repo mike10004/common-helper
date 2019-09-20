@@ -1,5 +1,0 @@
-This program contains files representing Python programs used for testing
-subprocess management.
-
-Filenames of Python programs in this directory start with nht_ (native-helper test)
-to make it easier to grep for them in `ps aux` output.
