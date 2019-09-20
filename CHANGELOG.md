@@ -1,6 +1,14 @@
 common-helper Changelog
 =======================
 
+10.0.0
+------
+
+* remove subprocess API from **native-helper**; use 
+  **com.github.mike10004:subprocess:0.1** instead and change imports from 
+  `com.github.mike10004.nativehelper.subprocess.*` to 
+  `io.github.mike10004.subprocess.*`
+
 9.0.0
 -----
 
