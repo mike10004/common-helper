@@ -1,21 +1,23 @@
 package com.github.mike10004.common.dbhelp;
 
 import com.github.mike10004.common.dbhelp.AbstractH2FileConnectionSource.DefaultSchemaTransform;
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import io.github.mike10004.subprocess.ProcessResult;
+import io.github.mike10004.subprocess.ScopedProcessTracker;
+import io.github.mike10004.subprocess.Subprocess;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ public class H2FileConnectionSourceTest {
     public static void setUpClass() {
         System.out.println("ensure this is on classpath: " 
                 + AbstractH2FileConnectionSource.DefaultSchemaTransform.class.getName());
+        System.setOut(new PrintStream(new CloseShieldOutputStream(System.out)));
+        System.setErr(new PrintStream(new CloseShieldOutputStream(System.err)));
     }
     
     @Rule
@@ -185,7 +189,8 @@ public class H2FileConnectionSourceTest {
         System.out.println("dbFile.length = " + dbFile.length());
         assertTrue("expect positive database file size, but is " + dbFile.length(), dbFile.length() > 0);
     }
-    
+
+    //@org.junit.Ignore
     @Test(timeout = 30000L)
     public void testMixedMode()  throws Exception {
         if (!isLinux()) {
@@ -249,20 +254,21 @@ public class H2FileConnectionSourceTest {
             String jdbcUrl = cs.constructJdbcUrl();
             String sqlCommand = "'SELECT id, name, address FROM Customer WHERE 1'";
             ProcessResult<String, String> ae = execute(mavenExecutable, mavenHomeDir, jdbcUrl, sqlCommand, tmpDir);
-            System.out.println("=======================================");
-            System.out.println("======================================= STDOUT START");
-            System.out.println("=======================================");
-            System.out.println(ae.content().stdout());
-            System.out.println("=======================================");
-            System.out.println("======================================= STDOUT END");
-            System.out.println("=======================================");
-            System.out.println("=======================================");
-            System.out.println("======================================= STDERR START");
-            System.out.println("=======================================");
-            System.out.println(ae.content().stderr());
-            System.out.println("=======================================");
-            System.out.println("======================================= STDERR END");
-            System.out.println("=======================================");
+            // printing this stuff confuses the JetBrains IDEA Maven output parser
+//            System.out.println("=======================================");
+//            System.out.println("======================================= STDOUT START");
+//            System.out.println("=======================================");
+//            System.out.println(ae.content().stdout());
+//            System.out.println("=======================================");
+//            System.out.println("======================================= STDOUT END");
+//            System.out.println("=======================================");
+//            System.out.println("=======================================");
+//            System.out.println("======================================= STDERR START");
+//            System.out.println("=======================================");
+//            System.out.println(ae.content().stderr());
+//            System.out.println("=======================================");
+//            System.out.println("======================================= STDERR END");
+//            System.out.println("=======================================");
             int exitCode = ae.exitCode();
             System.out.println("exit code " + exitCode);
             assertEquals("exit code", 0, exitCode);
