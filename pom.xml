@@ -22,7 +22,7 @@
         <skip.failsafe.tests>false</skip.failsafe.tests>
         <ormlite.version>5.1</ormlite.version>
         <slf4j.version>1.7.25</slf4j.version>
-        <h2.version>1.4.196</h2.version> <!-- do not raise above 1.4.196; weird errors occur -->
+        <h2.version>2.1.210</h2.version> <!-- do not raise above 1.4.196; weird errors occur -->
     </properties>
     <profiles>
         <profile>
